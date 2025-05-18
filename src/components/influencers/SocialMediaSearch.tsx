@@ -45,23 +45,25 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         return;
       }
       
-      // Create a new profile first
-      const { data: profile, error: profileError } = await supabase
+      // Generate a new UUID for the profile/influencer
+      const newId = crypto.randomUUID();
+      
+      // Create a new profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .insert({
+          id: newId, // Use the generated UUID
           first_name: profileData.full_name?.split(' ')[0] || '',
           last_name: profileData.full_name?.split(' ').slice(1).join(' ') || '',
           avatar_url: profileData.profile_pic_url || '',
           role: 'influencer'
-        })
-        .select()
-        .single();
+        });
         
       if (profileError) throw profileError;
       
-      // Now create the influencer with the profile ID
+      // Now create the influencer with the same ID
       const influencerData: any = {
-        id: profile.id,
+        id: newId, // Use the same ID for the influencer
         bio: profileData.biography || '',
         follower_count: profileData.follower_count || 0,
         engagement_rate: profileData.engagement_rate || 0,

@@ -1,10 +1,10 @@
 
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardProps {
   children: ReactNode;
@@ -15,14 +15,22 @@ interface DashboardProps {
 const Dashboard = ({ children, title, subtitle }: DashboardProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { user, isLoading } = useAuth();
   
-  // Simple auth check
-  useEffect(() => {
-    const user = localStorage.getItem('agencyDashboardUser');
-    if (!user) {
-      navigate('/');
-    }
-  }, [navigate]);
+  // If still loading or no user, this will be handled by ProtectedRoute
+  // This is just an additional check
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    navigate('/auth');
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-background">

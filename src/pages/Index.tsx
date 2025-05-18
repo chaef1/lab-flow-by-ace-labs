@@ -1,18 +1,26 @@
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import LoginForm from '@/components/auth/LoginForm';
+import { useNavigate, Link } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
   
   useEffect(() => {
-    // Check if user is already logged in
-    const user = localStorage.getItem('agencyDashboardUser');
-    if (user) {
+    if (user && !isLoading) {
       navigate('/dashboard');
     }
-  }, [navigate]);
+  }, [navigate, user, isLoading]);
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-agency-50 to-white p-4">
@@ -45,15 +53,23 @@ const Index = () => {
               </span>
             </div>
           </div>
-          <div className="hidden lg:block">
-            <p className="text-sm text-muted-foreground">
-              Login quickly with Google, TikTok, or Instagram to access your dashboard
-            </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button asChild size="lg">
+              <Link to="/auth">Get Started</Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer">Learn More</a>
+            </Button>
           </div>
         </div>
         
-        <div className="flex-1 w-full max-w-md">
-          <LoginForm />
+        <div className="flex-1 hidden lg:block">
+          <img 
+            src="https://api.dicebear.com/7.x/shapes/svg?seed=dashboard" 
+            alt="Dashboard illustration" 
+            className="w-full h-auto"
+          />
         </div>
       </div>
     </div>

@@ -1,0 +1,223 @@
+
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from '@/contexts/AuthContext';
+
+const Auth = () => {
+  const navigate = useNavigate();
+  const { signIn, signUp, user } = useAuth();
+  
+  // Redirect if user is already logged in
+  if (user) {
+    navigate('/dashboard');
+    return null;
+  }
+  
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-agency-50 to-white p-4">
+      <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8 items-center">
+        <div className="flex-1 text-center lg:text-left">
+          <div className="mb-6 flex justify-center lg:justify-start">
+            <div className="h-12 w-12 rounded-full bg-agency-600 flex items-center justify-center">
+              <span className="text-white font-bold text-2xl">A</span>
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-agency-900 mb-4">
+            Agency Dashboard
+          </h1>
+          <p className="text-xl text-muted-foreground mb-6">
+            Manage projects, payments, and content approvals in one place.
+          </p>
+          <div className="hidden lg:block mb-8">
+            <div className="flex gap-3 flex-wrap">
+              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
+                Project Management
+              </span>
+              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
+                Content Approval
+              </span>
+              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
+                Payment Tracking
+              </span>
+              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
+                Client Communication
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex-1 w-full max-w-md">
+          <Card className="w-full shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
+              <CardDescription>
+                Access your agency dashboard
+              </CardDescription>
+            </CardHeader>
+            
+            <Tabs defaultValue="signin" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="signin">
+                <SignInForm signIn={signIn} />
+              </TabsContent>
+              
+              <TabsContent value="signup">
+                <SignUpForm signUp={signUp} />
+              </TabsContent>
+            </Tabs>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => Promise<void> }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      await signIn(email, password);
+      navigate('/dashboard');
+    } catch (error) {
+      // Error is handled in signIn function
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 p-6">
+      <div className="space-y-2">
+        <Label htmlFor="signin-email">Email</Label>
+        <Input 
+          id="signin-email" 
+          type="email" 
+          placeholder="name@example.com" 
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="signin-password">Password</Label>
+        <Input 
+          id="signin-password" 
+          type="password" 
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+      
+      <Button 
+        type="submit" 
+        className="w-full mt-6" 
+        disabled={isLoading}
+      >
+        {isLoading ? "Signing in..." : "Sign In"}
+      </Button>
+    </form>
+  );
+};
+
+const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, userData: { first_name?: string; last_name?: string }) => Promise<void> }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      await signUp(email, password, {
+        first_name: firstName,
+        last_name: lastName
+      });
+      // User will need to sign in after registration
+    } catch (error) {
+      // Error is handled in signUp function
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 p-6">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="first-name">First Name</Label>
+          <Input 
+            id="first-name" 
+            required
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="last-name">Last Name</Label>
+          <Input 
+            id="last-name" 
+            required
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+          />
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="signup-email">Email</Label>
+        <Input 
+          id="signup-email" 
+          type="email" 
+          placeholder="name@example.com" 
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="signup-password">Password</Label>
+        <Input 
+          id="signup-password" 
+          type="password" 
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">Password must be at least 8 characters</p>
+      </div>
+      
+      <Button 
+        type="submit" 
+        className="w-full mt-6" 
+        disabled={isLoading}
+      >
+        {isLoading ? "Creating Account..." : "Create Account"}
+      </Button>
+    </form>
+  );
+};
+
+export default Auth;

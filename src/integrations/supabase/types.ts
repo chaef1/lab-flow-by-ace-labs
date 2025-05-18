@@ -9,7 +9,160 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_type: string | null
+          id: string
+          project_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_type?: string | null
+          id?: string
+          project_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string | null
+          id?: string
+          project_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attachments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          client: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          members: Json | null
+          shoot_date: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          client?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          members?: Json | null
+          shoot_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          client?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          members?: Json | null
+          shoot_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          completed: boolean
+          created_at: string
+          due_date: string | null
+          id: string
+          position: number
+          project_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed?: boolean
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          position?: number
+          project_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed?: boolean
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          position?: number
+          project_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +171,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      project_status:
+        | "conceptualisation"
+        | "pre-production"
+        | "production"
+        | "post-production"
+        | "submission"
+        | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +292,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      project_status: [
+        "conceptualisation",
+        "pre-production",
+        "production",
+        "post-production",
+        "submission",
+        "completed",
+      ],
+    },
   },
 } as const

@@ -29,7 +29,7 @@ const Index = () => {
           <p className="text-xl text-muted-foreground mb-6">
             Manage projects, payments, and content approvals in one place.
           </p>
-          <div className="hidden lg:block">
+          <div className="hidden lg:block mb-8">
             <div className="flex gap-3 flex-wrap">
               <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
                 Project Management
@@ -44,6 +44,11 @@ const Index = () => {
                 Client Communication
               </span>
             </div>
+          </div>
+          <div className="hidden lg:block">
+            <p className="text-sm text-muted-foreground">
+              Login quickly with Google, TikTok, or Instagram to access your dashboard
+            </p>
           </div>
         </div>
         

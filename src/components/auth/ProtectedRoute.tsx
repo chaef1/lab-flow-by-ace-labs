@@ -1,6 +1,6 @@
 
-import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { ReactNode, useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -10,6 +10,17 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, isLoading, userProfile } = useAuth();
+  const location = useLocation();
+
+  // Enhanced debugging
+  useEffect(() => {
+    if (!isLoading) {
+      console.log('ProtectedRoute - Path:', location.pathname);
+      console.log('ProtectedRoute - User:', user);
+      console.log('ProtectedRoute - UserProfile:', userProfile);
+      console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
+    }
+  }, [user, userProfile, allowedRoles, isLoading, location.pathname]);
 
   if (isLoading) {
     return (
@@ -19,13 +30,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // Debugging
-  console.log('ProtectedRoute - User:', user);
-  console.log('ProtectedRoute - UserProfile:', userProfile);
-  console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
-
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    // Use replace to avoid building up history
+    return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
   // If allowedRoles is specified, check if user has one of the allowed roles

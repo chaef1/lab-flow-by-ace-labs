@@ -1,6 +1,6 @@
 
-import { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { ReactNode, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -16,9 +16,14 @@ const Dashboard = ({ children, title, subtitle }: DashboardProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user, isLoading } = useAuth();
+  const location = useLocation();
   
-  // If still loading or no user, this will be handled by ProtectedRoute
-  // This is just an additional check
+  // Log the dashboard render state for debugging
+  useEffect(() => {
+    console.log(`Dashboard rendering - Path: ${location.pathname}, User: ${user?.id}, Loading: ${isLoading}`);
+  }, [user, isLoading, location.pathname]);
+  
+  // If still loading, show the loading spinner
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -27,8 +32,11 @@ const Dashboard = ({ children, title, subtitle }: DashboardProps) => {
     );
   }
   
+  // This is a fallback - ProtectedRoute should handle this case
   if (!user) {
-    navigate('/auth');
+    console.log("Dashboard: No user found, redirecting to auth");
+    // Use replace to avoid building up history
+    navigate('/auth', { replace: true });
     return null;
   }
 

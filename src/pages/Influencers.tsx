@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -10,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Instagram, Search, Star } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Instagram, Search, Star, Plus } from 'lucide-react';
+import SocialMediaSearch from '@/components/influencers/SocialMediaSearch';
 
 // Interface for influencer data
 interface Influencer {
@@ -32,9 +33,10 @@ const Influencers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [followerCountFilter, setFollowerCountFilter] = useState<string>('all');
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
 
   // Fetch influencers
-  const { data: influencers, isLoading, error } = useQuery({
+  const { data: influencers, isLoading, error, refetch } = useQuery({
     queryKey: ['influencers'],
     queryFn: async () => {
       // Join influencers table with profiles to get names and avatar
@@ -111,8 +113,13 @@ const Influencers = () => {
     return searchMatch && categoryMatch && followerMatch;
   });
 
+  const handleAddInfluencer = () => {
+    refetch();
+    setIsSearchDialogOpen(false);
+  };
+
   return (
-    <Dashboard title="Influencer Directory" subtitle="Find and connect with influencers">
+    <Dashboard title="Influencer Directory" subtitle="Find and connect with influencers" showSearch={true}>
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
@@ -151,6 +158,23 @@ const Influencers = () => {
                 <SelectItem value="macro">Macro (500K+)</SelectItem>
               </SelectContent>
             </Select>
+
+            <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" /> Add Influencer
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add New Influencer</DialogTitle>
+                  <DialogDescription>
+                    Search for influencers on social media and add them to your database.
+                  </DialogDescription>
+                </DialogHeader>
+                <SocialMediaSearch onAddInfluencer={handleAddInfluencer} />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 

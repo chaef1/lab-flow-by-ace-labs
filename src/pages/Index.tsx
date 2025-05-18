@@ -1,8 +1,9 @@
 
 import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
+import { ArrowRight, Globe, Code, Layers } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,55 +24,143 @@ const Index = () => {
   }
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-agency-50 to-white p-4">
-      <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8 items-center">
-        <div className="flex-1 text-center lg:text-left">
-          <div className="mb-6 flex justify-center lg:justify-start">
-            <div className="h-12 w-12 rounded-full bg-agency-600 flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">A</span>
+    <div className="min-h-screen bg-white">
+      {/* Header/Navigation */}
+      <header className="w-full px-4 py-6 md:px-12 lg:px-24">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <div className="h-10 w-10 rounded-lg bg-agency-600 flex items-center justify-center mr-3">
+              <span className="text-white font-bold text-xl">L</span>
             </div>
+            <span className="text-xl font-bold text-agency-900">LabFlow</span>
           </div>
-          <h1 className="text-4xl font-bold text-agency-900 mb-4">
-            Agency Dashboard
-          </h1>
-          <p className="text-xl text-muted-foreground mb-6">
-            Manage projects, payments, and content approvals in one place.
-          </p>
-          <div className="hidden lg:block mb-8">
-            <div className="flex gap-3 flex-wrap">
-              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Project Management
-              </span>
-              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Content Approval
-              </span>
-              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Payment Tracking
-              </span>
-              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Client Communication
-              </span>
-            </div>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button asChild size="lg">
+          <nav className="hidden md:flex items-center gap-8">
+            <Link to="/auth" className="text-sm text-gray-600 hover:text-agency-600 transition-colors">Login</Link>
+            <Button asChild size="sm" variant="outline">
               <Link to="/auth">Get Started</Link>
             </Button>
+          </nav>
+          <Button asChild variant="outline" size="sm" className="md:hidden">
+            <Link to="/auth">Login</Link>
+          </Button>
+        </div>
+      </header>
+      
+      {/* Hero Section */}
+      <section className="px-4 pt-16 pb-24 md:px-12 lg:px-24 md:pt-28 md:pb-32">
+        <div className="max-w-5xl mx-auto">
+          <h1 className="text-4xl md:text-6xl font-bold text-agency-900 mb-6 leading-tight">
+            Scientific project workflows,<br /> 
+            <span className="text-agency-600">simplified</span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-10 max-w-2xl">
+            LabFlow makes project management and collaboration in scientific laboratories 
+            seamless and efficient. Focus on discoveries, not administrative overhead.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button asChild size="lg" className="gap-2">
+              <Link to="/auth">
+                Get Started 
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
             <Button variant="outline" size="lg" asChild>
-              <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer">Learn More</a>
+              <a href="#features">Learn More</a>
             </Button>
           </div>
         </div>
-        
-        <div className="flex-1 hidden lg:block">
-          <img 
-            src="https://api.dicebear.com/7.x/shapes/svg?seed=dashboard" 
-            alt="Dashboard illustration" 
-            className="w-full h-auto"
-          />
+      </section>
+      
+      {/* Features Section */}
+      <section id="features" className="px-4 py-20 bg-gray-50 md:px-12 lg:px-24">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-agency-900 mb-4">Powerful lab management tools</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              LabFlow streamlines every aspect of laboratory project management, from initial concept to final delivery.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+              <div className="h-12 w-12 rounded-lg bg-agency-100 flex items-center justify-center mb-6">
+                <Layers className="h-6 w-6 text-agency-600" />
+              </div>
+              <h3 className="text-xl font-bold text-agency-900 mb-3">Project Management</h3>
+              <p className="text-gray-600">
+                Track projects from conception to completion with intuitive kanban boards and timeline views.
+              </p>
+            </div>
+            
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+              <div className="h-12 w-12 rounded-lg bg-agency-100 flex items-center justify-center mb-6">
+                <Globe className="h-6 w-6 text-agency-600" />
+              </div>
+              <h3 className="text-xl font-bold text-agency-900 mb-3">Team Collaboration</h3>
+              <p className="text-gray-600">
+                Centralized communication and task assignment keeps everyone in sync and experiments on track.
+              </p>
+            </div>
+            
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+              <div className="h-12 w-12 rounded-lg bg-agency-100 flex items-center justify-center mb-6">
+                <Code className="h-6 w-6 text-agency-600" />
+              </div>
+              <h3 className="text-xl font-bold text-agency-900 mb-3">Data Integration</h3>
+              <p className="text-gray-600">
+                Connect with lab instruments and data repositories for seamless information flow and analysis.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+      
+      {/* CTA Section */}
+      <section className="px-4 py-20 md:px-12 lg:px-24">
+        <div className="max-w-5xl mx-auto bg-agency-600 rounded-2xl p-10 md:p-16 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">Ready to transform your lab workflow?</h2>
+          <p className="text-xl text-white/90 mb-8 max-w-xl mx-auto">
+            Join leading research teams using LabFlow to accelerate innovation and streamline operations.
+          </p>
+          <Button asChild size="lg" variant="secondary" className="bg-white text-agency-600 hover:bg-white/90">
+            <Link to="/auth">Get Started Now</Link>
+          </Button>
+          <p className="text-sm text-white/70 mt-6">
+            An application by Ace Labs
+          </p>
+        </div>
+      </section>
+      
+      {/* Footer */}
+      <footer className="px-4 py-12 bg-gray-50 border-t border-gray-200 md:px-12 lg:px-24">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="mb-6 md:mb-0">
+              <div className="flex items-center justify-center md:justify-start">
+                <div className="h-8 w-8 rounded-lg bg-agency-600 flex items-center justify-center mr-2">
+                  <span className="text-white font-bold text-sm">L</span>
+                </div>
+                <span className="text-lg font-bold text-agency-900">LabFlow</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">An application by Ace Labs</p>
+            </div>
+            <div className="flex gap-8">
+              <a href="#" className="text-sm text-gray-600 hover:text-agency-600 transition-colors">
+                Terms
+              </a>
+              <a href="#" className="text-sm text-gray-600 hover:text-agency-600 transition-colors">
+                Privacy
+              </a>
+              <a href="#" className="text-sm text-gray-600 hover:text-agency-600 transition-colors">
+                Contact
+              </a>
+            </div>
+          </div>
+          <div className="text-center mt-8 text-sm text-gray-500">
+            &copy; {new Date().getFullYear()} LabFlow. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

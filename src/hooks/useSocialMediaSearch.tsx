@@ -62,7 +62,7 @@ export const useSocialMediaSearch = () => {
           description: `Found ${platform} profile for @${username}`,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching social profile:", error);
       toast({
         title: "Search failed",

@@ -60,11 +60,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     console.log('AuthContext initializing');
+    let mounted = true;
     
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+      async (event, newSession) => {
         console.log('Auth state changed:', event, newSession?.user?.id);
+        
+        if (!mounted) return;
         
         // Update session and user state synchronously
         setSession(newSession);
@@ -74,6 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (newSession?.user) {
           // Use setTimeout to avoid potential deadlock with Supabase client
           setTimeout(async () => {
+            if (!mounted) return;
             const profile = await fetchUserProfile(newSession.user.id);
             setUserProfile(profile);
             setIsLoading(false);
@@ -89,19 +93,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       console.log('Initial session check:', currentSession?.user?.id);
       
+      if (!mounted) return;
+      
       // Update session and user state
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
         const profile = await fetchUserProfile(currentSession.user.id);
-        setUserProfile(profile);
+        if (mounted) {
+          setUserProfile(profile);
+        }
       }
       
-      setIsLoading(false);
+      if (mounted) {
+        setIsLoading(false);
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);

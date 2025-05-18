@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -26,10 +25,18 @@ const Auth = () => {
   
   // Only redirect if user is loaded and authenticated, and we haven't redirected already
   useEffect(() => {
-    if (user && !isLoading && !redirected) {
+    // Clear any previous redirect flag when component mounts or auth state changes
+    if (isLoading) {
+      return;
+    }
+    
+    if (user && !redirected) {
       console.log('Auth: User authenticated, redirecting to dashboard');
       setRedirected(true);
-      navigate('/dashboard', { replace: true });
+      // Use a small timeout to prevent potential race conditions with state updates
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 50);
     }
   }, [user, isLoading, navigate, redirected]);
   

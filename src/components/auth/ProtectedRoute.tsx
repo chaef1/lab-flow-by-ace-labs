@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   useEffect(() => {
     if (!isLoading) {
       console.log('ProtectedRoute - Path:', location.pathname);
-      console.log('ProtectedRoute - User:', user);
+      console.log('ProtectedRoute - User:', user ? 'Authenticated' : 'Not authenticated');
       console.log('ProtectedRoute - UserProfile:', userProfile);
       console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
     }
@@ -31,6 +31,13 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   if (!user) {
+    // Don't redirect to auth if we're already on auth
+    if (location.pathname === "/auth") {
+      console.log("Already on auth page, not redirecting");
+      return <>{children}</>;
+    }
+    
+    console.log(`Redirecting to auth from ${location.pathname}`);
     // Use replace to avoid building up history
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }

@@ -20,7 +20,7 @@ const Dashboard = ({ children, title, subtitle }: DashboardProps) => {
   
   // Log the dashboard render state for debugging
   useEffect(() => {
-    console.log(`Dashboard rendering - Path: ${location.pathname}, User: ${user?.id}, Loading: ${isLoading}`);
+    console.log(`Dashboard rendering - Path: ${location.pathname}, User: ${user?.id || 'none'}, Loading: ${isLoading}`);
   }, [user, isLoading, location.pathname]);
   
   // If still loading, show the loading spinner
@@ -33,11 +33,14 @@ const Dashboard = ({ children, title, subtitle }: DashboardProps) => {
   }
   
   // This is a fallback - ProtectedRoute should handle this case
+  // Do not add redirect logic here, since it's already in ProtectedRoute
   if (!user) {
-    console.log("Dashboard: No user found, redirecting to auth");
-    // Use replace to avoid building up history
-    navigate('/auth', { replace: true });
-    return null;
+    // Just render a loading state, since ProtectedRoute will handle the redirect
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+      </div>
+    );
   }
 
   return (

@@ -29,12 +29,10 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
     mutations: {
-      // Updated to use proper configuration for Tanstack Query v5+
-      onMutate: undefined,
-      onSuccess: undefined,
-      onSettled: undefined,
-      onError: (error) => {
-        console.error('Mutation error:', error);
+      onSettled: (_, error) => {
+        if (error) {
+          console.error('Mutation error:', error);
+        }
       }
     }
   }

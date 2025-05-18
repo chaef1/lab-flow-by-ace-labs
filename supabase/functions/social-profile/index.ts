@@ -35,16 +35,34 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Validate API key
+    if (!APIFY_API_KEY) {
+      console.error('APIFY_API_KEY environment variable is not set')
+      return formatResponse(
+        { error: 'API integration not configured' },
+        500
+      )
+    }
+    
+    // Clean username (remove @ if present)
+    const cleanUsername = username.replace('@', '')
+    console.log(`Processing ${platform} profile for: ${cleanUsername}`)
+
     // Process the request based on platform
     try {
       let profileData;
       
       if (platform === 'instagram') {
-        profileData = await fetchInstagramProfile(username, APIFY_API_KEY);
+        profileData = await fetchInstagramProfile(cleanUsername, APIFY_API_KEY);
       } else if (platform === 'tiktok') {
-        profileData = await fetchTikTokProfile(username, APIFY_API_KEY);
+        profileData = await fetchTikTokProfile(cleanUsername, APIFY_API_KEY);
       }
       
+      if (!profileData) {
+        throw new Error(`${platform} profile not found for ${cleanUsername}`);
+      }
+      
+      console.log(`Successfully retrieved ${platform} profile for: ${cleanUsername}`);
       return formatResponse(profileData);
     } catch (platformError) {
       console.error(`Error fetching ${platform} profile:`, platformError);

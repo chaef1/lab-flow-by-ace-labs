@@ -25,57 +25,78 @@ export function calculateTikTokEngagementRate(stats: any) {
 export async function fetchTikTokProfile(username: string, apiKey: string) {
   console.log(`Fetching TikTok profile for user: ${username}`);
   
-  // Use the exact endpoint provided
-  const endpoint = `https://api.apify.com/v2/acts/clockworks~free-tiktok-scraper/runs?token=${apiKey}`;
+  // Make sure we're using the exact endpoint with the correct actor name
+  const actorId = 'clockworks~free-tiktok-scraper';
+  const endpoint = `https://api.apify.com/v2/acts/${actorId}/runs?token=${apiKey}`;
+  
   console.log(`Using TikTok endpoint: ${endpoint}`);
   
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      'startUrls': [`https://www.tiktok.com/@${username.replace('@', '')}`],
-      'maxProfileCount': 1,
-      'disableStatistics': false
-    })
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`TikTok API error: ${response.status} - ${errorText}`);
-    throw new Error(`Failed to fetch TikTok data: ${errorText}`);
-  }
-  
-  const runResponse = await response.json();
-  const runId = runResponse.data.id;
-  console.log(`TikTok run created with ID: ${runId}`);
-  
-  // Wait for the run to complete and get the results
-  const result = await waitForApifyRun(runId, apiKey);
-  console.log(`Got ${result.data.length} TikTok results from dataset`);
-  console.log('TikTok data structure:', JSON.stringify(result.data[0]).substring(0, 500) + '...');
-  
-  const profile = result.data[0];
-  
-  if (!profile || !profile.userInfo) {
-    console.error('TikTok profile not found in response');
-    console.log('TikTok profile response:', JSON.stringify(result.data));
-    throw new Error('TikTok profile not found');
-  }
-  
-  const userInfo = profile.userInfo;
-  
-  // Map the free TikTok scraper data to our app format
-  return {
-    username: userInfo.username || userInfo.uniqueId || username.replace('@', ''),
-    full_name: userInfo.nickname || userInfo.fullName || '',
-    biography: userInfo.signature || userInfo.description || '',
-    follower_count: userInfo.followerCount || 0,
-    following_count: userInfo.followingCount || 0, 
-    post_count: userInfo.videoCount || 0,
-    is_verified: userInfo.verified || false,
-    profile_pic_url: userInfo.avatarMedium || userInfo.avatarUrl || '',
-    engagement_rate: calculateTikTokEngagementRate(userInfo)
+  // Use the recommended payload format for the free TikTok scraper
+  const payload = {
+    "startUrls": [`https://www.tiktok.com/@${username.replace('@', '')}`],
+    "maxProfileCount": 1,
+    "disableStatistics": false,
+    "extendOutputFunction": "",
+    "includeComments": false,
+    "includeVideoMetadata": false
   };
+  
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`TikTok API error: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to fetch TikTok data: ${errorText}`);
+    }
+    
+    const runResponse = await response.json();
+    const runId = runResponse.data.id;
+    console.log(`TikTok run created with ID: ${runId}`);
+    
+    // Wait for the run to complete with a longer timeout for TikTok (60 seconds)
+    // Sometimes TikTok scraping takes longer due to anti-bot measures
+    const result = await waitForApifyRun(runId, apiKey, 60000);
+    console.log(`Got ${result.data.length} TikTok results from dataset`);
+    
+    if (!result.data || result.data.length === 0) {
+      console.error('No TikTok profile data returned');
+      throw new Error('TikTok profile not found or scraping failed');
+    }
+    
+    // Log the first 500 characters of the response to help with debugging
+    console.log('TikTok data structure:', JSON.stringify(result.data[0]).substring(0, 500) + '...');
+    
+    const profile = result.data[0];
+    
+    if (!profile || !profile.userInfo) {
+      console.error('TikTok profile not found in response');
+      console.log('TikTok profile response:', JSON.stringify(result.data));
+      throw new Error('TikTok profile not found');
+    }
+    
+    const userInfo = profile.userInfo;
+    
+    // Map the free TikTok scraper data to our app format
+    return {
+      username: userInfo.username || userInfo.uniqueId || username.replace('@', ''),
+      full_name: userInfo.nickname || userInfo.fullName || '',
+      biography: userInfo.signature || userInfo.description || '',
+      follower_count: userInfo.followerCount || 0,
+      following_count: userInfo.followingCount || 0, 
+      post_count: userInfo.videoCount || 0,
+      is_verified: userInfo.verified || false,
+      profile_pic_url: userInfo.avatarMedium || userInfo.avatarUrl || '',
+      engagement_rate: calculateTikTokEngagementRate(userInfo)
+    };
+  } catch (error) {
+    console.error(`Error in TikTok scraper: ${error.message}`);
+    throw new Error(`Failed to fetch TikTok profile: ${error.message}`);
+  }
 }

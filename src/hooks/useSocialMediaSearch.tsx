@@ -37,6 +37,8 @@ export const useSocialMediaSearch = () => {
     setProfileData(null);
 
     try {
+      console.log(`Calling Supabase function for ${platform} profile: ${username}`);
+      
       const { data, error } = await supabase.functions.invoke('social-profile', {
         body: {
           platform,
@@ -47,6 +49,8 @@ export const useSocialMediaSearch = () => {
       if (error) {
         throw new Error(error.message);
       }
+
+      console.log("Response from social-profile function:", data);
 
       if (data.error) {
         toast({

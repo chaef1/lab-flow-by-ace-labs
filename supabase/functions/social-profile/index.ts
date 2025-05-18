@@ -35,19 +35,21 @@ Deno.serve(async (req) => {
     console.log(`Fetching ${platform} profile for user: ${username}`)
     
     // Use appropriate Apify actor based on platform
-    const actorId = platform === 'instagram' ? 'apify/instagram-profile-scraper' : 'apify/tiktok-scraper'
+    const actorId = platform === 'instagram' 
+      ? 'apify/instagram-profile-scraper' 
+      : 'apify/tiktok-scraper'
     
     // Call Apify API
-    const response = await fetch(`https://api.apify.com/v2/acts/${actorId}/run-sync`, {
+    const response = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${APIFY_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${APIFY_API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         'startUrls': [{ 'url': `https://${platform}.com/${username.replace('@', '')}` }],
         'resultsType': 'details',
-        'resultsLimit': 1
+        'resultsLimit': 1,
+        'waitUntilReady': true
       })
     })
     
@@ -60,16 +62,77 @@ Deno.serve(async (req) => {
       )
     }
     
-    const apifyResponse = await response.json()
+    const runResponse = await response.json()
+    const runId = runResponse.data.id
+    console.log(`Run created with ID: ${runId}`)
+    
+    // Wait for the run to complete and get the results
+    const maxWaitTime = 30000 // 30 seconds
+    const startTime = Date.now()
+    
+    let runFinished = false
+    let datasetResponse
+    
+    // Poll for completion
+    while (!runFinished && (Date.now() - startTime < maxWaitTime)) {
+      // Check run status
+      const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_API_KEY}`)
+      
+      if (!statusResponse.ok) {
+        console.error(`Failed to check run status: ${statusResponse.status}`)
+        await new Promise(resolve => setTimeout(resolve, 2000)) // wait 2 seconds before next check
+        continue
+      }
+      
+      const statusData = await statusResponse.json()
+      
+      if (statusData.data.status === 'SUCCEEDED') {
+        runFinished = true
+        // Get the dataset items
+        datasetResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}/dataset/items?token=${APIFY_API_KEY}`)
+        
+        if (!datasetResponse.ok) {
+          const errorText = await datasetResponse.text()
+          console.error(`Failed to fetch dataset: ${datasetResponse.status} - ${errorText}`)
+          return new Response(
+            JSON.stringify({ error: `Failed to fetch profile data from dataset` }),
+            { status: datasetResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      } else if (statusData.data.status === 'FAILED' || statusData.data.status === 'TIMED-OUT') {
+        console.error(`Run failed with status: ${statusData.data.status}`)
+        return new Response(
+          JSON.stringify({ error: `Profile scraping failed with status: ${statusData.data.status}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } else {
+        // Still running, wait before checking again
+        console.log(`Run status: ${statusData.data.status}, waiting...`)
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+    }
+    
+    if (!runFinished) {
+      console.error('Run timed out')
+      return new Response(
+        JSON.stringify({ error: 'Profile scraping timed out' }),
+        { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Process results based on the platform
+    const resultData = await datasetResponse.json()
+    console.log(`Got ${resultData.length} results from dataset`)
     
     // Extract profile data from Apify response and format it to match our app structure
     let profileData = {}
     
     if (platform === 'instagram') {
-      // Find the profile data in the output
-      const output = apifyResponse.output?.body?.items?.[0] || {}
+      // Instagram profile data structure
+      const profile = resultData[0]
       
-      if (!output.username) {
+      if (!profile || !profile.username) {
+        console.error('Instagram profile not found in response')
         return new Response(
           JSON.stringify({ error: 'Instagram profile not found' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -78,42 +141,45 @@ Deno.serve(async (req) => {
       
       // Map Apify data to our app format
       profileData = {
-        username: output.username,
-        full_name: output.fullName,
-        biography: output.biography,
-        follower_count: output.followersCount,
-        following_count: output.followsCount,
-        post_count: output.postsCount,
-        is_verified: output.verified,
-        profile_pic_url: output.profilePicUrl,
+        username: profile.username,
+        full_name: profile.fullName,
+        biography: profile.biography,
+        follower_count: profile.followersCount,
+        following_count: profile.followingCount,
+        post_count: profile.postsCount,
+        is_verified: profile.verified,
+        profile_pic_url: profile.profilePicUrl,
         // Calculate approximate engagement rate (if posts are available)
-        engagement_rate: output.latestPosts && output.latestPosts.length > 0 && output.followersCount > 0
-          ? calculateEngagementRate(output.latestPosts, output.followersCount)
+        engagement_rate: profile.latestPosts && profile.latestPosts.length > 0 && profile.followersCount > 0
+          ? calculateEngagementRate(profile.latestPosts, profile.followersCount)
           : 0
       }
     } else if (platform === 'tiktok') {
-      // Find the profile data in the output
-      const output = apifyResponse.output?.body?.userInfo || {}
+      // TikTok profile data structure
+      const profile = resultData[0]
       
-      if (!output.user?.uniqueId) {
+      if (!profile || !profile.userInfo || !profile.userInfo.user) {
+        console.error('TikTok profile not found in response')
         return new Response(
           JSON.stringify({ error: 'TikTok profile not found' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       
+      const userInfo = profile.userInfo
+      
       // Map Apify data to our app format
       profileData = {
-        username: output.user.uniqueId,
-        full_name: output.user.nickname,
-        biography: output.user.signature,
-        follower_count: output.stats.followerCount,
-        following_count: output.stats.followingCount,
-        post_count: output.stats.videoCount,
-        is_verified: output.user.verified,
-        profile_pic_url: output.user.avatarLarger,
+        username: userInfo.user.uniqueId,
+        full_name: userInfo.user.nickname,
+        biography: userInfo.user.signature,
+        follower_count: userInfo.stats.followerCount,
+        following_count: userInfo.stats.followingCount,
+        post_count: userInfo.stats.videoCount,
+        is_verified: userInfo.user.verified,
+        profile_pic_url: userInfo.user.avatarLarger,
         // Calculate approximate engagement rate
-        engagement_rate: calculateTikTokEngagementRate(output.stats)
+        engagement_rate: calculateTikTokEngagementRate(userInfo.stats)
       }
     }
     
@@ -151,7 +217,7 @@ function calculateTikTokEngagementRate(stats) {
   if (!stats || stats.followerCount === 0 || stats.videoCount === 0) return 0
   
   // TikTok engagement can be estimated using likes, comments and shares
-  const totalEngagement = stats.heartCount + stats.diggCount
+  const totalEngagement = stats.heartCount + (stats.diggCount || 0)
   const averageEngagement = totalEngagement / stats.videoCount
   const engagementRate = (averageEngagement / stats.followerCount) * 100
   

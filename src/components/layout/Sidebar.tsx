@@ -10,7 +10,8 @@ import {
   Users,
   Menu,
   X,
-  LogOut
+  LogOut,
+  ChartBar
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -35,6 +36,7 @@ const Sidebar = ({ className }: SidebarProps) => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Projects', path: '/projects', icon: FileText },
     { name: 'Content Approval', path: '/content', icon: FileText },
+    { name: 'Reporting', path: '/reporting', icon: ChartBar },
     { name: 'Wallet', path: '/wallet', icon: Wallet },
     // Only show Users page to admins
     ...(isAdmin ? [{ name: 'Users', path: '/users', icon: Users }] : []),

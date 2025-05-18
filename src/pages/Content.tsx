@@ -13,7 +13,7 @@ const contentData = [
   {
     id: "c1",
     title: "Homepage Banner",
-    type: "image",
+    type: "image" as const,
     thumbnail: "https://images.unsplash.com/photo-1661956602868-6ae368943878?auto=format&fit=crop&w=500",
     creator: {
       name: "Alex Smith",
@@ -27,7 +27,7 @@ const contentData = [
   {
     id: "c2",
     title: "Product Demo Video",
-    type: "video",
+    type: "video" as const,
     thumbnail: "https://images.unsplash.com/photo-1626544827763-d516dce335e2?auto=format&fit=crop&w=500",
     creator: {
       name: "Jamie Lee",
@@ -41,7 +41,7 @@ const contentData = [
   {
     id: "c3",
     title: "Brand Guidelines PDF",
-    type: "document",
+    type: "document" as const,
     thumbnail: "",
     creator: {
       name: "Taylor Kim",
@@ -55,7 +55,7 @@ const contentData = [
   {
     id: "c4",
     title: "Social Media Ad Set",
-    type: "image",
+    type: "image" as const,
     thumbnail: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=500",
     creator: {
       name: "Robin Banks",
@@ -69,7 +69,7 @@ const contentData = [
   {
     id: "c5",
     title: "Email Newsletter Template",
-    type: "document",
+    type: "document" as const,
     thumbnail: "",
     creator: {
       name: "Jordan Patel",
@@ -83,7 +83,7 @@ const contentData = [
   {
     id: "c6",
     title: "Product Lifestyle Photos",
-    type: "image",
+    type: "image" as const,
     thumbnail: "https://images.unsplash.com/photo-1612011213729-063c92731dea?auto=format&fit=crop&w=500",
     creator: {
       name: "Alex Smith",

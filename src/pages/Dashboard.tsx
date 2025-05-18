@@ -76,7 +76,7 @@ const approvalContent = [
   {
     id: "c1",
     title: "Homepage Banner",
-    type: "image",
+    type: "image" as const,
     thumbnail: "https://images.unsplash.com/photo-1661956602868-6ae368943878?auto=format&fit=crop&w=500",
     creator: {
       name: "Alex Smith",
@@ -90,7 +90,7 @@ const approvalContent = [
   {
     id: "c2",
     title: "Product Demo Video",
-    type: "video",
+    type: "video" as const,
     thumbnail: "https://images.unsplash.com/photo-1626544827763-d516dce335e2?auto=format&fit=crop&w=500",
     creator: {
       name: "Jamie Lee",

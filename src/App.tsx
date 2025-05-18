@@ -16,6 +16,10 @@ import Users from "./pages/Users";
 import Reporting from "./pages/Reporting";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import Influencers from "./pages/Influencers";
+import InfluencerProfile from "./pages/InfluencerProfile";
+import Campaigns from "./pages/Campaigns";
+import SubmitContent from "./pages/SubmitContent";
 
 const queryClient = new QueryClient();
 
@@ -30,12 +34,27 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+            
+            {/* Admin, Creator, Brand routes */}
+            <Route path="/projects" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Projects /></ProtectedRoute>} />
+            <Route path="/content" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Content /></ProtectedRoute>} />
+            <Route path="/content/:id" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><ContentDetails /></ProtectedRoute>} />
+            
+            {/* Admin, Brand routes */}
+            <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Influencers /></ProtectedRoute>} />
+            <Route path="/influencers/:id" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><InfluencerProfile /></ProtectedRoute>} />
+            <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Reporting /></ProtectedRoute>} />
+            
+            {/* Admin only routes */}
+            <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
+            
+            {/* Influencer only routes */}
+            <Route path="/campaigns" element={<ProtectedRoute allowedRoles={['influencer']}><Campaigns /></ProtectedRoute>} />
+            <Route path="/submit-content" element={<ProtectedRoute allowedRoles={['influencer']}><SubmitContent /></ProtectedRoute>} />
+            
+            {/* All authenticated users */}
             <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
-            <Route path="/content" element={<ProtectedRoute><Content /></ProtectedRoute>} />
-            <Route path="/content/:id" element={<ProtectedRoute><ContentDetails /></ProtectedRoute>} />
-            <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
-            <Route path="/reporting" element={<ProtectedRoute><Reporting /></ProtectedRoute>} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -11,9 +11,12 @@ import {
   Menu,
   X,
   LogOut,
-  ChartBar
+  ChartBar,
+  MessageSquare,
+  Star
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 
 type SidebarProps = {
   className?: string;
@@ -22,29 +25,54 @@ type SidebarProps = {
 const Sidebar = ({ className }: SidebarProps) => {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { userProfile, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
 
-  // Get user info from localStorage
-  const userInfo = JSON.parse(localStorage.getItem('agencyDashboardUser') || '{"role": "admin"}');
-  const isAdmin = userInfo.role === 'admin';
+  const isAdmin = userProfile?.role === 'admin';
+  const isCreator = userProfile?.role === 'creator';
+  const isBrand = userProfile?.role === 'brand';
+  const isInfluencer = userProfile?.role === 'influencer';
 
+  // Define menu items based on user role
   const menuItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Projects', path: '/projects', icon: FileText },
-    { name: 'Content Approval', path: '/content', icon: FileText },
-    { name: 'Reporting', path: '/reporting', icon: ChartBar },
-    { name: 'Wallet', path: '/wallet', icon: Wallet },
-    // Only show Users page to admins
-    ...(isAdmin ? [{ name: 'Users', path: '/users', icon: Users }] : []),
-  ];
+    // Everyone sees Dashboard
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'influencer'] },
+    
+    // Projects menu - admins, creators and brands
+    { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand'] },
+    
+    // Content Approval - admins, creators and brands
+    { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand'] },
+    
+    // Influencers directory - admins and brands
+    { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand'] },
+    
+    // Campaigns - influencers only
+    { name: 'My Campaigns', path: '/campaigns', icon: FileText, roles: ['influencer'] },
+    
+    // Content submission - influencers only
+    { name: 'Submit Content', path: '/submit-content', icon: MessageSquare, roles: ['influencer'] },
+    
+    // Reporting - admins and brands
+    { name: 'Reporting', path: '/reporting', icon: ChartBar, roles: ['admin', 'brand'] },
+    
+    // Wallet - all users
+    { name: 'Wallet', path: '/wallet', icon: Wallet, roles: ['admin', 'creator', 'brand', 'influencer'] },
+    
+    // Users - admin only
+    { name: 'Users', path: '/users', icon: Users, roles: ['admin'] },
+  ].filter(item => {
+    // Filter items based on user role
+    if (!userProfile) return false;
+    return item.roles.includes(userProfile.role);
+  });
 
   const handleLogout = () => {
-    localStorage.removeItem('agencyDashboardUser');
-    window.location.href = '/';
+    signOut();
   };
 
   // Check if the path matches the current location
@@ -66,7 +94,16 @@ const Sidebar = ({ className }: SidebarProps) => {
         )}
       </div>
       
-      <div className="mt-8 space-y-1 px-2">
+      <div className="mt-4 px-2 py-2">
+        {userProfile && (
+          <div className="px-2 py-2 mb-4">
+            <div className="text-xs uppercase text-muted-foreground">Logged in as</div>
+            <div className="font-medium mt-1">{userProfile.role}</div>
+          </div>
+        )}
+      </div>
+      
+      <div className="mt-2 space-y-1 px-2">
         {menuItems.map((item) => (
           <Link 
             key={item.path} 

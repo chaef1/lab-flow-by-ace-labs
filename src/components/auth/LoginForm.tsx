@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('admin');
+  const [userType, setUserType] = useState('brand');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { signIn } = useAuth();
@@ -84,10 +84,17 @@ const LoginForm = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Agency Admin</SelectItem>
-                <SelectItem value="client">Client</SelectItem>
                 <SelectItem value="creator">Content Creator</SelectItem>
+                <SelectItem value="brand">Brand</SelectItem>
+                <SelectItem value="influencer">Influencer</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              {userType === 'admin' && "For @acelabs.co.za email addresses only"}
+              {userType === 'creator' && "For content creators working with Ace Labs"}
+              {userType === 'brand' && "For brand managers and clients"}
+              {userType === 'influencer' && "For social media influencers"}
+            </p>
           </div>
           
           <Button 

@@ -20,7 +20,7 @@ interface HeaderProps {
 }
 
 const Header = ({ title, subtitle }: HeaderProps) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, userProfile } = useAuth();
   const navigate = useNavigate();
   
   // Placeholder notifications
@@ -41,8 +41,8 @@ const Header = ({ title, subtitle }: HeaderProps) => {
   const getInitials = () => {
     if (!user) return 'U';
     
-    const firstName = user.user_metadata?.first_name;
-    const lastName = user.user_metadata?.last_name;
+    const firstName = userProfile?.first_name || user.user_metadata?.first_name;
+    const lastName = userProfile?.last_name || user.user_metadata?.last_name;
     
     if (firstName && lastName) {
       return `${firstName[0]}${lastName[0]}`.toUpperCase();
@@ -53,6 +53,31 @@ const Header = ({ title, subtitle }: HeaderProps) => {
     }
     
     return 'U';
+  };
+
+  // Get role badge styling based on user role
+  const getRoleBadge = () => {
+    if (!userProfile) return null;
+    
+    const roleStyles = {
+      admin: "bg-red-100 text-red-800",
+      creator: "bg-purple-100 text-purple-800",
+      brand: "bg-blue-100 text-blue-800",
+      influencer: "bg-green-100 text-green-800"
+    };
+    
+    const roleName = {
+      admin: "Admin",
+      creator: "Creator",
+      brand: "Brand",
+      influencer: "Influencer"
+    };
+    
+    return (
+      <span className={`text-xs px-2 py-1 rounded-full ${roleStyles[userProfile.role]}`}>
+        {roleName[userProfile.role]}
+      </span>
+    );
   };
 
   return (
@@ -106,16 +131,21 @@ const Header = ({ title, subtitle }: HeaderProps) => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar>
-                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarImage src={userProfile?.avatar_url || user?.user_metadata?.avatar_url} />
                 <AvatarFallback>{getInitials()}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>
-              {user?.user_metadata?.first_name 
-                ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}` 
-                : user?.email || 'User'}
+            <DropdownMenuLabel className="flex flex-col">
+              <span>
+                {userProfile?.first_name 
+                  ? `${userProfile.first_name} ${userProfile.last_name || ''}` 
+                  : user?.email || 'User'}
+              </span>
+              <div className="mt-1">
+                {getRoleBadge()}
+              </div>
             </DropdownMenuLabel>
             <DropdownMenuLabel className="font-normal text-xs text-muted-foreground">
               {user?.email || 'user@example.com'}

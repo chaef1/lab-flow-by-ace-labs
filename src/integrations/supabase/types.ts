@@ -47,6 +47,110 @@ export type Database = {
           },
         ]
       }
+      campaign_content: {
+        Row: {
+          content_type: string
+          content_url: string
+          feedback: string | null
+          id: string
+          influencer_id: string | null
+          project_id: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          content_type: string
+          content_url: string
+          feedback?: string | null
+          id?: string
+          influencer_id?: string | null
+          project_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          content_type?: string
+          content_url?: string
+          feedback?: string | null
+          id?: string
+          influencer_id?: string | null
+          project_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_content_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_content_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      influencers: {
+        Row: {
+          bio: string | null
+          categories: string[] | null
+          created_at: string | null
+          engagement_rate: number | null
+          follower_count: number | null
+          id: string
+          instagram_handle: string | null
+          portfolio_images: string[] | null
+          rate_per_post: number | null
+          tiktok_handle: string | null
+          updated_at: string | null
+          youtube_handle: string | null
+        }
+        Insert: {
+          bio?: string | null
+          categories?: string[] | null
+          created_at?: string | null
+          engagement_rate?: number | null
+          follower_count?: number | null
+          id: string
+          instagram_handle?: string | null
+          portfolio_images?: string[] | null
+          rate_per_post?: number | null
+          tiktok_handle?: string | null
+          updated_at?: string | null
+          youtube_handle?: string | null
+        }
+        Update: {
+          bio?: string | null
+          categories?: string[] | null
+          created_at?: string | null
+          engagement_rate?: number | null
+          follower_count?: number | null
+          id?: string
+          instagram_handle?: string | null
+          portfolio_images?: string[] | null
+          rate_per_post?: number | null
+          tiktok_handle?: string | null
+          updated_at?: string | null
+          youtube_handle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencers_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -54,7 +158,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
-          role: string | null
+          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
@@ -63,7 +167,7 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
-          role?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
@@ -72,13 +176,14 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
-          role?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Relationships: []
       }
       projects: {
         Row: {
+          brand_id: string | null
           client: string | null
           created_at: string
           description: string | null
@@ -92,6 +197,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          brand_id?: string | null
           client?: string | null
           created_at?: string
           description?: string | null
@@ -105,6 +211,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          brand_id?: string | null
           client?: string | null
           created_at?: string
           description?: string | null
@@ -117,7 +224,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -178,6 +293,7 @@ export type Database = {
         | "post-production"
         | "submission"
         | "completed"
+      user_role: "admin" | "creator" | "brand" | "influencer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -301,6 +417,7 @@ export const Constants = {
         "submission",
         "completed",
       ],
+      user_role: ["admin", "creator", "brand", "influencer"],
     },
   },
 } as const

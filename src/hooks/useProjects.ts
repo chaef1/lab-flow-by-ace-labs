@@ -19,7 +19,9 @@ export const useProjects = () => {
         due_date, 
         members, 
         created_at, 
-        updated_at
+        updated_at,
+        shoot_date,
+        user_id
       `)
       .order('created_at', { ascending: false });
     
@@ -59,7 +61,9 @@ export const useProjectById = (id: string | undefined) => {
           due_date, 
           members, 
           created_at, 
-          updated_at
+          updated_at,
+          shoot_date,
+          user_id
         `)
         .eq('id', id)
         .single();

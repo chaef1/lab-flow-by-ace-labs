@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
-import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck, TikTok } from "lucide-react";
+import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";

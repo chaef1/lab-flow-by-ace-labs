@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Wallet from "./pages/Wallet";
 import Content from "./pages/Content";
+import ContentDetails from "./pages/ContentDetails";
 import Users from "./pages/Users";
 import Reporting from "./pages/Reporting";
 import NotFound from "./pages/NotFound";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/projects" element={<Projects />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/content" element={<Content />} />
+          <Route path="/content/:id" element={<ContentDetails />} />
           <Route path="/users" element={<Users />} />
           <Route path="/reporting" element={<Reporting />} />
           <Route path="*" element={<NotFound />} />

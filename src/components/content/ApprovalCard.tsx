@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, XCircle, MessageSquare } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 interface ApprovalCardProps {
   content: {
@@ -70,30 +71,36 @@ const ApprovalCard = ({ content }: ApprovalCardProps) => {
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
-      <div className="aspect-video bg-muted relative">
-        {content.thumbnail ? (
-          <img 
-            src={content.thumbnail} 
-            alt={content.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <span className="text-2xl text-muted-foreground">
-              {content.type === 'video' && '🎬'}
-              {content.type === 'image' && '🖼️'}
-              {content.type === 'document' && '📄'}
-            </span>
-          </div>
-        )}
-        
-        <Badge className={`absolute top-2 right-2 ${className}`}>
-          {label}
-        </Badge>
-      </div>
+      <Link to={`/content/${content.id}`} className="block">
+        <div className="aspect-video bg-muted relative">
+          {content.thumbnail ? (
+            <img 
+              src={content.thumbnail} 
+              alt={content.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <span className="text-2xl text-muted-foreground">
+                {content.type === 'video' && '🎬'}
+                {content.type === 'image' && '🖼️'}
+                {content.type === 'document' && '📄'}
+              </span>
+            </div>
+          )}
+          
+          <Badge className={`absolute top-2 right-2 ${className}`}>
+            {label}
+          </Badge>
+        </div>
+      </Link>
       
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">{content.title}</CardTitle>
+        <CardTitle className="text-base">
+          <Link to={`/content/${content.id}`} className="hover:underline">
+            {content.title}
+          </Link>
+        </CardTitle>
         <CardDescription className="flex justify-between">
           <span>For: {content.project}</span>
           <span>Submitted: {formatDate(content.dateSubmitted)}</span>
@@ -139,9 +146,11 @@ const ApprovalCard = ({ content }: ApprovalCardProps) => {
         )}
         
         {status !== 'pending' && (
-          <Button size="sm" variant="outline" className="w-full col-span-2">
-            View Details
-          </Button>
+          <Link to={`/content/${content.id}`} className="col-span-2">
+            <Button size="sm" variant="outline" className="w-full">
+              View Details
+            </Button>
+          </Link>
         )}
       </CardFooter>
     </Card>

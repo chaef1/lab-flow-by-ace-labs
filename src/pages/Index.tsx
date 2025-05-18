@@ -37,7 +37,7 @@ const Index = () => {
           <nav className="hidden md:flex items-center gap-8">
             <Link to="/auth" className="text-sm text-gray-600 hover:text-agency-600 transition-colors">Login</Link>
             <Button asChild size="sm" variant="outline">
-              <Link to="/auth">Get Started</Link>
+              <Link to="/auth?tab=signup">Get Started</Link>
             </Button>
           </nav>
           <Button asChild variant="outline" size="sm" className="md:hidden">

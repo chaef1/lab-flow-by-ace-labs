@@ -1,8 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bell } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -12,6 +11,8 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   title?: string;
@@ -19,20 +20,9 @@ interface HeaderProps {
 }
 
 const Header = ({ title, subtitle }: HeaderProps) => {
-  const [user, setUser] = useState<any>(null);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   
-  useEffect(() => {
-    const storedUser = localStorage.getItem('agencyDashboardUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('agencyDashboardUser');
-    window.location.href = '/';
-  };
-
   // Placeholder notifications
   const notifications = [
     { id: 1, message: 'New project comment from John', read: false },
@@ -41,6 +31,29 @@ const Header = ({ title, subtitle }: HeaderProps) => {
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+  
+  // Get user initials for avatar fallback
+  const getInitials = () => {
+    if (!user) return 'U';
+    
+    const firstName = user.user_metadata?.first_name;
+    const lastName = user.user_metadata?.last_name;
+    
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    } else if (firstName) {
+      return firstName[0].toUpperCase();
+    } else if (user.email) {
+      return user.email[0].toUpperCase();
+    }
+    
+    return 'U';
+  };
 
   return (
     <header className="flex justify-between items-center px-4 py-2 md:py-3 md:px-6 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -93,19 +106,23 @@ const Header = ({ title, subtitle }: HeaderProps) => {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar>
-                <AvatarImage src={user?.avatar} />
-                <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarFallback>{getInitials()}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{user?.name || 'User'}</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {user?.user_metadata?.first_name 
+                ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}` 
+                : user?.email || 'User'}
+            </DropdownMenuLabel>
             <DropdownMenuLabel className="font-normal text-xs text-muted-foreground">
               {user?.email || 'user@example.com'}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/profile')}>Profile</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/settings')}>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive">
               Logout

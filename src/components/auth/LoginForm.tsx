@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Instagram, Github } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -15,28 +16,19 @@ const LoginForm = () => {
   const [userType, setUserType] = useState('admin');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // This is a mock login - in a real app, this would connect to Supabase Auth
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store user info in localStorage (would be handled by auth provider in real app)
-      localStorage.setItem('agencyDashboardUser', JSON.stringify({
-        email,
-        role: userType,
-        name: email.split('@')[0],
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${email}`
-      }));
-      
+      await signIn(email, password);
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (error) {
-      toast.error('Login failed. Please check your credentials.');
+      // Error is already handled in signIn function
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -44,26 +36,11 @@ const LoginForm = () => {
 
   const handleSocialLogin = async (provider: string) => {
     setIsLoading(true);
+    toast.info(`${provider} login is not yet implemented`);
+    setIsLoading(false);
     
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store user info in localStorage (would be handled by auth provider in real app)
-      localStorage.setItem('agencyDashboardUser', JSON.stringify({
-        email: `user@${provider.toLowerCase()}.com`,
-        role: userType,
-        name: `${provider} User`,
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${provider}`
-      }));
-      
-      toast.success(`${provider} login successful!`);
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error(`${provider} login failed.`);
-    } finally {
-      setIsLoading(false);
-    }
+    // For future implementation:
+    // await supabase.auth.signInWithOAuth({ provider: provider.toLowerCase() as any });
   };
 
   return (
@@ -148,12 +125,10 @@ const LoginForm = () => {
           <Button 
             variant="outline" 
             className="w-full"
-            onClick={() => handleSocialLogin('TikTok')}
+            onClick={() => handleSocialLogin('Github')}
             disabled={isLoading}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 448 512">
-              <path fill="currentColor" d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/>
-            </svg>
+            <Github size={20} />
           </Button>
           
           <Button 

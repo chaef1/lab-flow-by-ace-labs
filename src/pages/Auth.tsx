@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,17 @@ import { useAuth } from '@/contexts/AuthContext';
 const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp, user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
+  const [activeTab, setActiveTab] = useState(defaultTab);
+  
+  useEffect(() => {
+    if (searchParams.get('tab') === 'signup') {
+      setActiveTab('signup');
+    } else {
+      setActiveTab('signin');
+    }
+  }, [searchParams]);
   
   // Redirect if user is already logged in
   if (user) {
@@ -24,14 +35,14 @@ const Auth = () => {
         <div className="flex-1 text-center lg:text-left">
           <div className="mb-6 flex justify-center lg:justify-start">
             <div className="h-12 w-12 rounded-full bg-agency-600 flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">A</span>
+              <span className="text-white font-bold text-2xl">L</span>
             </div>
           </div>
           <h1 className="text-4xl font-bold text-agency-900 mb-4">
-            Agency Dashboard
+            LabFlow
           </h1>
           <p className="text-xl text-muted-foreground mb-6">
-            Manage projects, payments, and content approvals in one place.
+            Manage scientific projects, workflows, and lab operations in one place.
           </p>
           <div className="hidden lg:block mb-8">
             <div className="flex gap-3 flex-wrap">
@@ -39,13 +50,13 @@ const Auth = () => {
                 Project Management
               </span>
               <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Content Approval
+                Team Collaboration
               </span>
               <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Payment Tracking
+                Data Integration
               </span>
               <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Client Communication
+                Workflow Automation
               </span>
             </div>
           </div>
@@ -56,11 +67,11 @@ const Auth = () => {
             <CardHeader>
               <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
               <CardDescription>
-                Access your agency dashboard
+                Access your lab dashboard
               </CardDescription>
             </CardHeader>
             
-            <Tabs defaultValue="signin" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>

@@ -10,6 +10,7 @@ import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
 import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { InfluencerCardModal } from "./InfluencerCardModal";
 
 interface SocialMediaSearchProps {
   onAddInfluencer?: (profileData: any) => void;
@@ -20,6 +21,8 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   const [username, setUsername] = useState('');
   const { searchProfile, isLoading, profileData } = useSocialMediaSearch();
   const { toast } = useToast();
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [savedProfileData, setSavedProfileData] = useState<any>(null);
 
   const handleSearch = () => {
     searchProfile(platform, username);
@@ -82,6 +85,23 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         .insert(influencerData);
         
       if (influencerError) throw influencerError;
+
+      // Store the saved profile data for the modal
+      const savedData = {
+        id: newId,
+        first_name: profileData.full_name?.split(' ')[0] || '',
+        last_name: profileData.full_name?.split(' ').slice(1).join(' ') || '',
+        bio: profileData.biography || '',
+        follower_count: profileData.follower_count || 0,
+        engagement_rate: profileData.engagement_rate || 0,
+        categories: [],
+        avatar_url: profileData.profile_pic_url || '',
+        instagram_handle: platform === 'instagram' ? profileData.username : null,
+        tiktok_handle: platform === 'tiktok' ? profileData.username : null
+      };
+      
+      setSavedProfileData(savedData);
+      setIsCardModalOpen(true);
       
       toast({
         title: "Influencer added",
@@ -105,99 +125,108 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Find Influencers</CardTitle>
-        <CardDescription>
-          Search for influencers by their social media handles
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="instagram" onValueChange={(v) => setPlatform(v as 'instagram' | 'tiktok')}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="instagram">Instagram</TabsTrigger>
-            <TabsTrigger value="tiktok">TikTok</TabsTrigger>
-          </TabsList>
-          
-          <div className="flex space-x-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={`Enter ${platform} username`}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="pl-10"
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
+    <>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Find Influencers</CardTitle>
+          <CardDescription>
+            Search for influencers by their social media handles
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="instagram" onValueChange={(v) => setPlatform(v as 'instagram' | 'tiktok')}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="instagram">Instagram</TabsTrigger>
+              <TabsTrigger value="tiktok">TikTok</TabsTrigger>
+            </TabsList>
+            
+            <div className="flex space-x-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={`Enter ${platform} username`}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <Button onClick={handleSearch} disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                Search
+              </Button>
             </div>
-            <Button onClick={handleSearch} disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-              Search
-            </Button>
-          </div>
-          
-          {profileData && (
-            <div className="mt-6 border rounded-lg p-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={profileData.profile_pic_url} />
-                  <AvatarFallback>
-                    {profileData.full_name?.split(' ').map(n => n[0]).join('') || profileData.username?.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                <div>
-                  <div className="flex items-center">
-                    <h3 className="font-medium text-lg">{profileData.full_name || profileData.username}</h3>
-                    {profileData.is_verified && (
-                      <Badge variant="secondary" className="ml-2">
-                        <UserCheck className="h-3 w-3 mr-1" /> Verified
-                      </Badge>
-                    )}
-                  </div>
+            
+            {profileData && (
+              <div className="mt-6 border rounded-lg p-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={profileData.profile_pic_url} />
+                    <AvatarFallback>
+                      {profileData.full_name?.split(' ').map(n => n[0]).join('') || profileData.username?.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    {platform === 'instagram' && <Instagram size={14} className="mr-1" />}
-                    @{profileData.username}
+                  <div>
+                    <div className="flex items-center">
+                      <h3 className="font-medium text-lg">{profileData.full_name || profileData.username}</h3>
+                      {profileData.is_verified && (
+                        <Badge variant="secondary" className="ml-2">
+                          <UserCheck className="h-3 w-3 mr-1" /> Verified
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      {platform === 'instagram' && <Instagram size={14} className="mr-1" />}
+                      @{profileData.username}
+                    </div>
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div className="text-center p-2 bg-muted rounded">
+                    <div className="text-muted-foreground text-xs">Followers</div>
+                    <div className="font-medium">{profileData.follower_count?.toLocaleString() || '0'}</div>
+                  </div>
+                  <div className="text-center p-2 bg-muted rounded">
+                    <div className="text-muted-foreground text-xs">Following</div>
+                    <div className="font-medium">{profileData.following_count?.toLocaleString() || '0'}</div>
+                  </div>
+                  <div className="text-center p-2 bg-muted rounded">
+                    <div className="text-muted-foreground text-xs">Posts</div>
+                    <div className="font-medium">{profileData.post_count?.toLocaleString() || '0'}</div>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <div className="flex items-center text-sm mb-1">
+                    <Star className="h-4 w-4 text-amber-500 mr-1" />
+                    <span className="font-medium">{profileData.engagement_rate || '0'}% Engagement Rate</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{profileData.biography || 'No bio available'}</p>
+                </div>
               </div>
-              
-              <div className="grid grid-cols-3 gap-4 mt-4">
-                <div className="text-center p-2 bg-muted rounded">
-                  <div className="text-muted-foreground text-xs">Followers</div>
-                  <div className="font-medium">{profileData.follower_count?.toLocaleString() || '0'}</div>
-                </div>
-                <div className="text-center p-2 bg-muted rounded">
-                  <div className="text-muted-foreground text-xs">Following</div>
-                  <div className="font-medium">{profileData.following_count?.toLocaleString() || '0'}</div>
-                </div>
-                <div className="text-center p-2 bg-muted rounded">
-                  <div className="text-muted-foreground text-xs">Posts</div>
-                  <div className="font-medium">{profileData.post_count?.toLocaleString() || '0'}</div>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <div className="flex items-center text-sm mb-1">
-                  <Star className="h-4 w-4 text-amber-500 mr-1" />
-                  <span className="font-medium">{profileData.engagement_rate || '0'}% Engagement Rate</span>
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">{profileData.biography || 'No bio available'}</p>
-              </div>
-            </div>
-          )}
-        </Tabs>
-      </CardContent>
-      
-      {profileData && (
-        <CardFooter>
-          <Button className="w-full" onClick={handleAddInfluencer}>
-            <TrendingUp className="mr-2 h-4 w-4" /> 
-            Add to Influencer Database
-          </Button>
-        </CardFooter>
-      )}
-    </Card>
+            )}
+          </Tabs>
+        </CardContent>
+        
+        {profileData && (
+          <CardFooter>
+            <Button className="w-full" onClick={handleAddInfluencer}>
+              <TrendingUp className="mr-2 h-4 w-4" /> 
+              Add to Influencer Database
+            </Button>
+          </CardFooter>
+        )}
+      </Card>
+
+      {/* Tinder Card Modal */}
+      <InfluencerCardModal
+        open={isCardModalOpen}
+        onOpenChange={setIsCardModalOpen}
+        influencerData={savedProfileData}
+      />
+    </>
   );
 }

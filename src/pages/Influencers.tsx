@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Instagram, Search, Star, Plus } from 'lucide-react';
 import SocialMediaSearch from '@/components/influencers/SocialMediaSearch';
+import { InfluencerCardModal } from '@/components/influencers/InfluencerCardModal';
 
 // Interface for influencer data
 interface Influencer {
@@ -34,6 +36,8 @@ const Influencers = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [followerCountFilter, setFollowerCountFilter] = useState<string>('all');
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
   // Fetch influencers
   const { data: influencers, isLoading, error, refetch } = useQuery({
@@ -118,148 +122,164 @@ const Influencers = () => {
     setIsSearchDialogOpen(false);
   };
 
+  const handleCardClick = (influencer: Influencer) => {
+    setSelectedInfluencer(influencer);
+    setIsCardModalOpen(true);
+  };
+
   return (
-    <Dashboard title="Influencer Directory" subtitle="Find and connect with influencers" showSearch={true}>
-      <div className="space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, bio, or social handle"
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <>
+      <Dashboard title="Influencer Directory" subtitle="Find and connect with influencers" showSearch={true}>
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, bio, or social handle"
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {allCategories.map(category => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={followerCountFilter} onValueChange={setFollowerCountFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Followers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Followers</SelectItem>
+                  <SelectItem value="micro">Micro (10K-50K)</SelectItem>
+                  <SelectItem value="mid">Mid-tier (50K-500K)</SelectItem>
+                  <SelectItem value="macro">Macro (500K+)</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" /> Add Influencer
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Add New Influencer</DialogTitle>
+                    <DialogDescription>
+                      Search for influencers on social media and add them to your database.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <SocialMediaSearch onAddInfluencer={handleAddInfluencer} />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
 
-          <div className="flex gap-2">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {allCategories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {isLoading && (
+            <div className="flex items-center justify-center py-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+            </div>
+          )}
 
-            <Select value={followerCountFilter} onValueChange={setFollowerCountFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Followers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Followers</SelectItem>
-                <SelectItem value="micro">Micro (10K-50K)</SelectItem>
-                <SelectItem value="mid">Mid-tier (50K-500K)</SelectItem>
-                <SelectItem value="macro">Macro (500K+)</SelectItem>
-              </SelectContent>
-            </Select>
+          {error && (
+            <div className="text-center py-10 text-destructive">
+              Error loading influencers. Please try again.
+            </div>
+          )}
 
-            <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" /> Add Influencer
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Add New Influencer</DialogTitle>
-                  <DialogDescription>
-                    Search for influencers on social media and add them to your database.
-                  </DialogDescription>
-                </DialogHeader>
-                <SocialMediaSearch onAddInfluencer={handleAddInfluencer} />
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-
-        {isLoading && (
-          <div className="flex items-center justify-center py-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
-          </div>
-        )}
-
-        {error && (
-          <div className="text-center py-10 text-destructive">
-            Error loading influencers. Please try again.
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredInfluencers?.map((influencer) => (
-            <Card 
-              key={influencer.id}
-              className="p-6 cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate(`/influencers/${influencer.id}`)}
-            >
-              <div className="flex items-center gap-4">
-                <Avatar className="h-14 w-14">
-                  <AvatarImage src={influencer.avatar_url || undefined} />
-                  <AvatarFallback>
-                    {influencer.first_name && influencer.last_name 
-                      ? `${influencer.first_name[0]}${influencer.last_name[0]}` 
-                      : 'IN'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h3 className="font-medium">
-                    {influencer.first_name} {influencer.last_name}
-                  </h3>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    {influencer.instagram_handle && (
-                      <div className="flex items-center">
-                        <Instagram size={14} className="mr-1" />
-                        {influencer.instagram_handle}
-                      </div>
-                    )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredInfluencers?.map((influencer) => (
+              <Card 
+                key={influencer.id}
+                className="p-6 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleCardClick(influencer)}
+              >
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-14 w-14">
+                    <AvatarImage src={influencer.avatar_url || undefined} />
+                    <AvatarFallback>
+                      {influencer.first_name && influencer.last_name 
+                        ? `${influencer.first_name[0]}${influencer.last_name[0]}` 
+                        : 'IN'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h3 className="font-medium">
+                      {influencer.first_name} {influencer.last_name}
+                    </h3>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      {influencer.instagram_handle && (
+                        <div className="flex items-center">
+                          <Instagram size={14} className="mr-1" />
+                          {influencer.instagram_handle}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="mt-4">
-                <div className="flex items-center gap-2 text-sm mb-2">
-                  <span className="flex items-center">
-                    <Star size={14} className="mr-1 text-amber-500" />
-                    {influencer.engagement_rate || '0'}% Engagement
-                  </span>
-                  <span className="text-muted-foreground">
-                    {influencer.follower_count?.toLocaleString() || '0'} Followers
-                  </span>
+                
+                <div className="mt-4">
+                  <div className="flex items-center gap-2 text-sm mb-2">
+                    <span className="flex items-center">
+                      <Star size={14} className="mr-1 text-amber-500" />
+                      {influencer.engagement_rate || '0'}% Engagement
+                    </span>
+                    <span className="text-muted-foreground">
+                      {influencer.follower_count?.toLocaleString() || '0'} Followers
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {influencer.categories?.slice(0, 3).map((category, i) => (
+                      <Badge key={i} variant="secondary">
+                        {category}
+                      </Badge>
+                    ))}
+                    {(influencer.categories?.length || 0) > 3 && (
+                      <Badge variant="outline">+{(influencer.categories?.length || 0) - 3} more</Badge>
+                    )}
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                    {influencer.bio || 'No bio available'}
+                  </p>
                 </div>
                 
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {influencer.categories?.slice(0, 3).map((category, i) => (
-                    <Badge key={i} variant="secondary">
-                      {category}
-                    </Badge>
-                  ))}
-                  {(influencer.categories?.length || 0) > 3 && (
-                    <Badge variant="outline">+{(influencer.categories?.length || 0) - 3} more</Badge>
-                  )}
-                </div>
-                
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                  {influencer.bio || 'No bio available'}
-                </p>
-              </div>
-              
-              <Button className="w-full mt-4">View Profile</Button>
-            </Card>
-          ))}
-        </div>
-        
-        {filteredInfluencers?.length === 0 && !isLoading && (
-          <div className="text-center py-10 text-muted-foreground">
-            No influencers found matching your criteria.
+                <Button className="w-full mt-4">View Profile</Button>
+              </Card>
+            ))}
           </div>
-        )}
-      </div>
-    </Dashboard>
+          
+          {filteredInfluencers?.length === 0 && !isLoading && (
+            <div className="text-center py-10 text-muted-foreground">
+              No influencers found matching your criteria.
+            </div>
+          )}
+        </div>
+      </Dashboard>
+
+      {/* Tinder Card Modal for influencer details */}
+      <InfluencerCardModal 
+        open={isCardModalOpen}
+        onOpenChange={setIsCardModalOpen}
+        influencerData={selectedInfluencer}
+        onAddToPool={() => refetch()}
+        onAddToCampaign={() => refetch()}
+      />
+    </>
   );
 };
 

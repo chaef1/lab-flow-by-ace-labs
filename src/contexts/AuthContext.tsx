@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('Fetching user profile for:', userId);
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, first_name, last_name, avatar_url, role')
         .eq('id', userId)
         .single();
       
@@ -60,17 +60,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     console.log('AuthContext initializing');
+    
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.id);
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, newSession) => {
+        console.log('Auth state changed:', event, newSession?.user?.id);
         
-        if (session?.user) {
-          // Use setTimeout to prevent potential deadlock with Supabase client
+        // Update session and user state synchronously
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        // If session exists, fetch profile asynchronously
+        if (newSession?.user) {
+          // Use setTimeout to avoid potential deadlock with Supabase client
           setTimeout(async () => {
-            const profile = await fetchUserProfile(session.user.id);
+            const profile = await fetchUserProfile(newSession.user.id);
             setUserProfile(profile);
             setIsLoading(false);
           }, 0);
@@ -82,20 +86,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+      console.log('Initial session check:', currentSession?.user?.id);
       
-      if (session?.user) {
-        const profile = await fetchUserProfile(session.user.id);
+      // Update session and user state
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        const profile = await fetchUserProfile(currentSession.user.id);
         setUserProfile(profile);
       }
       
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

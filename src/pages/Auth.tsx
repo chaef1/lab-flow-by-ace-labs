@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, isLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -23,10 +23,25 @@ const Auth = () => {
     }
   }, [searchParams]);
   
-  // Redirect if user is already logged in
+  // Only redirect if user is loaded and authenticated
+  useEffect(() => {
+    if (user && !isLoading) {
+      navigate('/dashboard');
+    }
+  }, [user, isLoading, navigate]);
+  
+  // Don't render anything while checking auth state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-agency-50 to-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+      </div>
+    );
+  }
+  
+  // Only render the auth form if user is not authenticated
   if (user) {
-    navigate('/dashboard');
-    return null;
+    return null; // Will redirect in the useEffect
   }
   
   return (

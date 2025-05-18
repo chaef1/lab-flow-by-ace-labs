@@ -19,12 +19,18 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
+  // Debugging
+  console.log('ProtectedRoute - User:', user);
+  console.log('ProtectedRoute - UserProfile:', userProfile);
+  console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
   // If allowedRoles is specified, check if user has one of the allowed roles
   if (allowedRoles && userProfile && !allowedRoles.includes(userProfile.role)) {
+    console.log(`Access denied: User role ${userProfile.role} not in allowed roles:`, allowedRoles);
     return <Navigate to="/dashboard" replace />;
   }
 

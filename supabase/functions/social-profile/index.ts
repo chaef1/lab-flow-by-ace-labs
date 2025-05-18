@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     // Use appropriate Apify actor based on platform
     const actorId = platform === 'instagram' 
       ? 'apify/instagram-profile-scraper' 
-      : 'tt姐丫/tiktok-data-extractor' // Changed to use the TikTok Data Extractor actor
+      : 'clockworks~free-tiktok-scraper' // Changed to use the clockworks free TikTok scraper
     
     // Call Apify API
     const response = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${APIFY_API_KEY}`, {
@@ -51,11 +51,10 @@ Deno.serve(async (req) => {
         'resultsLimit': 1,
         'waitUntilReady': true
       } : {
-        // TikTok Data Extractor specific parameters
-        'username': username.replace('@', ''),
-        'regions': ["US"],
-        'collectPosts': false,
-        'collectUserDetails': true
+        // TikTok Scraper specific parameters
+        'startUrls': [`https://www.tiktok.com/@${username.replace('@', '')}`],
+        'maxProfileCount': 1,
+        'disableStatistics': false
       })
     })
     
@@ -161,29 +160,31 @@ Deno.serve(async (req) => {
           : 0
       }
     } else if (platform === 'tiktok') {
-      // TikTok Data Extractor response structure is different
+      // clockworks~free-tiktok-scraper response structure 
       const profile = resultData[0]
       
-      if (!profile || !profile.user) {
+      if (!profile || !profile.userInfo) {
         console.error('TikTok profile not found in response')
+        console.log('TikTok profile response:', JSON.stringify(resultData))
         return new Response(
           JSON.stringify({ error: 'TikTok profile not found' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       
-      // Map TikTok Data Extractor data to our app format
+      const userInfo = profile.userInfo
+      
+      // Map the free TikTok scraper data to our app format
       profileData = {
-        username: profile.user.uniqueId,
-        full_name: profile.user.nickname,
-        biography: profile.user.signature,
-        follower_count: profile.stats.followerCount,
-        following_count: profile.stats.followingCount,
-        post_count: profile.stats.videoCount,
-        is_verified: profile.user.verified,
-        profile_pic_url: profile.user.avatarLarger,
-        // Calculate approximate engagement rate
-        engagement_rate: calculateTikTokEngagementRate(profile.stats)
+        username: userInfo.username || userInfo.uniqueId || username.replace('@', ''),
+        full_name: userInfo.nickname || userInfo.fullName || '',
+        biography: userInfo.signature || userInfo.description || '',
+        follower_count: userInfo.followerCount || 0,
+        following_count: userInfo.followingCount || 0, 
+        post_count: userInfo.videoCount || 0,
+        is_verified: userInfo.verified || false,
+        profile_pic_url: userInfo.avatarMedium || userInfo.avatarUrl || '',
+        engagement_rate: calculateTikTokEngagementRate(userInfo)
       }
     }
     
@@ -220,10 +221,14 @@ function calculateEngagementRate(posts, followersCount) {
 function calculateTikTokEngagementRate(stats) {
   if (!stats || stats.followerCount === 0 || stats.videoCount === 0) return 0
   
-  // TikTok engagement can be estimated using likes, comments and shares
-  const totalEngagement = stats.heartCount + (stats.diggCount || 0)
-  const averageEngagement = totalEngagement / stats.videoCount
-  const engagementRate = (averageEngagement / stats.followerCount) * 100
+  // For the free-tiktok-scraper, we need to use different fields
+  const followerCount = stats.followerCount || 0
+  const heartCount = stats.heartCount || stats.likesCount || stats.likesTotalCount || 0
+  const videoCount = stats.videoCount || 1
+  
+  // TikTok engagement can be estimated using likes
+  const averageEngagement = heartCount / videoCount
+  const engagementRate = (averageEngagement / followerCount) * 100
   
   return parseFloat(engagementRate.toFixed(2))
 }

@@ -34,105 +34,95 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching ${platform} profile for user: ${username}`)
     
-    // Use appropriate Apify actor based on platform
-    const actorId = platform === 'instagram' 
-      ? 'apify/instagram-profile-scraper' 
-      : 'clockworks~free-tiktok-scraper' // Changed to use the clockworks free TikTok scraper
-    
-    // Call Apify API
-    const response = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${APIFY_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(platform === 'instagram' ? {
-        'startUrls': [{ 'url': `https://instagram.com/${username.replace('@', '')}` }],
-        'resultsType': 'details',
-        'resultsLimit': 1,
-        'waitUntilReady': true
-      } : {
-        // TikTok Scraper specific parameters
-        'startUrls': [`https://www.tiktok.com/@${username.replace('@', '')}`],
-        'maxProfileCount': 1,
-        'disableStatistics': false
-      })
-    })
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`Apify API error: ${response.status} - ${errorText}`)
-      return new Response(
-        JSON.stringify({ error: `Failed to fetch ${platform} data`, details: errorText }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-    
-    const runResponse = await response.json()
-    const runId = runResponse.data.id
-    console.log(`Run created with ID: ${runId}`)
-    
-    // Wait for the run to complete and get the results
-    const maxWaitTime = 30000 // 30 seconds
-    const startTime = Date.now()
-    
-    let runFinished = false
-    let datasetResponse
-    
-    // Poll for completion
-    while (!runFinished && (Date.now() - startTime < maxWaitTime)) {
-      // Check run status
-      const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_API_KEY}`)
-      
-      if (!statusResponse.ok) {
-        console.error(`Failed to check run status: ${statusResponse.status}`)
-        await new Promise(resolve => setTimeout(resolve, 2000)) // wait 2 seconds before next check
-        continue
-      }
-      
-      const statusData = await statusResponse.json()
-      
-      if (statusData.data.status === 'SUCCEEDED') {
-        runFinished = true
-        // Get the dataset items
-        datasetResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}/dataset/items?token=${APIFY_API_KEY}`)
-        
-        if (!datasetResponse.ok) {
-          const errorText = await datasetResponse.text()
-          console.error(`Failed to fetch dataset: ${datasetResponse.status} - ${errorText}`)
-          return new Response(
-            JSON.stringify({ error: `Failed to fetch profile data from dataset` }),
-            { status: datasetResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-      } else if (statusData.data.status === 'FAILED' || statusData.data.status === 'TIMED-OUT') {
-        console.error(`Run failed with status: ${statusData.data.status}`)
-        return new Response(
-          JSON.stringify({ error: `Profile scraping failed with status: ${statusData.data.status}` }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      } else {
-        // Still running, wait before checking again
-        console.log(`Run status: ${statusData.data.status}, waiting...`)
-        await new Promise(resolve => setTimeout(resolve, 2000))
-      }
-    }
-    
-    if (!runFinished) {
-      console.error('Run timed out')
-      return new Response(
-        JSON.stringify({ error: 'Profile scraping timed out' }),
-        { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-    
-    // Process results based on the platform
-    const resultData = await datasetResponse.json()
-    console.log(`Got ${resultData.length} results from dataset`)
-    
-    // Extract profile data from Apify response and format it to match our app structure
-    let profileData = {}
-    
+    // For Instagram, use the Apify actor
     if (platform === 'instagram') {
+      const actorId = 'apify/instagram-profile-scraper'
+      
+      // Call Apify API
+      const response = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${APIFY_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'startUrls': [{ 'url': `https://instagram.com/${username.replace('@', '')}` }],
+          'resultsType': 'details',
+          'resultsLimit': 1,
+          'waitUntilReady': true
+        })
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`Apify API error: ${response.status} - ${errorText}`)
+        return new Response(
+          JSON.stringify({ error: `Failed to fetch Instagram data`, details: errorText }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      const runResponse = await response.json()
+      const runId = runResponse.data.id
+      console.log(`Instagram run created with ID: ${runId}`)
+      
+      // Wait for the run to complete and get the results
+      const maxWaitTime = 30000 // 30 seconds
+      const startTime = Date.now()
+      
+      let runFinished = false
+      let datasetResponse
+      
+      // Poll for completion
+      while (!runFinished && (Date.now() - startTime < maxWaitTime)) {
+        // Check run status
+        const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_API_KEY}`)
+        
+        if (!statusResponse.ok) {
+          console.error(`Failed to check run status: ${statusResponse.status}`)
+          await new Promise(resolve => setTimeout(resolve, 2000)) // wait 2 seconds before next check
+          continue
+        }
+        
+        const statusData = await statusResponse.json()
+        
+        if (statusData.data.status === 'SUCCEEDED') {
+          runFinished = true
+          // Get the dataset items
+          datasetResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}/dataset/items?token=${APIFY_API_KEY}`)
+          
+          if (!datasetResponse.ok) {
+            const errorText = await datasetResponse.text()
+            console.error(`Failed to fetch dataset: ${datasetResponse.status} - ${errorText}`)
+            return new Response(
+              JSON.stringify({ error: `Failed to fetch profile data from dataset` }),
+              { status: datasetResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        } else if (statusData.data.status === 'FAILED' || statusData.data.status === 'TIMED-OUT') {
+          console.error(`Run failed with status: ${statusData.data.status}`)
+          return new Response(
+            JSON.stringify({ error: `Profile scraping failed with status: ${statusData.data.status}` }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        } else {
+          // Still running, wait before checking again
+          console.log(`Run status: ${statusData.data.status}, waiting...`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+      }
+      
+      if (!runFinished) {
+        console.error('Run timed out')
+        return new Response(
+          JSON.stringify({ error: 'Profile scraping timed out' }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      // Process Instagram results
+      const resultData = await datasetResponse.json()
+      console.log(`Got ${resultData.length} Instagram results from dataset`)
+      
       // Instagram profile data structure
       const profile = resultData[0]
       
@@ -145,7 +135,7 @@ Deno.serve(async (req) => {
       }
       
       // Map Apify data to our app format
-      profileData = {
+      const profileData = {
         username: profile.username,
         full_name: profile.fullName,
         biography: profile.biography,
@@ -159,8 +149,102 @@ Deno.serve(async (req) => {
           ? calculateEngagementRate(profile.latestPosts, profile.followersCount)
           : 0
       }
-    } else if (platform === 'tiktok') {
-      // clockworks~free-tiktok-scraper response structure 
+      
+      return new Response(
+        JSON.stringify(profileData),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } 
+    // For TikTok, use the specified endpoint
+    else if (platform === 'tiktok') {
+      // Use the exact endpoint provided
+      const endpoint = `https://api.apify.com/v2/acts/clockworks~free-tiktok-scraper/runs?token=${APIFY_API_KEY}`
+      console.log(`Using TikTok endpoint: ${endpoint}`)
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'startUrls': [`https://www.tiktok.com/@${username.replace('@', '')}`],
+          'maxProfileCount': 1,
+          'disableStatistics': false
+        })
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`TikTok API error: ${response.status} - ${errorText}`)
+        return new Response(
+          JSON.stringify({ error: `Failed to fetch TikTok data`, details: errorText }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      const runResponse = await response.json()
+      const runId = runResponse.data.id
+      console.log(`TikTok run created with ID: ${runId}`)
+      
+      // Wait for the run to complete and get the results
+      const maxWaitTime = 30000 // 30 seconds
+      const startTime = Date.now()
+      
+      let runFinished = false
+      let datasetResponse
+      
+      // Poll for completion
+      while (!runFinished && (Date.now() - startTime < maxWaitTime)) {
+        // Check run status
+        const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_API_KEY}`)
+        
+        if (!statusResponse.ok) {
+          console.error(`Failed to check TikTok run status: ${statusResponse.status}`)
+          await new Promise(resolve => setTimeout(resolve, 2000)) // wait 2 seconds before next check
+          continue
+        }
+        
+        const statusData = await statusResponse.json()
+        
+        if (statusData.data.status === 'SUCCEEDED') {
+          runFinished = true
+          // Get the dataset items
+          datasetResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}/dataset/items?token=${APIFY_API_KEY}`)
+          
+          if (!datasetResponse.ok) {
+            const errorText = await datasetResponse.text()
+            console.error(`Failed to fetch TikTok dataset: ${datasetResponse.status} - ${errorText}`)
+            return new Response(
+              JSON.stringify({ error: `Failed to fetch TikTok profile data from dataset` }),
+              { status: datasetResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        } else if (statusData.data.status === 'FAILED' || statusData.data.status === 'TIMED-OUT') {
+          console.error(`TikTok run failed with status: ${statusData.data.status}`)
+          return new Response(
+            JSON.stringify({ error: `TikTok profile scraping failed with status: ${statusData.data.status}` }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        } else {
+          // Still running, wait before checking again
+          console.log(`TikTok run status: ${statusData.data.status}, waiting...`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+      }
+      
+      if (!runFinished) {
+        console.error('TikTok run timed out')
+        return new Response(
+          JSON.stringify({ error: 'TikTok profile scraping timed out' }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      // Process TikTok results
+      const resultData = await datasetResponse.json()
+      console.log(`Got ${resultData.length} TikTok results from dataset`)
+      console.log('TikTok data structure:', JSON.stringify(resultData[0]).substring(0, 500) + '...')
+      
       const profile = resultData[0]
       
       if (!profile || !profile.userInfo) {
@@ -175,7 +259,7 @@ Deno.serve(async (req) => {
       const userInfo = profile.userInfo
       
       // Map the free TikTok scraper data to our app format
-      profileData = {
+      const profileData = {
         username: userInfo.username || userInfo.uniqueId || username.replace('@', ''),
         full_name: userInfo.nickname || userInfo.fullName || '',
         biography: userInfo.signature || userInfo.description || '',
@@ -186,12 +270,12 @@ Deno.serve(async (req) => {
         profile_pic_url: userInfo.avatarMedium || userInfo.avatarUrl || '',
         engagement_rate: calculateTikTokEngagementRate(userInfo)
       }
+      
+      return new Response(
+        JSON.stringify(profileData),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
-    
-    return new Response(
-      JSON.stringify(profileData),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
     
   } catch (error) {
     console.error('Error processing request:', error)

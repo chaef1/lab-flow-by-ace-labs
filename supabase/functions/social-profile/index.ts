@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     // Use appropriate Apify actor based on platform
     const actorId = platform === 'instagram' 
       ? 'apify/instagram-profile-scraper' 
-      : 'apify/tiktok-scraper'
+      : 'tt姐丫/tiktok-data-extractor' // Changed to use the TikTok Data Extractor actor
     
     // Call Apify API
     const response = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${APIFY_API_KEY}`, {
@@ -45,11 +45,17 @@ Deno.serve(async (req) => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        'startUrls': [{ 'url': `https://${platform}.com/${username.replace('@', '')}` }],
+      body: JSON.stringify(platform === 'instagram' ? {
+        'startUrls': [{ 'url': `https://instagram.com/${username.replace('@', '')}` }],
         'resultsType': 'details',
         'resultsLimit': 1,
         'waitUntilReady': true
+      } : {
+        // TikTok Data Extractor specific parameters
+        'username': username.replace('@', ''),
+        'regions': ["US"],
+        'collectPosts': false,
+        'collectUserDetails': true
       })
     })
     
@@ -155,10 +161,10 @@ Deno.serve(async (req) => {
           : 0
       }
     } else if (platform === 'tiktok') {
-      // TikTok profile data structure
+      // TikTok Data Extractor response structure is different
       const profile = resultData[0]
       
-      if (!profile || !profile.userInfo || !profile.userInfo.user) {
+      if (!profile || !profile.user) {
         console.error('TikTok profile not found in response')
         return new Response(
           JSON.stringify({ error: 'TikTok profile not found' }),
@@ -166,20 +172,18 @@ Deno.serve(async (req) => {
         )
       }
       
-      const userInfo = profile.userInfo
-      
-      // Map Apify data to our app format
+      // Map TikTok Data Extractor data to our app format
       profileData = {
-        username: userInfo.user.uniqueId,
-        full_name: userInfo.user.nickname,
-        biography: userInfo.user.signature,
-        follower_count: userInfo.stats.followerCount,
-        following_count: userInfo.stats.followingCount,
-        post_count: userInfo.stats.videoCount,
-        is_verified: userInfo.user.verified,
-        profile_pic_url: userInfo.user.avatarLarger,
+        username: profile.user.uniqueId,
+        full_name: profile.user.nickname,
+        biography: profile.user.signature,
+        follower_count: profile.stats.followerCount,
+        following_count: profile.stats.followingCount,
+        post_count: profile.stats.videoCount,
+        is_verified: profile.user.verified,
+        profile_pic_url: profile.user.avatarLarger,
         // Calculate approximate engagement rate
-        engagement_rate: calculateTikTokEngagementRate(userInfo.stats)
+        engagement_rate: calculateTikTokEngagementRate(profile.stats)
       }
     }
     

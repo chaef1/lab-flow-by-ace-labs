@@ -60,7 +60,20 @@ export const useSocialMediaSearch = () => {
         });
         setProfileData(null);
       } else {
-        setProfileData(data);
+        // Normalize data to ensure it matches our expected interface
+        const normalizedData: SocialProfileResult = {
+          username: data.username || username,
+          full_name: data.full_name,
+          biography: data.biography,
+          follower_count: data.follower_count,
+          following_count: data.following_count, 
+          post_count: data.post_count,
+          is_verified: data.is_verified,
+          profile_pic_url: data.profile_pic_url,
+          engagement_rate: data.engagement_rate || 0
+        };
+        
+        setProfileData(normalizedData);
         toast({
           title: "Profile found",
           description: `Found ${platform} profile for @${username}`,

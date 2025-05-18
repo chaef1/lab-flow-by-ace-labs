@@ -1,11 +1,13 @@
 
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Database } from '@/integrations/supabase/types';
+
+type Project = Database['public']['Tables']['projects']['Row'];
 
 export const useProjects = () => {
-  const fetchProjects = async () => {
+  const fetchProjects = async (): Promise<Project[]> => {
     const { data, error } = await supabase
       .from('projects')
       .select(`
@@ -31,8 +33,11 @@ export const useProjects = () => {
   return useQuery({
     queryKey: ['projects'],
     queryFn: fetchProjects,
-    onError: (error: any) => {
-      toast.error(`Error fetching projects: ${error.message}`);
+    meta: {
+      // In v5, we put the error handling in meta
+      onError: (error: any) => {
+        toast.error(`Error fetching projects: ${error.message}`);
+      }
     }
   });
 };
@@ -66,8 +71,11 @@ export const useProjectById = (id: string | undefined) => {
       return data;
     },
     enabled: !!id,
-    onError: (error: any) => {
-      toast.error(`Error fetching project: ${error.message}`);
+    meta: {
+      // In v5, we put the error handling in meta
+      onError: (error: any) => {
+        toast.error(`Error fetching project: ${error.message}`);
+      }
     }
   });
 };

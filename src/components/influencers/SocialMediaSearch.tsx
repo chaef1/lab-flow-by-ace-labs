@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
-import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck } from "lucide-react";
+import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck, TikTok } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";
@@ -124,6 +124,21 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     }
   };
 
+  // Helper function to render platform-specific icon
+  const PlatformIcon = () => {
+    if (platform === 'instagram') {
+      return <Instagram className="mr-2 h-4 w-4" />;
+    } else if (platform === 'tiktok') {
+      // Using a custom TikTok icon or placeholder
+      return (
+        <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" fill="currentColor" />
+        </svg>
+      );
+    }
+    return null;
+  };
+
   return (
     <>
       <Card className="w-full">
@@ -179,6 +194,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                     
                     <div className="flex items-center text-sm text-muted-foreground">
                       {platform === 'instagram' && <Instagram size={14} className="mr-1" />}
+                      {platform === 'tiktok' && <PlatformIcon />}
                       @{profileData.username}
                     </div>
                   </div>

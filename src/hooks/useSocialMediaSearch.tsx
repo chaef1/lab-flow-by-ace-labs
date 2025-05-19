@@ -73,6 +73,7 @@ export const useSocialMediaSearch = () => {
           engagement_rate: data.engagement_rate || 0
         };
         
+        console.log("Normalized profile data:", normalizedData);
         setProfileData(normalizedData);
         toast({
           title: "Profile found",
@@ -92,8 +93,13 @@ export const useSocialMediaSearch = () => {
     }
   };
 
+  const clearProfile = () => {
+    setProfileData(null);
+  };
+
   return {
     searchProfile,
+    clearProfile,
     isLoading,
     profileData,
   };

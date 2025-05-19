@@ -19,13 +19,19 @@ interface SocialMediaSearchProps {
 export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearchProps) {
   const [platform, setPlatform] = useState<'instagram' | 'tiktok'>('instagram');
   const [username, setUsername] = useState('');
-  const { searchProfile, isLoading, profileData } = useSocialMediaSearch();
+  const { searchProfile, clearProfile, isLoading, profileData } = useSocialMediaSearch();
   const { toast } = useToast();
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [savedProfileData, setSavedProfileData] = useState<any>(null);
 
   const handleSearch = () => {
     searchProfile(platform, username);
+  };
+
+  const handlePlatformChange = (value: string) => {
+    setPlatform(value as 'instagram' | 'tiktok');
+    clearProfile();
+    setUsername('');
   };
 
   const handleAddInfluencer = async () => {
@@ -109,12 +115,13 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
       });
       
       setUsername('');
+      clearProfile();
       
       if (onAddInfluencer) {
         onAddInfluencer(profileData);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding influencer:", error);
       toast({
         title: "Failed to add influencer",
@@ -149,7 +156,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="instagram" onValueChange={(v) => setPlatform(v as 'instagram' | 'tiktok')}>
+          <Tabs defaultValue="instagram" value={platform} onValueChange={handlePlatformChange}>
             <TabsList className="mb-4">
               <TabsTrigger value="instagram">Instagram</TabsTrigger>
               <TabsTrigger value="tiktok">TikTok</TabsTrigger>
@@ -178,7 +185,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   <Avatar className="h-16 w-16">
                     <AvatarImage src={profileData.profile_pic_url} />
                     <AvatarFallback>
-                      {profileData.full_name?.split(' ').map(n => n[0]).join('') || profileData.username?.substring(0, 2).toUpperCase()}
+                      {profileData.full_name?.split(' ').map((n: string) => n[0]).join('') || profileData.username?.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   

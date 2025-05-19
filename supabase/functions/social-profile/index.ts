@@ -55,7 +55,9 @@ Deno.serve(async (req) => {
       if (platform === 'instagram') {
         profileData = await fetchInstagramProfile(cleanUsername, APIFY_API_KEY);
       } else if (platform === 'tiktok') {
-        profileData = await fetchTikTokProfile(cleanUsername, APIFY_API_KEY);
+        // Use the configured alternate API key if available
+        const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || APIFY_API_KEY;
+        profileData = await fetchTikTokProfile(cleanUsername, tiktokApiKey);
       }
       
       if (!profileData) {

@@ -21,9 +21,9 @@ export function formatResponse(body: any, status = 200, additionalHeaders = {}) 
 /**
  * Safely waits for Apify runs to complete with proper timeout handling
  */
-export async function waitForApifyRun(runId: string, apiKey: string, maxWaitTime = 30000) {
+export async function waitForApifyRun(runId: string, apiKey: string, maxWaitTime = 90000) {
   const startTime = Date.now();
-  const maxAttempts = Math.ceil(maxWaitTime / 2000); // Check every 2 seconds
+  const maxAttempts = Math.ceil(maxWaitTime / 3000); // Check every 3 seconds
   let attempts = 0;
   
   while ((Date.now() - startTime) < maxWaitTime) {
@@ -31,8 +31,12 @@ export async function waitForApifyRun(runId: string, apiKey: string, maxWaitTime
     console.log(`Checking run status (attempt ${attempts}/${maxAttempts})...`);
     
     try {
-      // Check run status
-      const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${apiKey}`);
+      // Check run status using the Authorization header instead of query param
+      const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
       
       if (!statusResponse.ok) {
         console.error(`Failed to check run status: ${statusResponse.status}`);
@@ -40,8 +44,16 @@ export async function waitForApifyRun(runId: string, apiKey: string, maxWaitTime
           console.error(`Run ID ${runId} not found. This could be due to an invalid API key or run ID.`);
         }
         
+        // Try to log the response body for debugging
+        try {
+          const errorText = await statusResponse.text();
+          console.error(`Status response error body: ${errorText}`);
+        } catch (e) {
+          console.error("Could not read status response body");
+        }
+        
         // Wait before next check instead of failing immediately
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
         continue;
       }
       
@@ -50,7 +62,14 @@ export async function waitForApifyRun(runId: string, apiKey: string, maxWaitTime
       
       if (statusData.data.status === 'SUCCEEDED') {
         // Get the dataset items
-        const datasetResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}/dataset/items?token=${apiKey}`);
+        const datasetId = statusData.data.defaultDatasetId;
+        console.log(`Fetching dataset with ID: ${datasetId}`);
+        
+        const datasetResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items`, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`
+          }
+        });
         
         if (!datasetResponse.ok) {
           const errorText = await datasetResponse.text();
@@ -67,7 +86,11 @@ export async function waitForApifyRun(runId: string, apiKey: string, maxWaitTime
         
         // Try to fetch error message if available
         try {
-          const logsResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}/log?token=${apiKey}`);
+          const logsResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}/log`, {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`
+            }
+          });
           if (logsResponse.ok) {
             const logs = await logsResponse.text();
             console.error(`Run logs excerpt: ${logs.substring(0, 500)}...`);
@@ -80,7 +103,7 @@ export async function waitForApifyRun(runId: string, apiKey: string, maxWaitTime
       } else {
         // Still running, wait before checking again
         console.log(`Run status: ${statusData.data.status}, waiting...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     } catch (error) {
       if (error.message.includes('Profile scraping failed')) {
@@ -90,7 +113,7 @@ export async function waitForApifyRun(runId: string, apiKey: string, maxWaitTime
       
       console.error('Error checking run status:', error);
       // For other errors, we'll try again until timeout
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }
   

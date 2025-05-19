@@ -39,17 +39,21 @@ Deno.serve(async (req) => {
     const cleanUsername = username.replace('@', '')
     console.log(`Processing ${platform} profile for: ${cleanUsername}`)
 
+    // Log API key status (without revealing the key)
+    if (platform === 'instagram') {
+      if (!APIFY_API_KEY) {
+        console.error("APIFY_API_KEY is not set");
+      } else {
+        console.log(`Using APIFY_API_KEY with length: ${APIFY_API_KEY.length} characters`);
+      }
+    }
+
     // Process the request based on platform
     try {
       let profileData;
       
       if (platform === 'instagram') {
         profileData = await fetchInstagramProfile(cleanUsername, APIFY_API_KEY);
-        
-        // Make sure we properly flag mock data
-        if (!profileData.is_mock_data) {
-          profileData.is_mock_data = true;
-        }
       } else if (platform === 'tiktok') {
         // Use the configured API key 
         const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || APIFY_API_KEY;

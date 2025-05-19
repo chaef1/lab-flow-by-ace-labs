@@ -20,8 +20,11 @@ export function calculateTikTokEngagementRate(stats: any) {
 }
 
 /**
- * Fetches TikTok profile data using the official TikTok API
- * Falls back to Apify if official API fails
+ * Fetches TikTok profile data using multiple methods:
+ * 1. Official TikTok API (if credentials available)
+ * 2. TikScraper Actor (most reliable Apify actor)
+ * 3. Fallback to vdrmota/tiktok-scraper
+ * 4. Mock data as final fallback
  */
 export async function fetchTikTokProfile(username: string, apiKey: string) {
   console.log(`Fetching TikTok profile for user: ${username}`);
@@ -102,20 +105,68 @@ export async function fetchTikTokProfile(username: string, apiKey: string) {
       throw new Error('TikTok API data format not recognized');
     } catch (error) {
       console.error(`Official TikTok API error: ${error.message}`);
-      console.log(`Falling back to Apify scraper for ${username}`);
+      console.log(`Falling back to Apify scrapers for ${username}`);
       // Fall back to Apify method
     }
   } else {
     console.log('TikTok API credentials not found, using Apify scraper instead');
   }
   
-  // Fallback to Apify
+  // Attempt to use the TikScraper actor (most reliable)
   try {
-    // Use a different Apify actor with better reliability
+    const tikScraperActor = 'apify/tik-scraper';
+    const tikScraperEndpoint = `https://api.apify.com/v2/acts/${tikScraperActor}/runs?token=${apiKey}`;
+    
+    console.log(`Trying TikScraper (${tikScraperActor}) for: ${username}`);
+    
+    const response = await fetch(tikScraperEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: username.replace('@', ''),
+        resultsType: "userInfo"
+      })
+    });
+    
+    if (response.ok) {
+      const runResponse = await response.json();
+      const runId = runResponse.data.id;
+      console.log(`TikScraper run created with ID: ${runId}`);
+      
+      const result = await waitForApifyRun(runId, apiKey, 60000);
+      console.log(`Got ${result.data?.length || 0} results from TikScraper`);
+      
+      if (result.data && result.data.length > 0) {
+        const profile = result.data[0];
+        console.log('TikScraper data structure:', JSON.stringify(profile).substring(0, 500) + '...');
+        
+        return {
+          username: profile.username || username.replace('@', ''),
+          full_name: profile.displayName || profile.nickname || username,
+          biography: profile.signature || profile.bio || '',
+          follower_count: profile.followerCount || profile.followers || 0,
+          following_count: profile.followingCount || profile.following || 0,
+          post_count: profile.videoCount || profile.posts || 0,
+          is_verified: profile.verified || false,
+          profile_pic_url: profile.avatarLarge || profile.avatarMedium || profile.avatar || '',
+          engagement_rate: calculateTikTokEngagementRate(profile)
+        };
+      }
+    } else {
+      console.error(`TikScraper API error: ${response.status}`);
+    }
+  } catch (error) {
+    console.error(`Error in TikScraper: ${error.message}`);
+  }
+  
+  // Fallback to alternative Apify actor
+  try {
     const actorId = 'vdrmota/tiktok-scraper';
     const endpoint = `https://api.apify.com/v2/acts/${actorId}/runs?token=${apiKey}`;
     
-    console.log(`Using Apify TikTok endpoint: ${endpoint}`);
+    console.log(`Falling back to ${actorId} for: ${username}`);
     
     // Configure payload for the Apify actor
     const payload = {

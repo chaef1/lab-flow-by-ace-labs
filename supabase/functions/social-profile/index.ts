@@ -35,9 +35,9 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Validate API key
-    if (!APIFY_API_KEY) {
-      console.error('APIFY_API_KEY environment variable is not set')
+    // Validate API keys
+    if (!APIFY_API_KEY && !Deno.env.get('TIKTOK_API_KEY')) {
+      console.error('No API keys configured (APIFY_API_KEY or TIKTOK_API_KEY)')
       return formatResponse(
         { error: 'API integration not configured' },
         500
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       if (platform === 'instagram') {
         profileData = await fetchInstagramProfile(cleanUsername, APIFY_API_KEY);
       } else if (platform === 'tiktok') {
-        // Use the configured alternate API key if available
+        // Use the configured API key 
         const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || APIFY_API_KEY;
         profileData = await fetchTikTokProfile(cleanUsername, tiktokApiKey);
       }

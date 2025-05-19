@@ -47,7 +47,7 @@ export const useSocialMediaSearch = () => {
       });
 
       if (error) {
-        throw new Error(error.message);
+        throw new Error(error.message || 'Error calling social-profile function');
       }
 
       console.log("Response from social-profile function:", data);
@@ -62,14 +62,14 @@ export const useSocialMediaSearch = () => {
       } else {
         // Normalize data to ensure it matches our expected interface
         const normalizedData: SocialProfileResult = {
-          username: data.username || username,
-          full_name: data.full_name,
-          biography: data.biography,
-          follower_count: data.follower_count,
-          following_count: data.following_count, 
-          post_count: data.post_count,
-          is_verified: data.is_verified,
-          profile_pic_url: data.profile_pic_url,
+          username: data.username || username.replace('@', ''),
+          full_name: data.full_name || data.fullName || data.display_name || '',
+          biography: data.biography || data.bio || data.bio_description || '',
+          follower_count: data.follower_count || data.followers || data.followerCount || 0,
+          following_count: data.following_count || data.following || data.followingCount || 0, 
+          post_count: data.post_count || data.posts || data.videoCount || 0,
+          is_verified: data.is_verified || data.verified || false,
+          profile_pic_url: data.profile_pic_url || data.avatar || data.avatarUrl || data.avatar_url || '',
           engagement_rate: data.engagement_rate || 0
         };
         

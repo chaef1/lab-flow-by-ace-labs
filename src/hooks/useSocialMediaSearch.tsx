@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,7 +52,8 @@ export const useSocialMediaSearch = () => {
       const oneDayAgo = new Date();
       oneDayAgo.setDate(oneDayAgo.getDate() - 1);
       
-      const { data, error } = await supabase
+      // Use any() to work around type issues
+      const { data, error } = await (supabase as any)
         .from('social_media_searches')
         .select('*')
         .eq('user_id', user.id)
@@ -62,7 +62,8 @@ export const useSocialMediaSearch = () => {
       
       if (error) throw error;
       
-      setSearchHistory(data || []);
+      // Cast the data to our interface type
+      setSearchHistory(data as SearchHistoryItem[] || []);
     } catch (error) {
       console.error('Error fetching search history:', error);
     } finally {
@@ -75,7 +76,8 @@ export const useSocialMediaSearch = () => {
     if (!user) return;
     
     try {
-      const { error } = await supabase
+      // Use any() to work around type issues
+      const { error } = await (supabase as any)
         .from('social_media_searches')
         .insert({
           platform,
@@ -98,7 +100,8 @@ export const useSocialMediaSearch = () => {
     if (!user) return;
     
     try {
-      const { error } = await supabase
+      // Use any() to work around type issues
+      const { error } = await (supabase as any)
         .from('social_media_searches')
         .delete()
         .eq('user_id', user.id);

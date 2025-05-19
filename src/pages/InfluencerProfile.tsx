@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -23,6 +22,15 @@ import { Badge } from "@/components/ui/badge";
 import { Instagram, MessageSquare, Star, FileText, History } from 'lucide-react';
 import { formatRelativeDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Define the SearchHistoryItem interface
+interface SearchHistoryItem {
+  id: string;
+  platform: 'instagram' | 'tiktok';
+  username: string;
+  timestamp: string;
+  user_id: string;
+}
 
 const InfluencerProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -90,8 +98,9 @@ const InfluencerProfile = () => {
       const queries = [];
       
       if (influencer.instagram_handle) {
+        // Use any() to work around type issues
         queries.push(
-          supabase
+          (supabase as any)
             .from('social_media_searches')
             .select('*')
             .eq('user_id', user.id)
@@ -102,8 +111,9 @@ const InfluencerProfile = () => {
       }
       
       if (influencer.tiktok_handle) {
+        // Use any() to work around type issues
         queries.push(
-          supabase
+          (supabase as any)
             .from('social_media_searches')
             .select('*')
             .eq('user_id', user.id)
@@ -121,7 +131,7 @@ const InfluencerProfile = () => {
         .flatMap(result => result.data || [])
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
-      return allResults;
+      return allResults as SearchHistoryItem[];
     },
     enabled: !!user && !!influencer && !!(influencer.instagram_handle || influencer.tiktok_handle)
   });

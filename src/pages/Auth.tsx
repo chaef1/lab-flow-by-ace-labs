@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,11 +10,15 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, signUp, user, isLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [redirected, setRedirected] = useState(false);
+  
+  // Get the intended destination from state, or default to dashboard
+  const from = location.state?.from?.pathname || "/dashboard";
   
   useEffect(() => {
     if (searchParams.get('tab') === 'signup') {
@@ -25,20 +30,19 @@ const Auth = () => {
   
   // Only redirect if user is loaded and authenticated, and we haven't redirected already
   useEffect(() => {
-    // Clear any previous redirect flag when component mounts or auth state changes
     if (isLoading) {
       return;
     }
     
     if (user && !redirected) {
-      console.log('Auth: User authenticated, redirecting to dashboard');
+      console.log('Auth: User authenticated, redirecting to:', from);
       setRedirected(true);
       // Use a small timeout to prevent potential race conditions with state updates
       setTimeout(() => {
-        navigate('/dashboard', { replace: true });
-      }, 50);
+        navigate(from, { replace: true });
+      }, 100);
     }
-  }, [user, isLoading, navigate, redirected]);
+  }, [user, isLoading, navigate, redirected, from]);
   
   // Don't render anything while checking auth state
   if (isLoading) {

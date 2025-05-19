@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authChangeComplete, setAuthChangeComplete] = useState(false);
 
   // Fetch user profile data from the profiles table
   const fetchUserProfile = async (userId: string) => {
@@ -81,10 +82,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const profile = await fetchUserProfile(newSession.user.id);
             setUserProfile(profile);
             setIsLoading(false);
+            setAuthChangeComplete(true);
           }, 0);
         } else {
           setUserProfile(null);
           setIsLoading(false);
+          setAuthChangeComplete(true);
         }
       }
     );
@@ -108,6 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (mounted) {
         setIsLoading(false);
+        setAuthChangeComplete(true);
       }
     });
 

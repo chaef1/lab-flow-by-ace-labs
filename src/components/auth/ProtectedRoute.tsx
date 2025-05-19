@@ -20,6 +20,11 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
       console.log('ProtectedRoute - User:', user ? 'Authenticated' : 'Not authenticated');
       console.log('ProtectedRoute - UserProfile:', userProfile);
       console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
+      
+      // Reset redirect attempt if we have a user
+      if (user) {
+        redirectAttempted.current = false;
+      }
     }
   }, [user, userProfile, allowedRoles, isLoading, location.pathname]);
 

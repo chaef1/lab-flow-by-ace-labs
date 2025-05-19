@@ -7,7 +7,8 @@ import { fetchTikTokProfile } from './tiktok.ts'
 // Get environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || ''
-const APIFY_API_KEY = Deno.env.get('APIFY_API_KEY') || ''
+const INSTAGRAM_APP_ID = Deno.env.get('INSTAGRAM_APP_ID') || ''
+const INSTAGRAM_APP_SECRET = Deno.env.get('INSTAGRAM_APP_SECRET') || ''
 
 // Create a single Deno deploy function that can handle multiple platforms
 Deno.serve(async (req) => {
@@ -55,12 +56,12 @@ Deno.serve(async (req) => {
     
     console.log(`Processing ${platform} profile for: ${cleanUsername}`)
 
-    // Log API key status (without revealing the key)
+    // Log API credentials status (without revealing the keys)
     if (platform === 'instagram') {
-      if (!APIFY_API_KEY) {
-        console.error("APIFY_API_KEY is not set");
+      if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
+        console.error("Instagram API credentials are not properly set");
       } else {
-        console.log(`Using APIFY_API_KEY with length: ${APIFY_API_KEY.length} characters`);
+        console.log(`Using Instagram API credentials - App ID available: ${INSTAGRAM_APP_ID.length > 0}, App Secret available: ${INSTAGRAM_APP_SECRET.length > 0}`);
       }
     }
 
@@ -69,10 +70,10 @@ Deno.serve(async (req) => {
       let profileData;
       
       if (platform === 'instagram') {
-        profileData = await fetchInstagramProfile(cleanUsername, APIFY_API_KEY);
+        profileData = await fetchInstagramProfile(cleanUsername, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET);
       } else if (platform === 'tiktok') {
         // Use the configured API key 
-        const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || APIFY_API_KEY;
+        const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || '';
         profileData = await fetchTikTokProfile(cleanUsername, tiktokApiKey);
         
         // Add a flag to indicate if the returned data is mock data

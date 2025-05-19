@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
-import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck, AlertCircle, History, Clock, Link } from "lucide-react";
+import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck, AlertCircle, History, Clock, Link, Lock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";
@@ -21,6 +21,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   const [platform, setPlatform] = useState<'instagram' | 'tiktok'>('instagram');
   const [username, setUsername] = useState('');
   const [searchTab, setSearchTab] = useState<'search' | 'history'>('search');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const { 
     searchProfile, 
     clearProfile, 
@@ -49,6 +50,42 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     setPlatform(value as 'instagram' | 'tiktok');
     clearProfile();
     setUsername('');
+  };
+
+  const handleOAuthLogin = (authUrl: string) => {
+    setIsAuthenticating(true);
+    
+    // Open the auth URL in a popup window
+    const width = 700;
+    const height = 750;
+    const left = (window.innerWidth - width) / 2;
+    const top = (window.innerHeight - height) / 2;
+    
+    const popup = window.open(
+      authUrl,
+      "oauth-popup",
+      `width=${width},height=${height},top=${top},left=${left}`
+    );
+    
+    // Check for when the popup is closed
+    const checkPopupClosed = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(checkPopupClosed);
+        setIsAuthenticating(false);
+        
+        // Could add some logic here to check if auth was successful
+        toast({
+          title: "Authentication window closed",
+          description: "Please try your search again if authentication was successful."
+        });
+      }
+    }, 500);
+    
+    // Cleanup function in case component unmounts
+    return () => {
+      if (popup) popup.close();
+      clearInterval(checkPopupClosed);
+    };
   };
 
   const handleAddInfluencer = async () => {
@@ -262,6 +299,27 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                       </div>
                     </div>
                     
+                    {/* OAuth auth prompt if needed */}
+                    {profileData.requires_auth && (
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                        <div className="flex items-center text-amber-800">
+                          <Lock className="h-4 w-4 mr-2" />
+                          <p className="text-sm">Authentication required to view full profile details</p>
+                        </div>
+                        <Button 
+                          className="w-full mt-2" 
+                          variant="outline"
+                          onClick={() => handleOAuthLogin(profileData.auth_url)}
+                          disabled={isAuthenticating}
+                        >
+                          {isAuthenticating ? 
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Authenticating...</> :
+                            <><Instagram className="mr-2 h-4 w-4" /> Connect with Instagram</>
+                          }
+                        </Button>
+                      </div>
+                    )}
+                    
                     <div className="grid grid-cols-3 gap-4 mt-4">
                       <div className="text-center p-2 bg-muted rounded">
                         <div className="text-muted-foreground text-xs">Followers</div>
@@ -341,7 +399,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
           </Tabs>
         </CardContent>
         
-        {profileData && searchTab === 'search' && (
+        {profileData && searchTab === 'search' && !profileData.requires_auth && (
           <CardFooter>
             <Button className="w-full" onClick={handleAddInfluencer}>
               <TrendingUp className="mr-2 h-4 w-4" /> 

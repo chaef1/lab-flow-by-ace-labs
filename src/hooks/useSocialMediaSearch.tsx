@@ -18,6 +18,8 @@ interface SocialProfileResult {
   engagement_rate?: number;
   error?: string;
   is_mock_data?: boolean;
+  requires_auth?: boolean;
+  auth_url?: string;
 }
 
 interface SearchHistoryItem {
@@ -42,6 +44,43 @@ export const useSocialMediaSearch = () => {
       fetchSearchHistory();
     }
   }, [user]);
+
+  // Check URL for OAuth callback parameters
+  useEffect(() => {
+    // Check if the current URL has OAuth parameters
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    
+    // If we have a code and state from Instagram OAuth
+    if (code && (url.pathname.includes('/auth/instagram/callback') || state)) {
+      handleOAuthCallback(code, state);
+    }
+  }, []);
+
+  // Handle OAuth callback
+  const handleOAuthCallback = async (code: string, state: string | null) => {
+    console.log("OAuth callback received with code:", code);
+    
+    try {
+      // Here we would process the OAuth response
+      // For now, we'll just show a success message
+      toast({
+        title: "Instagram connected",
+        description: "You've successfully authenticated with Instagram",
+      });
+      
+      // Clean the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (error: any) {
+      console.error("OAuth error:", error);
+      toast({
+        title: "Authentication failed",
+        description: error.message || "Could not complete authentication with Instagram",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Fetch search history for current user
   const fetchSearchHistory = async () => {
@@ -141,7 +180,7 @@ export const useSocialMediaSearch = () => {
     return input.replace('@', '');
   };
 
-  const searchProfile = async (platform: SocialPlatform, input: string) => {
+  const searchProfile = async (platform: SocialPlatform, input: string, oauthCode?: string) => {
     if (!input) {
       toast({
         title: "Username required",
@@ -176,11 +215,18 @@ export const useSocialMediaSearch = () => {
     try {
       console.log(`Calling Supabase function for ${platform} profile: ${username}`);
       
+      // Add the OAuth code to the request if provided
+      const requestBody: any = {
+        platform,
+        username,
+      };
+      
+      if (oauthCode) {
+        requestBody.code = oauthCode;
+      }
+      
       const { data, error } = await supabase.functions.invoke('social-profile', {
-        body: {
-          platform,
-          username,
-        },
+        body: requestBody,
       });
 
       if (error) {
@@ -208,7 +254,9 @@ export const useSocialMediaSearch = () => {
           is_verified: data.is_verified || data.verified || false,
           profile_pic_url: data.profile_pic_url || data.avatar || data.avatarUrl || data.avatar_url || '',
           engagement_rate: data.engagement_rate || 0,
-          is_mock_data: data.is_mock_data || false
+          is_mock_data: data.is_mock_data || false,
+          requires_auth: data.requires_auth || false,
+          auth_url: data.auth_url || ''
         };
         
         console.log("Normalized profile data:", normalizedData);
@@ -247,6 +295,7 @@ export const useSocialMediaSearch = () => {
     searchHistory,
     isHistoryLoading,
     clearSearchHistory,
-    fetchSearchHistory
+    fetchSearchHistory,
+    handleOAuthCallback,
   };
 };

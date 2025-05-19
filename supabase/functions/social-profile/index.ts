@@ -18,7 +18,17 @@ Deno.serve(async (req) => {
   }
   
   try {
-    const { platform, username } = await req.json()
+    // Handle OAuth callbacks if present in the URL
+    const url = new URL(req.url);
+    if (url.pathname.includes('/auth/callback')) {
+      // This would be where we handle the OAuth callback
+      // For now, we'll just return a message
+      return formatResponse({
+        message: "OAuth callback handling would happen here. This feature is not fully implemented yet."
+      });
+    }
+    
+    const { platform, username, code } = await req.json()
     
     // Validate request parameters
     if (!platform || !username) {
@@ -78,6 +88,17 @@ Deno.serve(async (req) => {
       while (retryCount <= maxRetries) {
         try {
           if (platform === 'instagram') {
+            // Check if we're handling an OAuth code
+            if (code) {
+              // This would be where we handle the OAuth flow with the code
+              // For now, we'll just return a message
+              return formatResponse({
+                message: "OAuth code handling would happen here",
+                code
+              });
+            }
+            
+            // Regular profile fetch
             profileData = await fetchInstagramProfile(cleanUsername, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET);
             break; // Break the loop if successful
           } else if (platform === 'tiktok') {

@@ -34,13 +34,14 @@ export async function fetchInstagramProfile(username: string, apiKey: string) {
     const endpoint = `https://api.apify.com/v2/acts/${actorId}/run-sync?token=${apiKey}`;
     console.log(`Using endpoint: ${endpoint}`);
     
+    // Modified request body to use 'usernames' parameter as required by the API
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        'startUrls': [{ 'url': `https://www.instagram.com/${username.replace('@', '')}` }],
+        'usernames': [username.replace('@', '')],
         'resultsType': 'details',
         'resultsLimit': 1,
         'proxy': {

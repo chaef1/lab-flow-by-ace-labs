@@ -25,20 +25,19 @@ export async function fetchInstagramProfile(username: string, apiKey: string) {
   console.log(`Fetching Instagram profile for user: ${username}`);
   
   try {
-    // First attempt: Try using the Apify API correctly
+    // Using the synchronous API endpoint as specified
     console.log("Attempting to fetch Instagram data with Apify API");
     
-    const actorId = 'apify/instagram-profile-scraper';
+    const actorId = 'apify~instagram-profile-scraper';
     
-    // Format the endpoint exactly as you provided
-    const endpoint = `https://api.apify.com/v2/acts/${actorId}/runs`;
+    // Using the run-sync endpoint as specified
+    const endpoint = `https://api.apify.com/v2/acts/${actorId}/run-sync?token=${apiKey}`;
     console.log(`Using endpoint: ${endpoint}`);
     
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         'startUrls': [{ 'url': `https://www.instagram.com/${username.replace('@', '')}` }],
@@ -56,28 +55,17 @@ export async function fetchInstagramProfile(username: string, apiKey: string) {
       throw new Error(`Failed to fetch Instagram data: ${response.status} ${errorText}`);
     }
     
-    const runResponse = await response.json();
-    console.log("Run response:", JSON.stringify(runResponse));
+    // With run-sync, we get results directly in the response
+    const result = await response.json();
+    console.log(`Got Instagram results directly from sync API`);
     
-    if (!runResponse.data || !runResponse.data.id) {
-      console.error("No run ID returned from Apify API");
-      throw new Error("Could not start Instagram profile scraping task");
-    }
-    
-    const runId = runResponse.data.id;
-    console.log(`Instagram run created with ID: ${runId}`);
-    
-    // Wait for the run to complete and get the results
-    const result = await waitForApifyRun(runId, apiKey);
-    console.log(`Got ${result.data?.length || 0} Instagram results from dataset`);
-    
-    if (!result.data || result.data.length === 0) {
+    if (!result || !Array.isArray(result) || result.length === 0) {
       console.error("No profile data returned from Apify");
       throw new Error("No Instagram profile data returned");
     }
     
     // Instagram profile data structure
-    const profile = result.data[0];
+    const profile = result[0];
     
     if (!profile || !profile.username) {
       console.error('Instagram profile not found in response');

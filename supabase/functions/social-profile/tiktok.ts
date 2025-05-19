@@ -20,99 +20,108 @@ export function calculateTikTokEngagementRate(stats: any) {
 }
 
 /**
- * Fetches TikTok profile data using multiple methods:
- * 1. Official TikTok API (if credentials available)
- * 2. TikScraper Actor (most reliable Apify actor)
- * 3. Fallback to vdrmota/tiktok-scraper
- * 4. Mock data as final fallback
+ * Normalizes a TikTok profile object to match the app's expected format
  */
-export async function fetchTikTokProfile(username: string, apiKey: string) {
-  console.log(`Fetching TikTok profile for user: ${username}`);
-  
-  // Try the official TikTok API first
+function normalizeProfileData(profile: any, username: string): any {
+  return {
+    username: profile.username || profile.uniqueId || username.replace('@', ''),
+    full_name: profile.displayName || profile.nickname || profile.fullName || username,
+    biography: profile.signature || profile.bio || profile.bio_description || '',
+    follower_count: profile.followerCount || profile.followers || profile.follower_count || 0,
+    following_count: profile.followingCount || profile.following || profile.following_count || 0,
+    post_count: profile.videoCount || profile.posts || profile.video_count || 0,
+    is_verified: profile.verified || profile.is_verified || false,
+    profile_pic_url: profile.avatarLarge || profile.avatarMedium || profile.avatar || profile.avatar_url || '',
+    engagement_rate: calculateTikTokEngagementRate(profile)
+  };
+}
+
+/**
+ * Attempts to fetch a TikTok profile using the official TikTok API
+ */
+async function fetchWithOfficialAPI(username: string): Promise<any | null> {
   const tiktokApiKey = Deno.env.get('TIKTOK_API_KEY');
   const tiktokApiSecret = Deno.env.get('TIKTOK_API_SECRET');
   
-  if (tiktokApiKey && tiktokApiSecret) {
-    try {
-      console.log(`Using official TikTok API for: ${username}`);
-      
-      // The TikTok API requires an access token first
-      const tokenResponse = await fetch('https://open-api.tiktok.com/oauth/access_token/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          client_key: tiktokApiKey,
-          client_secret: tiktokApiSecret,
-          grant_type: 'client_credentials',
-        }).toString(),
-      });
-      
-      if (!tokenResponse.ok) {
-        throw new Error(`TikTok token API error: ${tokenResponse.status}`);
-      }
-      
-      const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.data?.access_token;
-      
-      if (!accessToken) {
-        throw new Error('Failed to get TikTok access token');
-      }
-      
-      // Now we can fetch the user info
-      const userResponse = await fetch(
-        `https://open-api.tiktok.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        }
-      );
-      
-      if (!userResponse.ok) {
-        throw new Error(`TikTok user API error: ${userResponse.status}`);
-      }
-      
-      const userData = await userResponse.json();
-      
-      // Log the structure for debugging
-      console.log('TikTok API response structure:', JSON.stringify(userData).substring(0, 500) + '...');
-      
-      if (userData.data && userData.data.user) {
-        const user = userData.data.user;
-        
-        // Map the official API response to our app format
-        return {
-          username: username.replace('@', ''),
-          full_name: user.display_name || username,
-          biography: user.bio_description || '',
-          follower_count: user.follower_count || 0,
-          following_count: user.following_count || 0,
-          post_count: user.video_count || 0,
-          is_verified: user.is_verified || false,
-          profile_pic_url: user.avatar_url || '',
-          engagement_rate: calculateTikTokEngagementRate({
-            followerCount: user.follower_count,
-            heartCount: user.likes_count,
-            videoCount: user.video_count,
-          }),
-        };
-      } 
-      
-      throw new Error('TikTok API data format not recognized');
-    } catch (error) {
-      console.error(`Official TikTok API error: ${error.message}`);
-      console.log(`Falling back to Apify scrapers for ${username}`);
-      // Fall back to Apify method
-    }
-  } else {
-    console.log('TikTok API credentials not found, using Apify scraper instead');
+  if (!tiktokApiKey || !tiktokApiSecret) {
+    console.log('TikTok API credentials not found');
+    return null;
   }
   
-  // Attempt to use the TikScraper actor (most reliable)
+  try {
+    console.log(`Using official TikTok API for: ${username}`);
+    
+    // The TikTok API requires an access token first
+    const tokenResponse = await fetch('https://open-api.tiktok.com/oauth/access_token/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_key: tiktokApiKey,
+        client_secret: tiktokApiSecret,
+        grant_type: 'client_credentials',
+      }).toString(),
+    });
+    
+    if (!tokenResponse.ok) {
+      throw new Error(`TikTok token API error: ${tokenResponse.status}`);
+    }
+    
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.data?.access_token;
+    
+    if (!accessToken) {
+      throw new Error('Failed to get TikTok access token');
+    }
+    
+    // Now we can fetch the user info
+    const userResponse = await fetch(
+      `https://open-api.tiktok.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+    
+    if (!userResponse.ok) {
+      throw new Error(`TikTok user API error: ${userResponse.status}`);
+    }
+    
+    const userData = await userResponse.json();
+    
+    // Log the structure for debugging
+    console.log('TikTok API response structure:', JSON.stringify(userData).substring(0, 500) + '...');
+    
+    if (userData.data && userData.data.user) {
+      const user = userData.data.user;
+      
+      // Map the official API response to our app format
+      return normalizeProfileData({
+        followerCount: user.follower_count,
+        heartCount: user.likes_count,
+        videoCount: user.video_count,
+        username: username.replace('@', ''),
+        displayName: user.display_name,
+        bio_description: user.bio_description,
+        is_verified: user.is_verified,
+        avatar_url: user.avatar_url
+      }, username);
+    } 
+    
+    throw new Error('TikTok API data format not recognized');
+  } catch (error) {
+    console.error(`Official TikTok API error: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * Attempts to fetch a TikTok profile using the TikScraper Apify actor
+ */
+async function fetchWithTikScraper(username: string, apiKey: string): Promise<any | null> {
   try {
     const tikScraperActor = 'apify/tik-scraper';
     const tikScraperEndpoint = `https://api.apify.com/v2/acts/${tikScraperActor}/runs?token=${apiKey}`;
@@ -130,43 +139,41 @@ export async function fetchTikTokProfile(username: string, apiKey: string) {
       })
     });
     
-    if (response.ok) {
-      const runResponse = await response.json();
-      const runId = runResponse.data.id;
-      console.log(`TikScraper run created with ID: ${runId}`);
-      
-      const result = await waitForApifyRun(runId, apiKey, 60000);
-      console.log(`Got ${result.data?.length || 0} results from TikScraper`);
-      
-      if (result.data && result.data.length > 0) {
-        const profile = result.data[0];
-        console.log('TikScraper data structure:', JSON.stringify(profile).substring(0, 500) + '...');
-        
-        return {
-          username: profile.username || username.replace('@', ''),
-          full_name: profile.displayName || profile.nickname || username,
-          biography: profile.signature || profile.bio || '',
-          follower_count: profile.followerCount || profile.followers || 0,
-          following_count: profile.followingCount || profile.following || 0,
-          post_count: profile.videoCount || profile.posts || 0,
-          is_verified: profile.verified || false,
-          profile_pic_url: profile.avatarLarge || profile.avatarMedium || profile.avatar || '',
-          engagement_rate: calculateTikTokEngagementRate(profile)
-        };
-      }
-    } else {
+    if (!response.ok) {
       console.error(`TikScraper API error: ${response.status}`);
+      return null;
     }
+    
+    const runResponse = await response.json();
+    const runId = runResponse.data.id;
+    console.log(`TikScraper run created with ID: ${runId}`);
+    
+    const result = await waitForApifyRun(runId, apiKey, 60000);
+    console.log(`Got ${result.data?.length || 0} results from TikScraper`);
+    
+    if (result.data && result.data.length > 0) {
+      const profile = result.data[0];
+      console.log('TikScraper data structure:', JSON.stringify(profile).substring(0, 500) + '...');
+      
+      return normalizeProfileData(profile, username);
+    }
+    
+    return null;
   } catch (error) {
     console.error(`Error in TikScraper: ${error.message}`);
+    return null;
   }
-  
-  // Fallback to alternative Apify actor
+}
+
+/**
+ * Attempts to fetch a TikTok profile using the vdrmota/tiktok-scraper Apify actor
+ */
+async function fetchWithVdrMotaScraper(username: string, apiKey: string): Promise<any | null> {
   try {
     const actorId = 'vdrmota/tiktok-scraper';
     const endpoint = `https://api.apify.com/v2/acts/${actorId}/runs?token=${apiKey}`;
     
-    console.log(`Falling back to ${actorId} for: ${username}`);
+    console.log(`Trying ${actorId} for: ${username}`);
     
     // Configure payload for the Apify actor
     const payload = {
@@ -185,7 +192,7 @@ export async function fetchTikTokProfile(username: string, apiKey: string) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Apify TikTok API error: ${response.status} - ${errorText}`);
-      return createMockTikTokProfile(username);
+      return null;
     }
     
     const runResponse = await response.json();
@@ -198,7 +205,7 @@ export async function fetchTikTokProfile(username: string, apiKey: string) {
     
     if (!result.data || result.data.length === 0) {
       console.error('No TikTok profile data returned from Apify');
-      return createMockTikTokProfile(username);
+      return null;
     }
     
     // Log the response structure to help with debugging
@@ -211,24 +218,23 @@ export async function fetchTikTokProfile(username: string, apiKey: string) {
       const userInfo = profile.user || profile.userInfo || {};
       const stats = userInfo.stats || userInfo;
       
-      return {
-        username: userInfo.uniqueId || userInfo.username || username.replace('@', ''),
-        full_name: userInfo.nickname || userInfo.fullName || '',
-        biography: userInfo.signature || userInfo.description || userInfo.bio || '',
-        follower_count: stats.followerCount || stats.followers || 0,
-        following_count: stats.followingCount || stats.following || 0, 
-        post_count: stats.videoCount || stats.videos || 0,
-        is_verified: userInfo.verified || false,
-        profile_pic_url: userInfo.avatarMedium || userInfo.avatarUrl || userInfo.avatar || '',
-        engagement_rate: calculateTikTokEngagementRate(stats)
-      };
-    } 
+      return normalizeProfileData({
+        username: userInfo.uniqueId || userInfo.username,
+        fullName: userInfo.nickname,
+        biography: userInfo.signature || userInfo.description || userInfo.bio,
+        followerCount: stats.followerCount || stats.followers,
+        followingCount: stats.followingCount || stats.following,
+        videoCount: stats.videoCount || stats.videos,
+        verified: userInfo.verified,
+        avatarMedium: userInfo.avatarMedium || userInfo.avatarUrl || userInfo.avatar
+      }, username);
+    }
     
     console.error('Apify TikTok profile structure not recognized');
-    return createMockTikTokProfile(username);
+    return null;
   } catch (error) {
-    console.error(`Error in TikTok scraper: ${error.message}`);
-    return createMockTikTokProfile(username);
+    console.error(`Error in VdrMota TikTok scraper: ${error.message}`);
+    return null;
   }
 }
 
@@ -249,4 +255,42 @@ function createMockTikTokProfile(username: string) {
     profile_pic_url: 'https://placehold.co/400x400/6445ED/white?text=TikTok',
     engagement_rate: (Math.random() * 5 + 1).toFixed(2)
   };
+}
+
+/**
+ * Main function to fetch TikTok profile using multiple methods:
+ * 1. Official TikTok API (if credentials available)
+ * 2. TikScraper Actor (most reliable Apify actor)
+ * 3. Fallback to vdrmota/tiktok-scraper
+ * 4. Mock data as final fallback
+ */
+export async function fetchTikTokProfile(username: string, apiKey: string) {
+  console.log(`Fetching TikTok profile for user: ${username}`);
+  
+  // Try the official TikTok API first
+  const officialApiResult = await fetchWithOfficialAPI(username);
+  if (officialApiResult) {
+    console.log(`Successfully retrieved TikTok profile from official API for: ${username}`);
+    return officialApiResult;
+  }
+  
+  console.log(`Falling back to scrapers for ${username}`);
+  
+  // Try TikScraper actor
+  const tikScraperResult = await fetchWithTikScraper(username, apiKey);
+  if (tikScraperResult) {
+    console.log(`Successfully retrieved TikTok profile from TikScraper for: ${username}`);
+    return tikScraperResult;
+  }
+  
+  // Try vdrmota/tiktok-scraper actor
+  const vdrScraperResult = await fetchWithVdrMotaScraper(username, apiKey);
+  if (vdrScraperResult) {
+    console.log(`Successfully retrieved TikTok profile from vdrmota scraper for: ${username}`);
+    return vdrScraperResult;
+  }
+  
+  // All methods failed, return mock data
+  console.log(`All TikTok API methods failed for ${username}, returning mock data`);
+  return createMockTikTokProfile(username);
 }

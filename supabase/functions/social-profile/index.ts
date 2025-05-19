@@ -34,15 +34,6 @@ Deno.serve(async (req) => {
         400
       )
     }
-
-    // Validate API keys
-    if (!APIFY_API_KEY && !Deno.env.get('TIKTOK_API_KEY')) {
-      console.error('No API keys configured (APIFY_API_KEY or TIKTOK_API_KEY)')
-      return formatResponse(
-        { error: 'API integration not configured' },
-        500
-      )
-    }
     
     // Clean username (remove @ if present)
     const cleanUsername = username.replace('@', '')
@@ -54,6 +45,11 @@ Deno.serve(async (req) => {
       
       if (platform === 'instagram') {
         profileData = await fetchInstagramProfile(cleanUsername, APIFY_API_KEY);
+        
+        // Make sure we properly flag mock data
+        if (!profileData.is_mock_data) {
+          profileData.is_mock_data = true;
+        }
       } else if (platform === 'tiktok') {
         // Use the configured API key 
         const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || APIFY_API_KEY;

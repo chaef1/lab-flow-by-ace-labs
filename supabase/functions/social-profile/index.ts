@@ -118,14 +118,25 @@ Deno.serve(async (req) => {
           console.log(`Attempt ${retryCount + 1} failed: ${error.message}`);
           
           // If it's a rate limit error and we haven't exceeded max retries
-          if (error.message.includes("rate limit") && retryCount < maxRetries) {
+          if ((error.message.includes("rate limit") || error.status === 429) && retryCount < maxRetries) {
             retryCount++;
             // Wait before retrying (exponential backoff)
             const delay = Math.pow(2, retryCount) * 1000;
             console.log(`Waiting ${delay}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, delay));
           } else {
-            // Either not a rate limit error or we've exceeded retries
+            // Handle rate limit errors more gracefully
+            if (error.message.includes("rate limit") || error.status === 429) {
+              // Return a user-friendly rate limit error
+              return formatResponse({
+                error: "Rate limit exceeded",
+                message: "Instagram API rate limit reached. Please try again later.",
+                username: cleanUsername,
+                temporary_error: true,
+                requires_waiting: true,
+                platform
+              }, 429);
+            }
             throw error;
           }
         }
@@ -139,6 +150,19 @@ Deno.serve(async (req) => {
       return formatResponse(profileData);
     } catch (platformError) {
       console.error(`Error fetching ${platform} profile:`, platformError);
+      
+      // Check if it's a rate limit error for more user-friendly messaging
+      if (platformError.message.includes("rate limit") || platformError.status === 429) {
+        return formatResponse({
+          error: "Rate limit exceeded",
+          message: `${platform.charAt(0).toUpperCase() + platform.slice(1)} API rate limit reached. Please try again in a few minutes.`,
+          username: cleanUsername,
+          temporary_error: true,
+          requires_waiting: true,
+          platform
+        }, 429);
+      }
+      
       return formatResponse(
         { error: platformError.message || `Error fetching ${platform} profile` },
         404

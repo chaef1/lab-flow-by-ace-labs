@@ -7,7 +7,21 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
-import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck, AlertCircle, History, Clock, Link, Lock } from "lucide-react";
+import { 
+  Instagram, 
+  Loader2, 
+  Search, 
+  Star, 
+  TrendingUp, 
+  UserCheck, 
+  AlertCircle, 
+  History, 
+  Clock, 
+  Link, 
+  Lock,
+  Timer,
+  RefreshCw
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";
@@ -27,6 +41,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     clearProfile, 
     isLoading, 
     profileData,
+    rateLimitError,
     searchHistory,
     isHistoryLoading,
     clearSearchHistory
@@ -201,6 +216,40 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     return null;
   };
 
+  // Render rate limit error UI
+  const renderRateLimitError = () => {
+    if (!profileData?.temporary_error) return null;
+    
+    return (
+      <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="flex items-start">
+          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0" />
+          <div>
+            <h3 className="font-medium text-amber-800">API Rate Limit Reached</h3>
+            <p className="text-amber-700 mt-1">
+              {profileData.message || "The Instagram API is temporarily unavailable due to rate limiting. Please try again in a few minutes."}
+            </p>
+            <div className="mt-3 flex flex-col sm:flex-row gap-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                onClick={() => searchProfile(platform, username)}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+              <div className="text-sm text-amber-600 flex items-center">
+                <Timer className="mr-2 h-4 w-4" />
+                Typically resolves within 15 minutes
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <Card className="w-full">
@@ -272,7 +321,11 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   </div>
                 )}
                 
-                {profileData && (
+                {/* Rate limit error message */}
+                {renderRateLimitError()}
+                
+                {/* Profile data display */}
+                {profileData && !profileData.temporary_error && (
                   <div className="mt-6 border rounded-lg p-4">
                     <div className="flex items-center gap-4">
                       <Avatar className="h-16 w-16">
@@ -399,7 +452,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
           </Tabs>
         </CardContent>
         
-        {profileData && searchTab === 'search' && !profileData.requires_auth && (
+        {profileData && !profileData.temporary_error && searchTab === 'search' && !profileData.requires_auth && (
           <CardFooter>
             <Button className="w-full" onClick={handleAddInfluencer}>
               <TrendingUp className="mr-2 h-4 w-4" /> 

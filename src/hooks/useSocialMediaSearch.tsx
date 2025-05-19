@@ -17,9 +17,13 @@ interface SocialProfileResult {
   profile_pic_url?: string;
   engagement_rate?: number;
   error?: string;
+  message?: string;
   is_mock_data?: boolean;
   requires_auth?: boolean;
   auth_url?: string;
+  temporary_error?: boolean;
+  requires_waiting?: boolean;
+  platform?: string;
 }
 
 interface SearchHistoryItem {
@@ -35,6 +39,7 @@ export const useSocialMediaSearch = () => {
   const [profileData, setProfileData] = useState<SocialProfileResult | null>(null);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [rateLimitError, setRateLimitError] = useState<{platform: string, message: string} | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -190,6 +195,9 @@ export const useSocialMediaSearch = () => {
       return;
     }
 
+    // Clear any previous rate limit errors
+    setRateLimitError(null);
+
     // Process the input differently based on platform
     let username = input;
     if (platform === 'instagram') {
@@ -225,7 +233,7 @@ export const useSocialMediaSearch = () => {
         requestBody.code = oauthCode;
       }
       
-      const { data, error } = await supabase.functions.invoke('social-profile', {
+      const { data, error, status } = await supabase.functions.invoke('social-profile', {
         body: requestBody,
       });
 
@@ -233,7 +241,31 @@ export const useSocialMediaSearch = () => {
         throw new Error(error.message || 'Error calling social-profile function');
       }
 
-      console.log("Response from social-profile function:", data);
+      console.log("Response from social-profile function:", data, "Status:", status);
+
+      // Check for rate limit error (status code 429 or temporary_error flag)
+      if (data.temporary_error && data.requires_waiting) {
+        setRateLimitError({
+          platform: data.platform || platform,
+          message: data.message || `${platform} API rate limit reached. Please try again in a few minutes.`
+        });
+        
+        toast({
+          title: "API Rate Limit Reached",
+          description: data.message || `${platform} API rate limit reached. Please try again in a few minutes.`,
+          variant: "destructive",
+        });
+        
+        // Set partial profile data to show the rate limit UI
+        setProfileData({
+          username: username,
+          platform: platform,
+          temporary_error: true,
+          requires_waiting: true,
+          message: data.message
+        });
+        return;
+      }
 
       if (data.error) {
         toast({
@@ -272,12 +304,35 @@ export const useSocialMediaSearch = () => {
       }
     } catch (error: any) {
       console.error("Error fetching social profile:", error);
-      toast({
-        title: "Search failed",
-        description: error.message || "Could not search for profile",
-        variant: "destructive",
-      });
-      setProfileData(null);
+      
+      // Check if the error is related to rate limiting
+      if (error.message && (error.message.includes("rate limit") || error.message.includes("429"))) {
+        setRateLimitError({
+          platform: platform,
+          message: `${platform} API rate limit reached. Please try again in a few minutes.`
+        });
+        
+        setProfileData({
+          username: username,
+          platform: platform,
+          temporary_error: true,
+          requires_waiting: true,
+          message: `${platform} API rate limit reached. Please try again in a few minutes.`
+        });
+        
+        toast({
+          title: "API Rate Limit Reached",
+          description: `${platform} API rate limit reached. Please try again in a few minutes.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Search failed",
+          description: error.message || "Could not search for profile",
+          variant: "destructive",
+        });
+        setProfileData(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -285,6 +340,7 @@ export const useSocialMediaSearch = () => {
 
   const clearProfile = () => {
     setProfileData(null);
+    setRateLimitError(null);
   };
 
   return {
@@ -292,6 +348,7 @@ export const useSocialMediaSearch = () => {
     clearProfile,
     isLoading,
     profileData,
+    rateLimitError,
     searchHistory,
     isHistoryLoading,
     clearSearchHistory,

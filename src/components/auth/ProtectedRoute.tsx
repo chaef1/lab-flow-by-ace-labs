@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -11,6 +11,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, isLoading, userProfile } = useAuth();
   const location = useLocation();
+  const redirectAttempted = useRef(false);
 
   // Enhanced debugging
   useEffect(() => {
@@ -30,13 +31,14 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user) {
-    // Don't redirect to auth if we're already on auth
-    if (location.pathname === "/auth") {
-      console.log("Already on auth page, not redirecting");
-      return <>{children}</>;
-    }
-    
+  // Don't redirect if already on auth page
+  if (location.pathname === "/auth") {
+    return <>{children}</>;
+  }
+
+  if (!user && !redirectAttempted.current) {
+    // Mark that we've attempted a redirect to prevent loops
+    redirectAttempted.current = true;
     console.log(`Redirecting to auth from ${location.pathname}`);
     // Use replace to avoid building up history
     return <Navigate to="/auth" replace state={{ from: location }} />;

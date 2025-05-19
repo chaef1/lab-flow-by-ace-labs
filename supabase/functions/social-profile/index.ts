@@ -58,6 +58,13 @@ Deno.serve(async (req) => {
         // Use the configured API key 
         const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || APIFY_API_KEY;
         profileData = await fetchTikTokProfile(cleanUsername, tiktokApiKey);
+        
+        // Add a flag to indicate if the returned data is mock data
+        // This helps the UI show appropriate messaging
+        if (profileData && !profileData.is_mock_data && 
+            (!profileData.follower_count || typeof profileData.is_verified !== 'boolean')) {
+          profileData.is_mock_data = true;
+        }
       }
       
       if (!profileData) {

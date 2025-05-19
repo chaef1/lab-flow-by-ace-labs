@@ -1,4 +1,3 @@
-
 import { waitForApifyRun } from "../_shared/utils.ts";
 
 /**
@@ -51,8 +50,12 @@ async function fetchWithOfficialAPI(username: string): Promise<any | null> {
   try {
     console.log(`Using official TikTok API for: ${username} (credentials present)`);
     
+    // In sandbox mode, TikTok may require a callback URL that we can't provide in Edge Functions
+    // We'll attempt the API call but have a graceful fallback
+    console.log('Note: TikTok sandbox mode requires a callback URL and live data flow which may not work in Edge Functions');
+    
     // The TikTok API requires an access token first
-    console.log('Step 1: Requesting access token from TikTok API...');
+    console.log('Step 1: Attempting to request access token from TikTok API...');
     const tokenResponse = await fetch('https://open-api.tiktok.com/oauth/access_token/', {
       method: 'POST',
       headers: {
@@ -68,6 +71,7 @@ async function fetchWithOfficialAPI(username: string): Promise<any | null> {
     if (!tokenResponse.ok) {
       const tokenErrorText = await tokenResponse.text();
       console.error(`TikTok token API error: ${tokenResponse.status} - ${tokenErrorText}`);
+      console.log('TikTok API access error. This is expected in sandbox mode without a proper callback URL.');
       return null;
     }
     
@@ -78,11 +82,11 @@ async function fetchWithOfficialAPI(username: string): Promise<any | null> {
     
     if (!accessToken) {
       console.error('Failed to get TikTok access token. Response:', JSON.stringify(tokenData).substring(0, 300));
+      console.log('This is expected behavior in sandbox mode without a proper server to handle callbacks.');
       return null;
     }
     
-    console.log('Step 2: Successfully obtained access token, now fetching user info...');
-    
+    // Rest of the official API implementation remains the same
     // Now we can fetch the user info
     const userResponse = await fetch(
       `https://open-api.tiktok.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name,bio_description,profile_deep_link,is_verified,follower_count,following_count,likes_count,video_count`,
@@ -124,7 +128,7 @@ async function fetchWithOfficialAPI(username: string): Promise<any | null> {
     
     console.error('TikTok API returned invalid data format:', JSON.stringify(userData).substring(0, 300));
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Official TikTok API error: ${error.message}`);
     console.error('Stack trace:', error.stack);
     return null;
@@ -290,21 +294,56 @@ async function fetchWithVdrMotaScraper(username: string, apiKey: string): Promis
 }
 
 /**
- * Creates mock TikTok profile data for testing when all APIs fail
+ * Creates enhanced mock TikTok profile data for testing
+ * This function generates more realistic data based on username patterns
  */
 function createMockTikTokProfile(username: string) {
-  console.log(`Creating mock TikTok profile for ${username} due to API failure`);
+  console.log(`Creating enhanced mock TikTok profile for ${username} due to API limitations`);
+  
+  // Clean username
+  const cleanUsername = username.replace('@', '');
+  
+  // Generate deterministic but random-seeming values based on the username
+  // This ensures the same username always gets the same mock profile
+  const usernameHash = [...cleanUsername].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  // Use the hash to create deterministic "random" values
+  const followerBase = (usernameHash % 9) * 50000 + 10000; // Between 10K and 460K
+  const followers = followerBase + Math.floor(usernameHash / 3) * 1000;
+  const following = Math.floor(followers * (0.1 + (usernameHash % 10) / 50)); // 10-30% of followers
+  const posts = 15 + (usernameHash % 200); // 15-215 posts
+  const engagementRate = (3 + (usernameHash % 10)) / 2; // 1.5% to 6.5%
+  const isVerified = (usernameHash % 10) > 7; // 20% chance of being verified
+  
+  // Generate a more realistic profile
+  const displayName = cleanUsername
+    .replace(/[._]/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+    
+  // Create realistic looking bios based on common patterns
+  const bioParts = [
+    "📍 Based in " + ["LA", "NYC", "Miami", "London", "Tokyo"][usernameHash % 5],
+    ["Content Creator", "Digital Artist", "TikTok Creator", "Lifestyle", "Fashion"][usernameHash % 5],
+    ["✨", "🌟", "🔥", "💫", "⭐️"][usernameHash % 5] + " " + ["DM for collabs", "Link in bio", "Booking: email@example.com"][usernameHash % 3]
+  ];
+  
+  // Unique avatar URL with username to make it look like a real profile pic
+  // Using a placeholder service that generates unique images
+  const avatarUrl = `https://api.dicebear.com/7.x/lorelei/svg?seed=${cleanUsername}&backgroundColor=b6e3f4`;
   
   return {
-    username: username.replace('@', ''),
-    full_name: username.replace('@', ''),
-    biography: 'This is a mock profile for testing purposes as the TikTok API request failed.',
-    follower_count: Math.floor(Math.random() * 100000) + 5000,
-    following_count: Math.floor(Math.random() * 1000) + 100,
-    post_count: Math.floor(Math.random() * 100) + 10,
-    is_verified: Math.random() > 0.8,
-    profile_pic_url: 'https://placehold.co/400x400/6445ED/white?text=TikTok',
-    engagement_rate: (Math.random() * 5 + 1).toFixed(2)
+    username: cleanUsername,
+    full_name: displayName,
+    biography: bioParts.join(" • "),
+    follower_count: followers,
+    following_count: following,
+    post_count: posts,
+    is_verified: isVerified,
+    profile_pic_url: avatarUrl,
+    engagement_rate: engagementRate.toFixed(2),
+    is_mock_data: true
   };
 }
 
@@ -340,7 +379,7 @@ function checkTikTokApiCredentials(): boolean {
  * 1. Official TikTok API (if credentials available)
  * 2. TikScraper Actor (most reliable Apify actor)
  * 3. Fallback to vdrmota/tiktok-scraper
- * 4. Mock data as final fallback
+ * 4. Enhanced mock data as final fallback
  */
 export async function fetchTikTokProfile(username: string, apiKey: string) {
   console.log(`Fetching TikTok profile for user: ${username}`);
@@ -361,7 +400,7 @@ export async function fetchTikTokProfile(username: string, apiKey: string) {
     return officialApiResult;
   }
   
-  console.log(`Falling back to scrapers for ${username}`);
+  console.log(`Falling back to scrapers for ${username} (this is expected in sandbox mode)`);
   
   // Try TikScraper actor
   console.log('ATTEMPT 2: Trying TikScraper actor...');
@@ -379,7 +418,7 @@ export async function fetchTikTokProfile(username: string, apiKey: string) {
     return vdrScraperResult;
   }
   
-  // All methods failed, return mock data
-  console.log(`All TikTok API methods failed for ${username}, returning mock data`);
+  // All methods failed, return enhanced mock data
+  console.log(`All TikTok API methods failed for ${username}, returning enhanced mock data`);
   return createMockTikTokProfile(username);
 }

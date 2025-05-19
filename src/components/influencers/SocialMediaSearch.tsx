@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
-import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck } from "lucide-react";
+import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";
@@ -103,7 +102,8 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         categories: [],
         avatar_url: profileData.profile_pic_url || '',
         instagram_handle: platform === 'instagram' ? profileData.username : null,
-        tiktok_handle: platform === 'tiktok' ? profileData.username : null
+        tiktok_handle: platform === 'tiktok' ? profileData.username : null,
+        is_mock_data: profileData.is_mock_data || false
       };
       
       setSavedProfileData(savedData);
@@ -111,7 +111,9 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
       
       toast({
         title: "Influencer added",
-        description: "Successfully added influencer to your database",
+        description: profileData.is_mock_data 
+          ? "Added influencer with generated profile data" 
+          : "Successfully added influencer to your database",
       });
       
       setUsername('');
@@ -181,6 +183,16 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
             
             {profileData && (
               <div className="mt-6 border rounded-lg p-4">
+                {profileData.is_mock_data && (
+                  <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-sm flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
+                    <span>
+                      Using generated data due to API limitations. 
+                      This profile can still be added to your database.
+                    </span>
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
                     <AvatarImage src={profileData.profile_pic_url} />

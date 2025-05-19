@@ -16,6 +16,7 @@ interface SocialProfileResult {
   profile_pic_url?: string;
   engagement_rate?: number;
   error?: string;
+  is_mock_data?: boolean;
 }
 
 export const useSocialMediaSearch = () => {
@@ -70,15 +71,25 @@ export const useSocialMediaSearch = () => {
           post_count: data.post_count || data.posts || data.videoCount || 0,
           is_verified: data.is_verified || data.verified || false,
           profile_pic_url: data.profile_pic_url || data.avatar || data.avatarUrl || data.avatar_url || '',
-          engagement_rate: data.engagement_rate || 0
+          engagement_rate: data.engagement_rate || 0,
+          is_mock_data: data.is_mock_data || false
         };
         
         console.log("Normalized profile data:", normalizedData);
         setProfileData(normalizedData);
-        toast({
-          title: "Profile found",
-          description: `Found ${platform} profile for @${username}`,
-        });
+        
+        if (normalizedData.is_mock_data) {
+          toast({
+            title: "Mock Profile Created",
+            description: `Using generated ${platform} profile data for @${username} due to API limitations`,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Profile found",
+            description: `Found ${platform} profile for @${username}`,
+          });
+        }
       }
     } catch (error: any) {
       console.error("Error fetching social profile:", error);

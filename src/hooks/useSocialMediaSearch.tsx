@@ -1,7 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 type SocialPlatform = 'instagram' | 'tiktok';
 
@@ -19,10 +20,105 @@ interface SocialProfileResult {
   is_mock_data?: boolean;
 }
 
+interface SearchHistoryItem {
+  id: string;
+  platform: SocialPlatform;
+  username: string;
+  timestamp: string;
+  user_id: string;
+}
+
 export const useSocialMediaSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState<SocialProfileResult | null>(null);
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Load search history on component mount
+  useEffect(() => {
+    if (user) {
+      fetchSearchHistory();
+    }
+  }, [user]);
+
+  // Fetch search history for current user
+  const fetchSearchHistory = async () => {
+    if (!user) return;
+    
+    setIsHistoryLoading(true);
+    try {
+      // Get searches from the last 24 hours only
+      const oneDayAgo = new Date();
+      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+      
+      const { data, error } = await supabase
+        .from('social_media_searches')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('timestamp', oneDayAgo.toISOString())
+        .order('timestamp', { ascending: false });
+      
+      if (error) throw error;
+      
+      setSearchHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching search history:', error);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
+
+  // Save search to history
+  const saveSearchToHistory = async (platform: SocialPlatform, username: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('social_media_searches')
+        .insert({
+          platform,
+          username,
+          user_id: user.id,
+          timestamp: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
+      // Refresh history after adding new item
+      fetchSearchHistory();
+    } catch (error) {
+      console.error('Error saving to search history:', error);
+    }
+  };
+
+  // Clear search history
+  const clearSearchHistory = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('social_media_searches')
+        .delete()
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      setSearchHistory([]);
+      toast({
+        title: "History cleared",
+        description: "Your search history has been cleared",
+      });
+    } catch (error: any) {
+      console.error('Error clearing search history:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear search history",
+        variant: "destructive",
+      });
+    }
+  };
 
   const searchProfile = async (platform: SocialPlatform, username: string) => {
     if (!username) {
@@ -78,18 +174,13 @@ export const useSocialMediaSearch = () => {
         console.log("Normalized profile data:", normalizedData);
         setProfileData(normalizedData);
         
-        if (normalizedData.is_mock_data) {
-          toast({
-            title: "Mock Profile Created",
-            description: `Using generated ${platform} profile data for @${username} due to API limitations`,
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "Profile found",
-            description: `Found ${platform} profile for @${username}`,
-          });
-        }
+        // Save successful search to history
+        saveSearchToHistory(platform, username);
+        
+        toast({
+          title: "Profile found",
+          description: `Found ${platform} profile for @${username}`,
+        });
       }
     } catch (error: any) {
       console.error("Error fetching social profile:", error);
@@ -113,5 +204,9 @@ export const useSocialMediaSearch = () => {
     clearProfile,
     isLoading,
     profileData,
+    searchHistory,
+    isHistoryLoading,
+    clearSearchHistory,
+    fetchSearchHistory
   };
 };

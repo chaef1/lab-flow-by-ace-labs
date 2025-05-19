@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,11 +20,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Instagram, MessageSquare, Star, FileText } from 'lucide-react';
+import { Instagram, MessageSquare, Star, FileText, History } from 'lucide-react';
+import { formatRelativeDate } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const InfluencerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const { data: influencer, isLoading, error } = useQuery({
     queryKey: ['influencer', id],
@@ -73,6 +76,54 @@ const InfluencerProfile = () => {
       };
     },
     enabled: !!id
+  });
+  
+  // Fetch search history for this influencer
+  const { data: searchHistory } = useQuery({
+    queryKey: ['searchHistory', influencer?.instagram_handle, influencer?.tiktok_handle],
+    queryFn: async () => {
+      if (!user || (!influencer?.instagram_handle && !influencer?.tiktok_handle)) {
+        return [];
+      }
+      
+      // We need to query for both handles if available
+      const queries = [];
+      
+      if (influencer.instagram_handle) {
+        queries.push(
+          supabase
+            .from('social_media_searches')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('username', influencer.instagram_handle)
+            .eq('platform', 'instagram')
+            .order('timestamp', { ascending: false })
+        );
+      }
+      
+      if (influencer.tiktok_handle) {
+        queries.push(
+          supabase
+            .from('social_media_searches')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('username', influencer.tiktok_handle)
+            .eq('platform', 'tiktok')
+            .order('timestamp', { ascending: false })
+        );
+      }
+      
+      // Execute all queries in parallel
+      const results = await Promise.all(queries);
+      
+      // Combine and sort results
+      const allResults = results
+        .flatMap(result => result.data || [])
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      return allResults;
+    },
+    enabled: !!user && !!influencer && !!(influencer.instagram_handle || influencer.tiktok_handle)
   });
   
   // Fetch projects to potentially assign this influencer to
@@ -160,6 +211,10 @@ const InfluencerProfile = () => {
                   <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+                    <TabsTrigger value="history">
+                      <History className="mr-2 h-4 w-4" />
+                      History
+                    </TabsTrigger>
                     <TabsTrigger value="campaigns">Past Campaigns</TabsTrigger>
                   </TabsList>
                   
@@ -200,6 +255,35 @@ const InfluencerProfile = () => {
                     ) : (
                       <div className="text-center py-10 text-muted-foreground">
                         No portfolio images available.
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="history" className="mt-4">
+                    <h2 className="text-xl font-medium mb-4">Search History</h2>
+                    
+                    {searchHistory && searchHistory.length > 0 ? (
+                      <div className="space-y-2">
+                        {searchHistory.map((item) => (
+                          <div key={item.id} className="flex justify-between items-center p-3 border rounded-md">
+                            <div className="flex items-center">
+                              {item.platform === 'instagram' ? (
+                                <Instagram className="h-4 w-4 mr-2" />
+                              ) : (
+                                <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" fill="currentColor" />
+                                </svg>
+                              )}
+                              <span>Searched @{item.username}</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">{formatRelativeDate(item.timestamp)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 text-muted-foreground">
+                        <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>No search history found for this influencer</p>
                       </div>
                     )}
                   </TabsContent>

@@ -60,6 +60,10 @@ Deno.serve(async (req) => {
     if (platform === 'instagram') {
       if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
         console.error("Instagram API credentials are not properly set");
+        return formatResponse(
+          { error: 'Instagram API credentials are not configured' },
+          500
+        );
       } else {
         console.log(`Using Instagram API credentials - App ID available: ${INSTAGRAM_APP_ID.length > 0}, App Secret available: ${INSTAGRAM_APP_SECRET.length > 0}`);
       }
@@ -68,19 +72,41 @@ Deno.serve(async (req) => {
     // Process the request based on platform
     try {
       let profileData;
+      let retryCount = 0;
+      const maxRetries = 2;
       
-      if (platform === 'instagram') {
-        profileData = await fetchInstagramProfile(cleanUsername, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET);
-      } else if (platform === 'tiktok') {
-        // Use the configured API key 
-        const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || '';
-        profileData = await fetchTikTokProfile(cleanUsername, tiktokApiKey);
-        
-        // Add a flag to indicate if the returned data is mock data
-        // This helps the UI show appropriate messaging
-        if (profileData && !profileData.is_mock_data && 
-            (!profileData.follower_count || typeof profileData.is_verified !== 'boolean')) {
-          profileData.is_mock_data = true;
+      while (retryCount <= maxRetries) {
+        try {
+          if (platform === 'instagram') {
+            profileData = await fetchInstagramProfile(cleanUsername, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET);
+            break; // Break the loop if successful
+          } else if (platform === 'tiktok') {
+            // Use the configured API key 
+            const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || '';
+            profileData = await fetchTikTokProfile(cleanUsername, tiktokApiKey);
+            
+            // Add a flag to indicate if the returned data is mock data
+            // This helps the UI show appropriate messaging
+            if (profileData && !profileData.is_mock_data && 
+                (!profileData.follower_count || typeof profileData.is_verified !== 'boolean')) {
+              profileData.is_mock_data = true;
+            }
+            break; // Break the loop if successful
+          }
+        } catch (error) {
+          console.log(`Attempt ${retryCount + 1} failed: ${error.message}`);
+          
+          // If it's a rate limit error and we haven't exceeded max retries
+          if (error.message.includes("rate limit") && retryCount < maxRetries) {
+            retryCount++;
+            // Wait before retrying (exponential backoff)
+            const delay = Math.pow(2, retryCount) * 1000;
+            console.log(`Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            // Either not a rate limit error or we've exceeded retries
+            throw error;
+          }
         }
       }
       

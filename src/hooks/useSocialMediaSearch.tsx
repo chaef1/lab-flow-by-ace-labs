@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -123,11 +124,47 @@ export const useSocialMediaSearch = () => {
     }
   };
 
-  const searchProfile = async (platform: SocialPlatform, username: string) => {
-    if (!username) {
+  // Extract username from Instagram URL
+  const extractInstagramUsername = (input: string): string => {
+    // Handle various Instagram URL formats
+    if (input.includes('instagram.com')) {
+      // Try to extract username from URL
+      const urlRegex = /instagram\.com\/([^\/\?#]+)/;
+      const match = input.match(urlRegex);
+      if (match && match[1]) {
+        // Remove trailing slashes if present
+        return match[1].replace(/\/$/, '');
+      }
+    }
+    
+    // If it's not a URL or extraction failed, return the input as-is (might be a username)
+    return input.replace('@', '');
+  };
+
+  const searchProfile = async (platform: SocialPlatform, input: string) => {
+    if (!input) {
       toast({
         title: "Username required",
-        description: "Please enter a username to search",
+        description: "Please enter a username or profile URL to search",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Process the input differently based on platform
+    let username = input;
+    if (platform === 'instagram') {
+      username = extractInstagramUsername(input);
+    } else {
+      // For TikTok just remove @ if present
+      username = input.replace('@', '');
+    }
+
+    // If we couldn't extract a valid username
+    if (!username) {
+      toast({
+        title: "Invalid input",
+        description: `Could not extract a valid ${platform} username from the input`,
         variant: "destructive",
       });
       return;
@@ -142,7 +179,7 @@ export const useSocialMediaSearch = () => {
       const { data, error } = await supabase.functions.invoke('social-profile', {
         body: {
           platform,
-          username: username.replace('@', ''), // Remove @ if present
+          username,
         },
       });
 
@@ -162,7 +199,7 @@ export const useSocialMediaSearch = () => {
       } else {
         // Normalize data to ensure it matches our expected interface
         const normalizedData: SocialProfileResult = {
-          username: data.username || username.replace('@', ''),
+          username: data.username || username,
           full_name: data.full_name || data.fullName || data.display_name || '',
           biography: data.biography || data.bio || data.bio_description || '',
           follower_count: data.follower_count || data.followers || data.followerCount || 0,

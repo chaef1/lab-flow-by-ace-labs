@@ -234,6 +234,30 @@ export type Database = {
           },
         ]
       }
+      social_media_searches: {
+        Row: {
+          id: string
+          platform: string
+          timestamp: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          id?: string
+          platform: string
+          timestamp?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          id?: string
+          platform?: string
+          timestamp?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assigned_to: string | null

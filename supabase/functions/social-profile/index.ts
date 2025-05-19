@@ -35,8 +35,24 @@ Deno.serve(async (req) => {
       )
     }
     
-    // Clean username (remove @ if present)
-    const cleanUsername = username.replace('@', '')
+    // Clean username (extract from URL if needed, remove @ if present)
+    let cleanUsername = username.replace('@', '')
+    
+    // Extract username from Instagram URL if provided
+    if (platform === 'instagram' && cleanUsername.includes('instagram.com')) {
+      const urlRegex = /instagram\.com\/([^\/\?#]+)/
+      const match = cleanUsername.match(urlRegex)
+      if (match && match[1]) {
+        cleanUsername = match[1].replace(/\/$/, '')
+        console.log(`Extracted Instagram username from URL: ${cleanUsername}`)
+      } else {
+        return formatResponse(
+          { error: 'Could not extract a valid Instagram username from the URL' },
+          400
+        )
+      }
+    }
+    
     console.log(`Processing ${platform} profile for: ${cleanUsername}`)
 
     // Log API key status (without revealing the key)

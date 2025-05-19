@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
-import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck, AlertCircle, History, Clock } from "lucide-react";
+import { Instagram, Loader2, Search, Star, TrendingUp, UserCheck, AlertCircle, History, Clock, Link } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";
@@ -170,7 +170,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         <CardHeader>
           <CardTitle>Find Influencers</CardTitle>
           <CardDescription>
-            Search for influencers by their social media handles
+            Search for influencers by their social media handles or profile URLs
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -190,22 +190,50 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   <TabsTrigger value="tiktok">TikTok</TabsTrigger>
                 </TabsList>
                 
-                <div className="flex space-x-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder={`Enter ${platform} username`}
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10"
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    />
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    {platform === 'instagram' ? (
+                      <div className="flex items-center">
+                        <Link className="h-4 w-4 mr-1" />
+                        Enter Instagram username or profile URL
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Link className="h-4 w-4 mr-1" />
+                        Enter TikTok username
+                      </div>
+                    )}
                   </div>
-                  <Button onClick={handleSearch} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                    Search
-                  </Button>
+                  
+                  <div className="flex space-x-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder={platform === 'instagram' 
+                          ? "Username or instagram.com/username" 
+                          : "Username"
+                        }
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="pl-10"
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      />
+                    </div>
+                    <Button onClick={handleSearch} disabled={isLoading}>
+                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                      Search
+                    </Button>
+                  </div>
                 </div>
+                
+                {platform === 'instagram' && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <p className="flex items-center">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      Example URL: https://www.instagram.com/username
+                    </p>
+                  </div>
+                )}
                 
                 {profileData && (
                   <div className="mt-6 border rounded-lg p-4">

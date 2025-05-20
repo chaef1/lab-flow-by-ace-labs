@@ -10,16 +10,60 @@ import MediaUploader from "@/components/advertising/MediaUploader";
 import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { hasTikTokToken, getSavedTikTokToken } from "@/lib/tiktok-ads-api";
+import { hasTikTokToken, getSavedTikTokToken, processTikTokAuthCallback } from "@/lib/tiktok-ads-api";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const AdvertisingManager = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<'tiktok' | 'meta'>('tiktok');
   const [activeTab, setActiveTab] = useState('campaigns');
   const [isConnected, setIsConnected] = useState(false);
+  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Check for tokens in localStorage that might have been set by direct navigation
+  useEffect(() => {
+    const checkDirectAuthCode = async () => {
+      const storedCode = localStorage.getItem('tiktok_auth_code');
+      
+      if (storedCode) {
+        console.log('Found stored auth code from direct navigation');
+        setIsProcessingAuth(true);
+        
+        try {
+          // Remove the code immediately to prevent repeated processing
+          localStorage.removeItem('tiktok_auth_code');
+          
+          // Process the auth code
+          const { success, token, advertiserId, error } = await processTikTokAuthCallback(
+            `https://app-sandbox.acelabs.co.za/advertising?code=${storedCode}`
+          );
+          
+          if (success && token) {
+            setIsConnected(true);
+            toast({
+              title: "Successfully Connected",
+              description: "Your TikTok Ads account has been connected successfully."
+            });
+          } else {
+            throw new Error(error || 'Authentication failed');
+          }
+        } catch (error: any) {
+          console.error('Error processing stored auth code:', error);
+          toast({
+            title: "Authentication Failed",
+            description: error.message || "Failed to complete TikTok authentication",
+            variant: "destructive"
+          });
+        } finally {
+          setIsProcessingAuth(false);
+        }
+      }
+    };
+    
+    checkDirectAuthCode();
+  }, [toast]);
 
   // Check connection status on mount and token changes
   useEffect(() => {
@@ -103,6 +147,7 @@ const AdvertisingManager = () => {
             <AdAccountSelector 
               platform={selectedPlatform}
               onConnectionStatusChange={setIsConnected}
+              isProcessingAuth={isProcessingAuth}
             />
           </CardContent>
         </Card>

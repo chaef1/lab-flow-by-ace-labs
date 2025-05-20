@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -16,19 +15,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Link, Loader2 } from "lucide-react";
+import { Link, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   getTikTokAuthUrl, 
   exchangeTikTokCode,
+  processTikTokAuthCallback,
   getTikTokAdAccounts,
   hasTikTokToken,
   getSavedTikTokToken,
   saveTikTokToken,
   removeTikTokToken,
-  openTikTokAuthPopup,
-  setupTikTokAuthListener
 } from "@/lib/tiktok-ads-api";
 
 interface AdAccountSelectorProps {
@@ -54,10 +52,64 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
   const [accounts, setAccounts] = useState<AdAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Setup message listener for auth iframe
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      // Only process messages with TikTok auth code
+      if (event.data && event.data.tiktokAuthCode) {
+        console.log('Received auth code from iframe message');
+        
+        try {
+          setIsLoading(true);
+          setAuthDialogOpen(false); // Close the dialog immediately
+          
+          // Process the auth code
+          const { success, token, advertiserId, error } = await processTikTokAuthCallback(
+            `https://app-sandbox.acelabs.co.za/advertising?code=${event.data.tiktokAuthCode}`
+          );
+          
+          if (success && token) {
+            setIsConnected(true);
+            if (onConnectionStatusChange) onConnectionStatusChange(true);
+            
+            // Fetch ad accounts with the new token
+            await fetchAdAccounts(token);
+            
+            // Set selected account if available
+            if (advertiserId) {
+              setSelectedAccount(advertiserId);
+            }
+            
+            toast({
+              title: "Successfully Connected",
+              description: "Your TikTok Ads account has been connected successfully."
+            });
+          } else {
+            throw new Error(error || 'Authentication failed');
+          }
+        } catch (error: any) {
+          console.error('Error processing auth code from message:', error);
+          showError(error.message || 'Authentication failed');
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [onConnectionStatusChange, toast]);
   
   // Check for saved tokens on component mount
   useEffect(() => {
@@ -150,65 +202,13 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     setIsLoading(true);
     
     try {
+      const { authUrl } = await getTikTokAuthUrl();
+      setAuthUrl(authUrl);
       setAuthDialogOpen(true);
     } catch (error: any) {
       console.error('Error initiating TikTok connection:', error);
       showError(error.message || 'Error connecting to TikTok');
     } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleConnect = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Open auth popup
-      const { success, popupWindow, error } = await openTikTokAuthPopup();
-      
-      if (!success || !popupWindow) {
-        throw new Error(error || 'Failed to open authentication popup');
-      }
-      
-      // Close the dialog
-      setAuthDialogOpen(false);
-      
-      // Setup listener for auth completion
-      const cleanupListener = setupTikTokAuthListener(
-        popupWindow,
-        // Success callback
-        async (token, advertiserId) => {
-          console.log('Auth successful, token and advertiser ID received');
-          setIsConnected(true);
-          if (onConnectionStatusChange) onConnectionStatusChange(true);
-          
-          // Fetch ad accounts with the new token
-          await fetchAdAccounts(token);
-          
-          // Set selected account if available
-          if (advertiserId) {
-            setSelectedAccount(advertiserId);
-          }
-          
-          toast({
-            title: "Successfully Connected",
-            description: "Your TikTok Ads account has been connected successfully."
-          });
-          
-          setIsLoading(false);
-        },
-        // Failure callback
-        (errorMsg) => {
-          console.error('Auth failed:', errorMsg);
-          showError(errorMsg || 'Authentication failed');
-          setIsLoading(false);
-        }
-      );
-      
-      // Cleanup function will be called automatically when auth completes or fails
-    } catch (error: any) {
-      console.error('Error during TikTok authentication:', error);
-      showError(error.message || 'Error connecting to TikTok');
       setIsLoading(false);
     }
   };
@@ -226,6 +226,11 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
       title: "Disconnected",
       description: "Successfully disconnected from TikTok Ads"
     });
+  };
+
+  const closeAuthDialog = () => {
+    setAuthDialogOpen(false);
+    setAuthUrl(null);
   };
   
   return (
@@ -309,32 +314,30 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         )}
       </div>
       
-      {/* TikTok Auth Dialog */}
+      {/* TikTok Auth Dialog with iframe */}
       <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Connect to TikTok Ads</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Connect to TikTok Ads</DialogTitle>
+              <Button variant="ghost" size="icon" onClick={closeAuthDialog}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
             <DialogDescription>
-              Connect your TikTok Ads account to manage campaigns directly from Ace Labs
+              Please complete the TikTok authentication process below
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              You will be asked to authorize access to your TikTok Ads account. A popup window will open to complete the authentication.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Make sure popups are allowed for this site.
-            </p>
-            <Button onClick={handleConnect} className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Connecting...
-                </>
-              ) : (
-                "Connect TikTok Ads"
-              )}
-            </Button>
+          
+          <div className="flex-1 min-h-[400px] overflow-hidden">
+            {authUrl && (
+              <iframe 
+                ref={iframeRef}
+                src={authUrl}
+                className="w-full h-full border-none"
+                title="TikTok Authentication"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>

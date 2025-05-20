@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -12,29 +11,33 @@ const corsHeaders = {
 // TikTok API configuration - using business API endpoint
 const TIKTOK_API_URL = "https://business-api.tiktok.com/open_api";
 
-// HTML template for auth redirect
-const popupRedirectTemplate = (code) => `
+// HTML template for auth success
+const authSuccessTemplate = (code) => `
 <!DOCTYPE html>
 <html>
 <head>
   <title>TikTok Authentication</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; }
-    .success-icon { font-size: 48px; color: green; margin: 20px 0; }
-    .message { margin: 20px 0; }
+    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f8f9fa; }
+    .success-icon { font-size: 48px; color: #00c16e; margin: 20px 0; }
+    .message { margin: 20px 0; color: #333; }
   </style>
 </head>
 <body>
   <div class="success-icon">✓</div>
   <h1>Authentication Successful</h1>
-  <p class="message">You've successfully authenticated with TikTok. You can close this window now.</p>
+  <p class="message">You've successfully authenticated with TikTok.</p>
   
   <script>
-    // Send the code back to the parent window
+    // Send the code back to parent window
+    const code = "${code}";
     if (window.opener) {
-      window.opener.postMessage({ tiktokAuthCode: "${code}" }, "*");
-      // Close the popup window after a short delay
-      setTimeout(() => window.close(), 2000);
+      window.opener.postMessage({ tiktokAuthCode: code }, "*");
+      setTimeout(() => window.close(), 1500);
+    } else {
+      // If no opener (direct navigation), store in localStorage and redirect
+      localStorage.setItem('tiktok_auth_code', code);
+      window.location.href = '/advertising';
     }
   </script>
 </body>
@@ -68,14 +71,14 @@ serve(async (req) => {
       );
     }
 
-    // Check if this is a popup redirect with code in URL
+    // Check if this is a redirect with code in URL
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
     
     if (req.method === 'GET' && code) {
-      console.log('Detected redirect with auth code, serving popup template');
+      console.log('Detected redirect with auth code, serving HTML template');
       return new Response(
-        popupRedirectTemplate(code),
+        authSuccessTemplate(code),
         { headers: { 'Content-Type': 'text/html' } }
       );
     }

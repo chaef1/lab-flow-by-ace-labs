@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -84,7 +83,7 @@ export const sendContractEmail = async (
   // Generate a shared URL for the contract
   const { data: contractData, error: contractError } = await supabase
     .from('documents')
-    .select('name, url')
+    .select('name, storage_path')
     .eq('id', contractId)
     .single();
   
@@ -93,22 +92,17 @@ export const sendContractEmail = async (
     throw new Error(`Failed to fetch contract data: ${contractError.message}`);
   }
   
-  // Use stored URL or generate signed URL if needed
-  let contractUrl = contractData.url;
+  // Generate a signed URL for the contract using the storage_path
+  const { data: urlData, error: urlError } = await supabase.storage
+    .from('contracts')
+    .createSignedUrl(contractData.storage_path, 604800); // URL valid for 7 days
   
-  if (!contractUrl) {
-    // Generate a signed URL for the contract
-    const { data: urlData, error: urlError } = await supabase.storage
-      .from('contracts')
-      .createSignedUrl(`${userId}/${contractId}.pdf`, 604800); // URL valid for 7 days
-    
-    if (urlError) {
-      console.error('Error creating signed URL:', urlError);
-      throw new Error(`Failed to create signed URL: ${urlError.message}`);
-    }
-    
-    contractUrl = urlData.signedUrl;
+  if (urlError) {
+    console.error('Error creating signed URL:', urlError);
+    throw new Error(`Failed to create signed URL: ${urlError.message}`);
   }
+  
+  const contractUrl = urlData.signedUrl;
   
   // Get contract name
   const contractName = contractData.name || 'Contract';

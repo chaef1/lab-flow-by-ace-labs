@@ -49,7 +49,7 @@ serve(async (req) => {
     switch (action) {
       case 'get_auth_url':
         // Generate OAuth authorization URL for TikTok
-        const redirectUri = requestData.redirectUri || "https://app-sandbox.acelabs.co.za/";
+        const redirectUri = requestData.redirectUri || "https://app-sandbox.acelabs.co.za/advertising";
         const state = Math.random().toString(36).substring(2);
         
         if (!redirectUri) {

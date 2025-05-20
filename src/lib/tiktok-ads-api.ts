@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Get the OAuth URL for TikTok sign-in
 export const getTikTokAuthUrl = async () => {
   // Use the custom redirect URI as specified
-  const redirectUri = "https://app-sandbox.acelabs.co.za/";
+  const redirectUri = "https://app-sandbox.acelabs.co.za/advertising";
   
   try {
     const { data, error } = await supabase.functions.invoke('tiktok-ads', {

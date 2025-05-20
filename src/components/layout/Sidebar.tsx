@@ -14,7 +14,8 @@ import {
   ChartBar,
   MessageSquare,
   Star,
-  UserCircle
+  UserCircle,
+  BarChart3
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -54,6 +55,9 @@ const Sidebar = ({ className }: SidebarProps) => {
     
     // Influencers directory - admins and brands
     { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand'] },
+    
+    // Advertising - admins and brands
+    { name: 'Advertising', path: '/advertising', icon: BarChart3, roles: ['admin', 'brand'] },
     
     // Campaigns - influencers only
     { name: 'My Campaigns', path: '/campaigns', icon: FileText, roles: ['influencer'] },

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { sendContractEmail } from './pdf-editor/pdfEditorApi';
 
 interface EmailSenderProps {
   open: boolean;
@@ -46,39 +47,14 @@ export const EmailSender = ({
     setIsSending(true);
     
     try {
-      // Get user's name
-      const { data: userData, error: userError } = await fetch('/api/profile', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      }).then(res => res.json());
-      
-      const senderName = userData?.first_name && userData?.last_name 
-        ? `${userData.first_name} ${userData.last_name}`
-        : user.email;
-      
-      // Send email
-      const response = await fetch('/api/send-contract', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipientName: recipientName || recipientEmail.split('@')[0],
-          recipientEmail,
-          contractName: documentName,
-          contractUrl: documentUrl,
-          message,
-          senderName,
-          subject
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send email');
-      }
+      // Use the pdfEditorApi function to send the email
+      await sendContractEmail(
+        user.id,
+        documentId,
+        recipientEmail,
+        recipientName || recipientEmail.split('@')[0],
+        message
+      );
       
       toast.success(`Email sent successfully to ${recipientEmail}`);
       onOpenChange(false);

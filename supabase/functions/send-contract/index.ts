@@ -17,6 +17,7 @@ interface ContractEmailRequest {
   contractUrl: string;
   message?: string;
   senderName: string;
+  subject?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -26,12 +27,20 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { recipientName, recipientEmail, contractName, contractUrl, message, senderName }: ContractEmailRequest = await req.json();
+    const { recipientName, recipientEmail, contractName, contractUrl, message, senderName, subject }: ContractEmailRequest = await req.json();
+
+    if (!recipientEmail) {
+      throw new Error('Recipient email is required');
+    }
+
+    const emailSubject = subject || `Contract for Review: ${contractName}`;
+    
+    console.log(`Sending email to ${recipientEmail} about contract: ${contractName}`);
 
     const emailResponse = await resend.emails.send({
       from: "Contracts <onboarding@resend.dev>",
       to: [recipientEmail],
-      subject: `Contract for Review: ${contractName}`,
+      subject: emailSubject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Contract for Your Review</h2>

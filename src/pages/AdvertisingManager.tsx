@@ -10,20 +10,31 @@ import MediaUploader from "@/components/advertising/MediaUploader";
 import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { hasTikTokToken } from "@/lib/tiktok-ads-api";
+import { hasTikTokToken, getSavedTikTokToken } from "@/lib/tiktok-ads-api";
+import { useLocation } from "react-router-dom";
 
 const AdvertisingManager = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<'tiktok' | 'meta'>('tiktok');
   const [activeTab, setActiveTab] = useState('campaigns');
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
+  const location = useLocation();
 
-  // Check connection status on mount and platform change
+  // Check connection status on mount, platform change, or URL change (for redirects)
   useEffect(() => {
     const checkConnectionStatus = () => {
       if (selectedPlatform === 'tiktok') {
         const hasToken = hasTikTokToken();
         setIsConnected(hasToken);
+        
+        // If we have a token and we just got redirected (URL has code param)
+        if (hasToken && location.search.includes('code=')) {
+          // Show a success toast
+          toast({
+            title: "Successfully connected",
+            description: "Your TikTok Ads account has been connected"
+          });
+        }
       } else {
         // Meta platform is not available yet
         setIsConnected(false);
@@ -31,7 +42,7 @@ const AdvertisingManager = () => {
     };
     
     checkConnectionStatus();
-  }, [selectedPlatform]);
+  }, [selectedPlatform, location, toast]);
 
   // Handle creating a new campaign
   const handleCreateCampaign = () => {

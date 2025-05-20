@@ -68,27 +68,57 @@ export const getTikTokCampaigns = async (accessToken: string, advertiserId: stri
   }
 };
 
-// Save TikTok access token to localStorage (in a real app, consider more secure storage)
+// Token Handling Functions
+
+// Save TikTok access token to localStorage with expiration handling
 export const saveTikTokToken = (token: string, advertiserId: string) => {
-  localStorage.setItem('tiktok_access_token', token);
-  localStorage.setItem('tiktok_advertiser_id', advertiserId);
+  // Current timestamp plus 24 hours (in milliseconds)
+  const expiresAt = Date.now() + (24 * 60 * 60 * 1000);
+  
+  const tokenData = {
+    token,
+    advertiserId,
+    expiresAt
+  };
+  
+  localStorage.setItem('tiktok_auth', JSON.stringify(tokenData));
 };
 
 // Get saved TikTok access token
 export const getSavedTikTokToken = () => {
-  return {
-    accessToken: localStorage.getItem('tiktok_access_token'),
-    advertiserId: localStorage.getItem('tiktok_advertiser_id')
-  };
+  const tokenDataStr = localStorage.getItem('tiktok_auth');
+  
+  if (!tokenDataStr) {
+    return { accessToken: null, advertiserId: null };
+  }
+  
+  try {
+    const tokenData = JSON.parse(tokenDataStr);
+    
+    // Check if token has expired
+    if (tokenData.expiresAt && tokenData.expiresAt < Date.now()) {
+      // Token expired, remove it
+      removeTikTokToken();
+      return { accessToken: null, advertiserId: null };
+    }
+    
+    return { 
+      accessToken: tokenData.token,
+      advertiserId: tokenData.advertiserId
+    };
+  } catch (err) {
+    console.error('Error parsing TikTok token data:', err);
+    return { accessToken: null, advertiserId: null };
+  }
 };
 
-// Check if the TikTok token is saved
+// Check if the TikTok token is saved and valid
 export const hasTikTokToken = () => {
-  return !!localStorage.getItem('tiktok_access_token');
+  const { accessToken } = getSavedTikTokToken();
+  return !!accessToken;
 };
 
 // Remove TikTok token from storage
 export const removeTikTokToken = () => {
-  localStorage.removeItem('tiktok_access_token');
-  localStorage.removeItem('tiktok_advertiser_id');
+  localStorage.removeItem('tiktok_auth');
 };

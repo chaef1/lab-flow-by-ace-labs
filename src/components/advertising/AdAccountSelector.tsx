@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Link, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation, useNavigate } from "react-router-dom";
 import { 
   getTikTokAuthUrl, 
   exchangeTikTokCode,
@@ -33,22 +34,40 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({ platform }) => {
   const [accounts, setAccounts] = useState<AdAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
   
-  // Check for OAuth code in URL (after TikTok redirects back)
+  // Check for OAuth code in URL and saved tokens on component mount
   useEffect(() => {
-    const checkForAuthCode = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
+    const checkAuthStatus = async () => {
+      // First check if we already have a token
+      if (platform === 'tiktok' && hasTikTokToken()) {
+        setIsConnected(true);
+        const { accessToken, advertiserId } = getSavedTikTokToken();
+        if (accessToken) {
+          setIsLoading(true);
+          await fetchAdAccounts(accessToken);
+          if (advertiserId) {
+            setSelectedAccount(advertiserId);
+          }
+          setIsLoading(false);
+        }
+        return;
+      }
+      
+      // If no token, check for code in URL (after redirect)
+      const urlParams = new URLSearchParams(location.search);
       const code = urlParams.get('code');
       
       if (code && platform === 'tiktok') {
         setIsLoading(true);
         try {
-          // Exchange the code for an access token
+          console.log('Exchanging auth code for token');
           const tokenData = await exchangeTikTokCode(code);
           
           if (tokenData.code === 0 && tokenData.data && tokenData.data.access_token) {
             // Clear the code from URL
-            window.history.replaceState({}, document.title, window.location.pathname);
+            navigate('/advertising', { replace: true });
             
             // Save token and advertiser ID
             const accessToken = tokenData.data.access_token;
@@ -59,6 +78,16 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({ platform }) => {
             
             // Fetch ad accounts
             await fetchAdAccounts(accessToken);
+            
+            // Set selected account if available
+            if (advertiserId) {
+              setSelectedAccount(advertiserId);
+            }
+            
+            toast({
+              title: "Successfully connected",
+              description: "Your TikTok Ads account has been connected",
+            });
           } else {
             throw new Error(tokenData.message || 'Failed to authenticate with TikTok');
           }
@@ -75,26 +104,10 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({ platform }) => {
       }
     };
     
-    checkForAuthCode();
-  }, [platform]);
-  
-  // Check if there's a saved token on component mount
-  useEffect(() => {
-    const checkSavedToken = () => {
-      if (platform === 'tiktok' && hasTikTokToken()) {
-        setIsConnected(true);
-        const { accessToken } = getSavedTikTokToken();
-        if (accessToken) {
-          fetchAdAccounts(accessToken);
-        }
-      }
-    };
-    
-    checkSavedToken();
-  }, [platform]);
+    checkAuthStatus();
+  }, [platform, location, navigate, toast]);
   
   const fetchAdAccounts = async (accessToken: string) => {
-    setIsLoading(true);
     try {
       const accountsData = await getTikTokAdAccounts(accessToken);
       
@@ -127,8 +140,6 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({ platform }) => {
         description: "Could not retrieve your ad accounts. Using sample data instead.",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
   

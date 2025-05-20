@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface Transaction {
+export interface Transaction {
   id: string;
   type: "payment" | "invoice" | "withdrawal";
   description: string;

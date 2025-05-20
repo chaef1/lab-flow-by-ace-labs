@@ -10,7 +10,7 @@ import MediaUploader from "@/components/advertising/MediaUploader";
 import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { hasTikTokToken, getSavedTikTokToken, processTikTokAuthCallback } from "@/lib/tiktok-ads-api";
+import { hasTikTokToken, getSavedTikTokToken, processTikTokAuthCallback, hasMetaToken } from "@/lib/tiktok-ads-api";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -41,6 +41,7 @@ const AdvertisingManager = () => {
           
           if (result.success) {
             setIsConnected(true);
+            setSelectedPlatform('tiktok'); // Ensure we're showing TikTok platform after auth
             toast({
               title: "Successfully Connected",
               description: "Your TikTok Ads account has been connected successfully."
@@ -87,6 +88,7 @@ const AdvertisingManager = () => {
           
           if (result.success && result.token) {
             setIsConnected(true);
+            setSelectedPlatform('tiktok'); // Ensure we're showing TikTok platform after auth
             toast({
               title: "Successfully Connected",
               description: "Your TikTok Ads account has been connected successfully."
@@ -123,9 +125,11 @@ const AdvertisingManager = () => {
           const { accessToken, advertiserId } = getSavedTikTokToken();
           console.log('Using saved token:', accessToken ? 'exists' : 'none', 'Advertiser ID:', advertiserId || 'none');
         }
-      } else {
-        // Meta platform is not available yet
-        setIsConnected(false);
+      } else if (selectedPlatform === 'meta') {
+        // Check Meta token status
+        const hasToken = hasMetaToken();
+        console.log('Has Meta token:', hasToken);
+        setIsConnected(hasToken);
       }
     };
     
@@ -142,7 +146,7 @@ const AdvertisingManager = () => {
     if (!isConnected) {
       toast({
         title: "Connection Required",
-        description: "Please connect your TikTok Ads account first",
+        description: `Please connect your ${selectedPlatform === 'tiktok' ? 'TikTok' : 'Meta'} Ads account first`,
         variant: "destructive"
       });
       return;
@@ -151,7 +155,7 @@ const AdvertisingManager = () => {
     // Implementation would continue here in a real app
     toast({
       title: "Creating Campaign",
-      description: "Launching campaign creation workflow"
+      description: `Launching ${selectedPlatform === 'tiktok' ? 'TikTok' : 'Meta'} campaign creation workflow`
     });
   };
 
@@ -192,9 +196,8 @@ const AdvertisingManager = () => {
                     variant={selectedPlatform === 'meta' ? 'default' : 'outline'} 
                     onClick={() => setSelectedPlatform('meta')}
                     className="flex-1 md:flex-auto"
-                    disabled
                   >
-                    Meta Ads (Coming Soon)
+                    Meta Ads
                   </Button>
                 </div>
               </div>

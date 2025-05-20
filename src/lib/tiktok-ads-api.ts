@@ -219,3 +219,168 @@ export const removeTikTokToken = () => {
     return false;
   }
 };
+
+/* Meta Ads API Functions */
+
+// Save Meta access token to localStorage with expiration handling
+export const saveMetaToken = (token: string, accountId: string = '') => {
+  try {
+    if (!token) {
+      console.error('Cannot save empty Meta token');
+      return false;
+    }
+    
+    // Current timestamp plus 60 days (in milliseconds)
+    const expiresAt = Date.now() + (60 * 24 * 60 * 60 * 1000);
+    
+    const tokenData = {
+      token,
+      accountId,
+      expiresAt,
+      lastUsed: Date.now()
+    };
+    
+    console.log('Saving Meta token data:', { 
+      tokenPreview: token.substring(0, 5) + '...', 
+      accountId, 
+      expiresAt,
+      lastUsed: new Date().toISOString()
+    });
+    
+    localStorage.setItem('meta_auth_data', JSON.stringify(tokenData));
+    return true;
+  } catch (error) {
+    console.error('Error saving Meta token:', error);
+    return false;
+  }
+};
+
+// Get saved Meta access token
+export const getSavedMetaToken = () => {
+  try {
+    const tokenDataStr = localStorage.getItem('meta_auth_data');
+    console.log('Retrieved Meta token data string exists:', !!tokenDataStr);
+    
+    if (!tokenDataStr) {
+      return { accessToken: null, accountId: null };
+    }
+    
+    const tokenData = JSON.parse(tokenDataStr);
+    
+    // Handle malformed token data
+    if (!tokenData || typeof tokenData !== 'object') {
+      console.error('Malformed Meta token data in localStorage');
+      localStorage.removeItem('meta_auth_data');
+      return { accessToken: null, accountId: null };
+    }
+    
+    console.log('Parsed Meta token data:', { 
+      hasToken: !!tokenData.token, 
+      hasAccountId: !!tokenData.accountId,
+      expiresAt: tokenData.expiresAt ? new Date(tokenData.expiresAt).toISOString() : 'not set',
+      isExpired: tokenData.expiresAt && tokenData.expiresAt < Date.now()
+    });
+    
+    // Check if token has expired
+    if (tokenData.expiresAt && tokenData.expiresAt < Date.now()) {
+      // Token expired, remove it
+      console.log('Meta token expired, removing');
+      removeMetaToken();
+      return { accessToken: null, accountId: null };
+    }
+    
+    // Update the last used timestamp
+    if (tokenData.token) {
+      tokenData.lastUsed = Date.now();
+      localStorage.setItem('meta_auth_data', JSON.stringify(tokenData));
+    }
+    
+    return { 
+      accessToken: tokenData.token,
+      accountId: tokenData.accountId
+    };
+  } catch (err) {
+    console.error('Error parsing Meta token data:', err);
+    return { accessToken: null, accountId: null };
+  }
+};
+
+// Check if Meta token is saved and valid
+export const hasMetaToken = () => {
+  const { accessToken } = getSavedMetaToken();
+  return !!accessToken;
+};
+
+// Remove Meta token from storage
+export const removeMetaToken = () => {
+  try {
+    localStorage.removeItem('meta_auth_data');
+    console.log('Meta token removed from storage');
+    return true;
+  } catch (error) {
+    console.error('Error removing Meta token:', error);
+    return false;
+  }
+};
+
+// Mock function to get Meta ad accounts (would be replaced with actual API call)
+export const getMetaAdAccounts = async (accessToken: string) => {
+  try {
+    console.log('Getting Meta ad accounts with token:', accessToken.substring(0, 5) + '...');
+    
+    // For mock implementation, return hardcoded data
+    // In a real app, this would call the Meta Graph API
+    return {
+      data: [
+        { 
+          id: '111222333444555', 
+          name: 'Ace Labs - Facebook', 
+          status: 'ACTIVE',
+          amount_spent: 12500
+        },
+        { 
+          id: '555444333222111', 
+          name: 'Ace Labs - Instagram', 
+          status: 'ACTIVE',
+          amount_spent: 8750
+        }
+      ]
+    };
+    
+  } catch (err) {
+    console.error('Error getting Meta ad accounts:', err);
+    throw err;
+  }
+};
+
+// Mock function to get Meta campaigns (would be replaced with actual API call)
+export const getMetaCampaigns = async (accessToken: string, accountId: string) => {
+  try {
+    console.log('Getting Meta campaigns for account:', accountId);
+    
+    // For mock implementation, return hardcoded data
+    // In a real app, this would call the Meta Marketing API
+    return {
+      data: [
+        { 
+          id: 'camp_1234567890', 
+          name: 'Summer Promotion',
+          status: 'ACTIVE',
+          objective: 'BRAND_AWARENESS',
+          spend: 5000
+        },
+        { 
+          id: 'camp_0987654321', 
+          name: 'Product Launch',
+          status: 'ACTIVE',
+          objective: 'CONVERSIONS',
+          spend: 7500
+        }
+      ]
+    };
+    
+  } catch (err) {
+    console.error('Error getting Meta campaigns:', err);
+    throw err;
+  }
+};

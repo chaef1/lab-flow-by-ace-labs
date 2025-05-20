@@ -9,8 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// TikTok API configuration - using sandbox endpoint
-const TIKTOK_API_URL = "https://sandbox-ads.tiktok.com/open_api";
+// TikTok API configuration - using business API endpoint
+const TIKTOK_API_URL = "https://business-api.tiktok.com/open_api";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -49,7 +49,7 @@ serve(async (req) => {
     switch (action) {
       case 'get_auth_url':
         // Generate OAuth authorization URL for TikTok
-        const redirectUri = requestData.redirectUri;
+        const redirectUri = requestData.redirectUri || "https://app-sandbox.acelabs.co.za/";
         const state = Math.random().toString(36).substring(2);
         
         if (!redirectUri) {
@@ -61,8 +61,8 @@ serve(async (req) => {
         
         console.log('Generating auth URL with redirect URI:', redirectUri);
         
-        // Use the sandbox auth endpoint
-        const authUrl = `https://sandbox-ads.tiktok.com/marketing_api/auth?app_id=${tiktokAppId}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
+        // Use the business portal auth endpoint as specified
+        const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${tiktokAppId}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`;
         
         console.log('Generated auth URL:', authUrl);
         

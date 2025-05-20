@@ -20,20 +20,29 @@ const AdvertisingManager = () => {
   const { toast } = useToast();
   const location = useLocation();
 
-  // Check connection status on mount, platform change, or URL change (for redirects)
+  // Check connection status on mount and platform change
   useEffect(() => {
     const checkConnectionStatus = () => {
+      console.log('Checking connection status for platform:', selectedPlatform);
       if (selectedPlatform === 'tiktok') {
         const hasToken = hasTikTokToken();
+        console.log('Has TikTok token:', hasToken);
         setIsConnected(hasToken);
         
-        // If we have a token and we just got redirected (URL has code param)
-        if (hasToken && location.search.includes('code=')) {
-          // Show a success toast
-          toast({
-            title: "Successfully connected",
-            description: "Your TikTok Ads account has been connected"
-          });
+        // Check for a code parameter in the URL (just redirected)
+        if (window.location.search.includes('code=')) {
+          console.log('Code parameter detected in URL, auth redirect completed');
+          
+          // Remove the code parameter from the URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          if (hasToken) {
+            // Show a success toast if we have a token
+            toast({
+              title: "Successfully connected",
+              description: "Your TikTok Ads account has been connected"
+            });
+          }
         }
       } else {
         // Meta platform is not available yet

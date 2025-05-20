@@ -40,78 +40,106 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({ platform }) => {
   // Check for OAuth code in URL and saved tokens on component mount
   useEffect(() => {
     const checkAuthStatus = async () => {
-      // First check if we already have a token
-      if (platform === 'tiktok' && hasTikTokToken()) {
-        setIsConnected(true);
-        const { accessToken, advertiserId } = getSavedTikTokToken();
-        if (accessToken) {
-          setIsLoading(true);
-          await fetchAdAccounts(accessToken);
-          if (advertiserId) {
-            setSelectedAccount(advertiserId);
-          }
-          setIsLoading(false);
-        }
-        return;
-      }
+      console.log('Checking auth status...');
+      setIsLoading(true);
       
-      // If no token, check for code in URL (after redirect)
-      const urlParams = new URLSearchParams(location.search);
-      const code = urlParams.get('code');
-      
-      if (code && platform === 'tiktok') {
-        setIsLoading(true);
-        try {
-          console.log('Exchanging auth code for token');
-          const tokenData = await exchangeTikTokCode(code);
+      try {
+        // First check if we already have a token
+        if (platform === 'tiktok') {
+          const hasToken = hasTikTokToken();
+          console.log('Has existing token:', hasToken);
           
-          if (tokenData.code === 0 && tokenData.data && tokenData.data.access_token) {
-            // Clear the code from URL
-            navigate('/advertising', { replace: true });
-            
-            // Save token and advertiser ID
-            const accessToken = tokenData.data.access_token;
-            const advertiserId = tokenData.data.advertiser_ids ? tokenData.data.advertiser_ids[0] : '';
-            
-            saveTikTokToken(accessToken, advertiserId);
+          if (hasToken) {
             setIsConnected(true);
+            const { accessToken, advertiserId } = getSavedTikTokToken();
             
-            // Fetch ad accounts
-            await fetchAdAccounts(accessToken);
-            
-            // Set selected account if available
-            if (advertiserId) {
-              setSelectedAccount(advertiserId);
+            if (accessToken) {
+              console.log('Using existing token to fetch ad accounts');
+              await fetchAdAccounts(accessToken);
+              
+              if (advertiserId) {
+                console.log('Setting selected account from saved token:', advertiserId);
+                setSelectedAccount(advertiserId);
+              }
             }
             
-            toast({
-              title: "Successfully connected",
-              description: "Your TikTok Ads account has been connected",
-            });
-          } else {
-            throw new Error(tokenData.message || 'Failed to authenticate with TikTok');
+            setIsLoading(false);
+            return;
           }
-        } catch (error) {
-          console.error('Error during TikTok authentication:', error);
-          toast({
-            title: "Authentication Error",
-            description: error.message || "Failed to connect to TikTok Ads",
-            variant: "destructive"
-          });
-        } finally {
-          setIsLoading(false);
         }
+        
+        // If no token, check for code in URL (after redirect)
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        console.log('OAuth code in URL:', code ? 'present' : 'not present');
+        
+        if (code && platform === 'tiktok') {
+          console.log('Exchanging auth code for token');
+          try {
+            const tokenData = await exchangeTikTokCode(code);
+            
+            if (tokenData.code === 0 && tokenData.data && tokenData.data.access_token) {
+              console.log('Successfully exchanged code for token');
+              
+              // Clear the code from URL but stay on the same page
+              window.history.replaceState({}, document.title, window.location.pathname);
+              
+              // Save token and advertiser ID
+              const accessToken = tokenData.data.access_token;
+              const advertiserId = tokenData.data.advertiser_ids?.[0] || null;
+              
+              console.log('Saving TikTok token', { 
+                hasToken: !!accessToken,
+                hasAdvertiserId: !!advertiserId
+              });
+              
+              const saveSuccess = saveTikTokToken(accessToken, advertiserId || '');
+              console.log('Token save success:', saveSuccess);
+              
+              setIsConnected(true);
+              
+              // Fetch ad accounts
+              await fetchAdAccounts(accessToken);
+              
+              // Set selected account if available
+              if (advertiserId) {
+                setSelectedAccount(advertiserId);
+              }
+              
+              toast({
+                title: "Successfully connected",
+                description: "Your TikTok Ads account has been connected",
+              });
+            } else {
+              throw new Error(tokenData.message || 'Failed to authenticate with TikTok');
+            }
+          } catch (error: any) {
+            console.error('Error during TikTok authentication:', error);
+            toast({
+              title: "Authentication Error",
+              description: error.message || "Failed to connect to TikTok Ads",
+              variant: "destructive"
+            });
+          }
+        }
+      } catch (error: any) {
+        console.error('Error checking authentication status:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     
     checkAuthStatus();
-  }, [platform, location, navigate, toast]);
+  }, [platform, toast]);
   
   const fetchAdAccounts = async (accessToken: string) => {
     try {
+      console.log('Fetching ad accounts with token');
       const accountsData = await getTikTokAdAccounts(accessToken);
       
       if (accountsData.code === 0 && accountsData.data && accountsData.data.list) {
+        console.log('Successfully fetched ad accounts:', accountsData.data.list.length);
         const formattedAccounts = accountsData.data.list.map(account => ({
           id: account.advertiser_id,
           name: account.advertiser_name,
@@ -121,6 +149,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({ platform }) => {
         
         setAccounts(formattedAccounts);
       } else {
+        console.log('No accounts found or API error, using mock data');
         // If API call succeeded but no accounts found, use mock data
         setAccounts([
           { id: '1', name: 'Ace Labs Main', budget: 5000, status: 'Active' },
@@ -151,12 +180,13 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({ platform }) => {
       const { authUrl } = await getTikTokAuthUrl();
       
       if (authUrl) {
+        console.log('Redirecting to TikTok auth URL:', authUrl);
         // Redirect to TikTok for authorization
         window.location.href = authUrl;
       } else {
         throw new Error('Failed to generate TikTok authorization URL');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error connecting to TikTok:', error);
       toast({
         title: "Connection Error",
@@ -168,7 +198,9 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({ platform }) => {
   };
   
   const handleDisconnect = () => {
-    removeTikTokToken();
+    const success = removeTikTokToken();
+    console.log('Token removal success:', success);
+    
     setIsConnected(false);
     setSelectedAccount(null);
     setAccounts([]);

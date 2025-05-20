@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -65,32 +66,47 @@ export const getTikTokCampaigns = async (accessToken: string, advertiserId: stri
 
 // Save TikTok access token to localStorage with expiration handling
 export const saveTikTokToken = (token: string, advertiserId: string) => {
-  // Current timestamp plus 24 hours (in milliseconds)
-  const expiresAt = Date.now() + (24 * 60 * 60 * 1000);
-  
-  const tokenData = {
-    token,
-    advertiserId,
-    expiresAt
-  };
-  
-  localStorage.setItem('tiktok_auth', JSON.stringify(tokenData));
+  try {
+    // Current timestamp plus 24 hours (in milliseconds)
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000);
+    
+    const tokenData = {
+      token,
+      advertiserId,
+      expiresAt
+    };
+    
+    console.log('Saving TikTok token data:', { token: token.substring(0, 5) + '...', advertiserId, expiresAt });
+    localStorage.setItem('tiktok_auth', JSON.stringify(tokenData));
+    return true;
+  } catch (error) {
+    console.error('Error saving TikTok token:', error);
+    return false;
+  }
 };
 
 // Get saved TikTok access token
 export const getSavedTikTokToken = () => {
-  const tokenDataStr = localStorage.getItem('tiktok_auth');
-  
-  if (!tokenDataStr) {
-    return { accessToken: null, advertiserId: null };
-  }
-  
   try {
+    const tokenDataStr = localStorage.getItem('tiktok_auth');
+    console.log('Retrieved token data string:', tokenDataStr ? 'exists' : 'null');
+    
+    if (!tokenDataStr) {
+      return { accessToken: null, advertiserId: null };
+    }
+    
     const tokenData = JSON.parse(tokenDataStr);
+    console.log('Parsed token data:', { 
+      hasToken: !!tokenData.token, 
+      hasAdvertiserId: !!tokenData.advertiserId,
+      expiresAt: tokenData.expiresAt,
+      isExpired: tokenData.expiresAt < Date.now()
+    });
     
     // Check if token has expired
     if (tokenData.expiresAt && tokenData.expiresAt < Date.now()) {
       // Token expired, remove it
+      console.log('Token expired, removing');
       removeTikTokToken();
       return { accessToken: null, advertiserId: null };
     }
@@ -113,5 +129,12 @@ export const hasTikTokToken = () => {
 
 // Remove TikTok token from storage
 export const removeTikTokToken = () => {
-  localStorage.removeItem('tiktok_auth');
+  try {
+    localStorage.removeItem('tiktok_auth');
+    console.log('TikTok token removed from storage');
+    return true;
+  } catch (error) {
+    console.error('Error removing TikTok token:', error);
+    return false;
+  }
 };

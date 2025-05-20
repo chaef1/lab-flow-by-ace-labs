@@ -10,17 +10,65 @@ import MediaUploader from "@/components/advertising/MediaUploader";
 import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { hasTikTokToken, getSavedTikTokToken } from "@/lib/tiktok-ads-api";
-import { useLocation } from "react-router-dom";
+import { hasTikTokToken, getSavedTikTokToken, exchangeTikTokCode } from "@/lib/tiktok-ads-api";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const AdvertisingManager = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<'tiktok' | 'meta'>('tiktok');
   const [activeTab, setActiveTab] = useState('campaigns');
   const [isConnected, setIsConnected] = useState(false);
+  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Check connection status on mount and platform change
+  // Process code in URL if present
+  useEffect(() => {
+    const processAuthCode = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      
+      console.log('Checking for authorization code in URL:', code ? 'found' : 'not found');
+      
+      if (code) {
+        setIsProcessingAuth(true);
+        
+        try {
+          console.log('Processing TikTok authorization code...');
+          const tokenData = await exchangeTikTokCode(code);
+          
+          // Clear code from URL
+          navigate('/advertising', { replace: true });
+          
+          if (tokenData.code === 0 && tokenData.data && tokenData.data.access_token) {
+            console.log('Successfully processed TikTok auth code');
+            toast({
+              title: "Successfully connected",
+              description: "Your TikTok Ads account has been connected"
+            });
+            
+            // Connection state will be updated by AdAccountSelector
+          } else {
+            throw new Error(tokenData.message || 'Failed to authenticate with TikTok');
+          }
+        } catch (error: any) {
+          console.error('Error processing TikTok auth code:', error);
+          toast({
+            title: "Authentication Error",
+            description: error.message || "Failed to connect to TikTok Ads",
+            variant: "destructive"
+          });
+        } finally {
+          setIsProcessingAuth(false);
+        }
+      }
+    };
+    
+    processAuthCode();
+  }, [location.search, toast, navigate]);
+
+  // Check connection status on mount and token changes
   useEffect(() => {
     const checkConnectionStatus = () => {
       console.log('Checking connection status for platform:', selectedPlatform);
@@ -29,20 +77,9 @@ const AdvertisingManager = () => {
         console.log('Has TikTok token:', hasToken);
         setIsConnected(hasToken);
         
-        // Check for a code parameter in the URL (just redirected)
-        if (window.location.search.includes('code=')) {
-          console.log('Code parameter detected in URL, auth redirect completed');
-          
-          // Remove the code parameter from the URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-          
-          if (hasToken) {
-            // Show a success toast if we have a token
-            toast({
-              title: "Successfully connected",
-              description: "Your TikTok Ads account has been connected"
-            });
-          }
+        if (hasToken) {
+          const { accessToken, advertiserId } = getSavedTikTokToken();
+          console.log('Using saved token:', accessToken?.substring(0, 5) + '...', 'Advertiser ID:', advertiserId);
         }
       } else {
         // Meta platform is not available yet
@@ -51,7 +88,12 @@ const AdvertisingManager = () => {
     };
     
     checkConnectionStatus();
-  }, [selectedPlatform, location, toast]);
+    
+    // Set up an interval to check token status periodically
+    const tokenCheckInterval = setInterval(checkConnectionStatus, 60000); // Check every minute
+    
+    return () => clearInterval(tokenCheckInterval);
+  }, [selectedPlatform]);
 
   // Handle creating a new campaign
   const handleCreateCampaign = () => {
@@ -105,7 +147,11 @@ const AdvertisingManager = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <AdAccountSelector platform={selectedPlatform} />
+            <AdAccountSelector 
+              platform={selectedPlatform}
+              onConnectionStatusChange={setIsConnected}
+              isProcessingAuth={isProcessingAuth}
+            />
           </CardContent>
         </Card>
         

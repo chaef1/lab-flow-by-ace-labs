@@ -8,8 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 // Get the OAuth URL for TikTok sign-in
 export const getTikTokAuthUrl = async () => {
   try {
-    // No need to call edge function as we're using a hardcoded URL
-    const authUrl = "https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2F";
+    // Using the hardcoded URL as specified
+    const authUrl = "https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2Fadvertising";
+    console.log('Returning TikTok auth URL:', authUrl);
     return { authUrl };
   } catch (err) {
     console.error('Error getting TikTok auth URL:', err);
@@ -20,11 +21,17 @@ export const getTikTokAuthUrl = async () => {
 // Exchange the OAuth code for an access token
 export const exchangeTikTokCode = async (code: string) => {
   try {
+    console.log('Exchanging TikTok code:', code);
     const { data, error } = await supabase.functions.invoke('tiktok-ads', {
       body: { code, action: 'exchange_code' }
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error(error.message);
+    }
+    
+    console.log('Exchange code response:', data);
     return data;
   } catch (err) {
     console.error('Error exchanging TikTok code:', err);
@@ -35,6 +42,7 @@ export const exchangeTikTokCode = async (code: string) => {
 // Get ad accounts for the authenticated user
 export const getTikTokAdAccounts = async (accessToken: string) => {
   try {
+    console.log('Getting TikTok ad accounts with token:', accessToken.substring(0, 5) + '...');
     const { data, error } = await supabase.functions.invoke('tiktok-ads', {
       body: { accessToken, action: 'get_ad_accounts' }
     });
@@ -73,10 +81,17 @@ export const saveTikTokToken = (token: string, advertiserId: string) => {
     const tokenData = {
       token,
       advertiserId,
-      expiresAt
+      expiresAt,
+      lastUsed: Date.now()
     };
     
-    console.log('Saving TikTok token data:', { token: token.substring(0, 5) + '...', advertiserId, expiresAt });
+    console.log('Saving TikTok token data:', { 
+      tokenPreview: token.substring(0, 5) + '...', 
+      advertiserId, 
+      expiresAt,
+      lastUsed: new Date().toISOString()
+    });
+    
     localStorage.setItem('tiktok_auth', JSON.stringify(tokenData));
     return true;
   } catch (error) {
@@ -96,11 +111,19 @@ export const getSavedTikTokToken = () => {
     }
     
     const tokenData = JSON.parse(tokenDataStr);
+    
+    // Handle malformed token data
+    if (!tokenData || typeof tokenData !== 'object') {
+      console.error('Malformed token data in localStorage');
+      localStorage.removeItem('tiktok_auth');
+      return { accessToken: null, advertiserId: null };
+    }
+    
     console.log('Parsed token data:', { 
       hasToken: !!tokenData.token, 
       hasAdvertiserId: !!tokenData.advertiserId,
-      expiresAt: tokenData.expiresAt,
-      isExpired: tokenData.expiresAt < Date.now()
+      expiresAt: tokenData.expiresAt ? new Date(tokenData.expiresAt).toISOString() : 'not set',
+      isExpired: tokenData.expiresAt && tokenData.expiresAt < Date.now()
     });
     
     // Check if token has expired
@@ -109,6 +132,12 @@ export const getSavedTikTokToken = () => {
       console.log('Token expired, removing');
       removeTikTokToken();
       return { accessToken: null, advertiserId: null };
+    }
+    
+    // Update the last used timestamp
+    if (tokenData.token) {
+      tokenData.lastUsed = Date.now();
+      localStorage.setItem('tiktok_auth', JSON.stringify(tokenData));
     }
     
     return { 

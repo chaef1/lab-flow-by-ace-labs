@@ -36,16 +36,15 @@ serve(async (req) => {
       );
     }
 
-    // Parse the request URL and body
-    const url = new URL(req.url);
-    const action = url.searchParams.get('action');
-    const data = req.method === 'POST' ? await req.json() : {};
+    // Parse the request body
+    const requestData = req.method === 'POST' ? await req.json() : {};
+    const action = requestData.action || '';
 
     // Use a switch statement to handle different API actions
     switch (action) {
       case 'get_auth_url':
         // Generate OAuth authorization URL for TikTok
-        const redirectUri = data.redirectUri || url.searchParams.get('redirectUri');
+        const redirectUri = requestData.redirectUri;
         const state = Math.random().toString(36).substring(2);
         
         const authUrl = `https://ads.tiktok.com/marketing_api/auth?app_id=${tiktokAppId}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
@@ -57,7 +56,7 @@ serve(async (req) => {
 
       case 'exchange_code':
         // Exchange authorization code for access token
-        const code = data.code || url.searchParams.get('code');
+        const code = requestData.code;
         if (!code) {
           return new Response(
             JSON.stringify({ error: 'Authorization code is required' }),
@@ -84,7 +83,7 @@ serve(async (req) => {
 
       case 'get_ad_accounts':
         // Get advertising accounts for the authenticated user
-        const accessToken = data.accessToken || url.searchParams.get('accessToken');
+        const accessToken = requestData.accessToken;
         if (!accessToken) {
           return new Response(
             JSON.stringify({ error: 'Access token is required' }),
@@ -108,8 +107,8 @@ serve(async (req) => {
 
       case 'get_campaigns':
         // Get campaigns for a specific ad account
-        const campaignToken = data.accessToken;
-        const advertiser_id = data.advertiserId;
+        const campaignToken = requestData.accessToken;
+        const advertiser_id = requestData.advertiserId;
         
         if (!campaignToken || !advertiser_id) {
           return new Response(
@@ -119,7 +118,7 @@ serve(async (req) => {
         }
 
         const campaignsResponse = await fetch(`${TIKTOK_API_URL}/campaign/get/`, {
-          method: 'GET',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Access-Token': campaignToken,

@@ -11,8 +11,7 @@ export const getTikTokAuthUrl = async () => {
   
   try {
     const { data, error } = await supabase.functions.invoke('tiktok-ads', {
-      body: { redirectUri },
-      query: { action: 'get_auth_url' }
+      body: { redirectUri, action: 'get_auth_url' }
     });
 
     if (error) throw new Error(error.message);
@@ -27,8 +26,7 @@ export const getTikTokAuthUrl = async () => {
 export const exchangeTikTokCode = async (code: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('tiktok-ads', {
-      body: { code },
-      query: { action: 'exchange_code' }
+      body: { code, action: 'exchange_code' }
     });
 
     if (error) throw new Error(error.message);
@@ -43,8 +41,7 @@ export const exchangeTikTokCode = async (code: string) => {
 export const getTikTokAdAccounts = async (accessToken: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('tiktok-ads', {
-      body: { accessToken },
-      query: { action: 'get_ad_accounts' }
+      body: { accessToken, action: 'get_ad_accounts' }
     });
 
     if (error) throw new Error(error.message);
@@ -59,8 +56,7 @@ export const getTikTokAdAccounts = async (accessToken: string) => {
 export const getTikTokCampaigns = async (accessToken: string, advertiserId: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('tiktok-ads', {
-      body: { accessToken, advertiserId },
-      query: { action: 'get_campaigns' }
+      body: { accessToken, advertiserId, action: 'get_campaigns' }
     });
 
     if (error) throw new Error(error.message);

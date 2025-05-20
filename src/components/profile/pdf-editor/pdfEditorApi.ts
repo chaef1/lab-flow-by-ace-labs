@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -124,9 +125,12 @@ export const sendContractEmail = async (
   
   console.log(`Sending email with subject: "${emailSubject}" from ${senderName} to ${recipientEmail}`);
   
+  // Get the domain from the window location or use a fallback
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com';
+  
   // Send email using the edge function
   try {
-    const response = await fetch(`${window.location.origin}/api/send-contract`, {
+    const response = await fetch(`${origin}/api/send-contract`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -141,12 +145,29 @@ export const sendContractEmail = async (
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error response from send-contract function:', errorData);
-      throw new Error(errorData.error || `Failed to send email: ${response.statusText}`);
+      let errorMessage = `Failed to send email: ${response.statusText}`;
+      
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = `Failed to send email: ${errorData.error}`;
+        }
+      } catch (e) {
+        console.error('Could not parse error response:', e);
+      }
+      
+      console.error('Error response from send-contract function:', errorMessage);
+      throw new Error(errorMessage);
     }
     
-    const responseData = await response.json();
+    let responseData;
+    try {
+      responseData = await response.json();
+    } catch (e) {
+      console.error('Error parsing JSON response:', e);
+      throw new Error('Invalid response from email service');
+    }
+    
     console.log('Email sent successfully, response:', responseData);
     return responseData;
   } catch (error: any) {

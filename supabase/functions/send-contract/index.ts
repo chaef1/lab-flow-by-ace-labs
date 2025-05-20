@@ -2,8 +2,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@1.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -27,16 +25,41 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { recipientName, recipientEmail, contractName, contractUrl, message, senderName, subject }: ContractEmailRequest = await req.json();
-
-    if (!recipientEmail) {
-      throw new Error('Recipient email is required');
+    // Get Resend API key
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: 'Email service is not properly configured' }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
-    // Validate the Resend API key
-    if (!Deno.env.get("RESEND_API_KEY")) {
-      console.error("RESEND_API_KEY is not configured");
-      throw new Error('Email service is not properly configured');
+    const resend = new Resend(resendApiKey);
+    
+    // Parse request body
+    const { 
+      recipientName, 
+      recipientEmail, 
+      contractName, 
+      contractUrl, 
+      message, 
+      senderName, 
+      subject 
+    }: ContractEmailRequest = await req.json();
+
+    // Validate required fields
+    if (!recipientEmail) {
+      return new Response(
+        JSON.stringify({ error: 'Recipient email is required' }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     const emailSubject = subject || `Contract for Review: ${contractName}`;
@@ -45,6 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`From: Contracts <onboarding@resend.dev>`);
     console.log(`Subject: ${emailSubject}`);
 
+    // Send email through Resend
     const emailResponse = await resend.emails.send({
       from: "Contracts <onboarding@resend.dev>",
       to: [recipientEmail],
@@ -70,7 +94,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailResponse);
 
-    return new Response(JSON.stringify(emailResponse), {
+    return new Response(JSON.stringify({ success: true, data: emailResponse }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -80,7 +104,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-contract function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ success: false, error: error.message }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

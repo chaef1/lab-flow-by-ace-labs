@@ -44,11 +44,16 @@ export const EmailSender = ({
       return;
     }
     
+    if (!recipientEmail.includes('@') || recipientEmail.indexOf('@') === recipientEmail.length - 1) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
     setIsSending(true);
     
     try {
       // Use the enhanced pdfEditorApi function to send the email
-      await sendContractEmail(
+      const response = await sendContractEmail(
         user.id,
         documentId,
         recipientEmail,
@@ -62,7 +67,7 @@ export const EmailSender = ({
       if (onSent) onSent();
     } catch (error: any) {
       console.error('Error sending email:', error);
-      toast.error(`Failed to send email: ${error.message}`);
+      toast.error(`${error.message}`);
     } finally {
       setIsSending(false);
     }

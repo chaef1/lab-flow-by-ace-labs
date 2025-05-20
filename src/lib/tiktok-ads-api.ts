@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -223,8 +224,8 @@ export const removeTikTokToken = () => {
 
 // Get Meta OAuth URL for user login
 export const getMetaOAuthUrl = () => {
-  // Replace with your actual app ID (this is a placeholder)
-  const appId = "1234567890123456";
+  // Use the dedicated Facebook Ads app ID for advertising
+  const appId = "1749800232620671";
   const redirectUri = encodeURIComponent(window.location.origin + "/advertising");
   const state = encodeURIComponent(JSON.stringify({ platform: 'meta', timestamp: Date.now() }));
   const scope = encodeURIComponent("ads_management,ads_read,business_management");

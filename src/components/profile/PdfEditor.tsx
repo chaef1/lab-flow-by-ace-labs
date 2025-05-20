@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -368,10 +367,10 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
       if (!canvas) throw new Error('Canvas not found');
       
       // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve) => {
+      const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
-          else throw new Error('Could not create blob from canvas');
+          else reject(new Error('Could not create blob from canvas'));
         }, 'image/png');
       });
       
@@ -404,7 +403,7 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
         .from('documents')
         .update({
           metadata: {
-            ...contractData.metadata,
+            ...(contractData.metadata || {}),
             edited: true,
             lastEditedAt: new Date().toISOString()
           }
@@ -469,7 +468,7 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
       // Get contract name from metadata
       const metadata = contractData.metadata || {};
       const contractName = typeof metadata === 'object' && 'contractName' in metadata 
-        ? metadata.contractName 
+        ? (metadata.contractName as string)
         : contractData.name;
       
       const senderName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Contract Owner';
@@ -696,4 +695,3 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
     </div>
   );
 };
-

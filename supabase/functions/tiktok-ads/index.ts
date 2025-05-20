@@ -9,8 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// TikTok API configuration
-const TIKTOK_API_URL = "https://business-api.tiktok.com/open_api/v1.3";
+// TikTok API configuration - using sandbox endpoint
+const TIKTOK_API_URL = "https://sandbox-ads.tiktok.com/open_api";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -61,8 +61,8 @@ serve(async (req) => {
         
         console.log('Generating auth URL with redirect URI:', redirectUri);
         
-        // We're using the marketing_api/auth endpoint for OAuth
-        const authUrl = `https://ads.tiktok.com/marketing_api/auth?app_id=${tiktokAppId}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
+        // Use the sandbox auth endpoint
+        const authUrl = `https://sandbox-ads.tiktok.com/marketing_api/auth?app_id=${tiktokAppId}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
         
         console.log('Generated auth URL:', authUrl);
         
@@ -84,7 +84,7 @@ serve(async (req) => {
         console.log('Exchanging code for access token:', code);
         
         try {
-          // Access Token Exchange Endpoint
+          // Access Token Exchange Endpoint - using sandbox API
           const tokenResponse = await fetch(`${TIKTOK_API_URL}/oauth2/access_token/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -136,7 +136,7 @@ serve(async (req) => {
         console.log('Fetching ad accounts with token:', accessToken.substring(0, 5) + '...');
         
         try {
-          // Advertiser List Endpoint 
+          // Advertiser List Endpoint - using sandbox API
           const accountsResponse = await fetch(`${TIKTOK_API_URL}/advertiser/list/`, {
             method: 'GET',
             headers: {
@@ -188,7 +188,7 @@ serve(async (req) => {
         console.log('Fetching campaigns for advertiser:', advertiser_id);
         
         try {
-          // Campaign List Endpoint
+          // Campaign List Endpoint - using sandbox API
           const campaignsResponse = await fetch(`${TIKTOK_API_URL}/campaign/get/`, {
             method: 'POST',
             headers: {

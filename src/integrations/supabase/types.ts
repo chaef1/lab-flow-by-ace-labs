@@ -98,6 +98,48 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          category: string
+          file_type: string
+          id: string
+          metadata: Json | null
+          name: string
+          size: number
+          status: string
+          storage_path: string
+          type: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          file_type: string
+          id?: string
+          metadata?: Json | null
+          name: string
+          size: number
+          status?: string
+          storage_path: string
+          type: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          file_type?: string
+          id?: string
+          metadata?: Json | null
+          name?: string
+          size?: number
+          status?: string
+          storage_path?: string
+          type?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       influencers: {
         Row: {
           bio: string | null

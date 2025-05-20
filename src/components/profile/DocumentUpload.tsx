@@ -7,8 +7,22 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileUp, Trash2, FileCheck2, AlertCircle, Download } from 'lucide-react';
+import { 
+  FileUp, 
+  Trash2, 
+  FileCheck2, 
+  AlertCircle, 
+  Download, 
+  File 
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
 
 type DocumentType = 'identity' | 'address' | 'business' | 'tax';
 
@@ -19,6 +33,7 @@ interface Document {
   size: number;
   uploadedAt: string;
   url: string;
+  status: string;
 }
 
 interface DocumentUploadProps {
@@ -31,6 +46,8 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentDocType, setCurrentDocType] = useState<DocumentType>('identity');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const documentTypes: { value: DocumentType; label: string; description: string }[] = [
     { 
@@ -69,10 +86,39 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
 
   const fetchDocuments = async () => {
     try {
-      // In a real implementation, we would fetch the documents from the storage or database
-      // This is just a mock implementation for demonstration purposes
-      const mockDocuments: Document[] = [];
-      setDocuments(mockDocuments);
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('user_id', userId)
+        .order('uploaded_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const formattedDocs: Document[] = await Promise.all(data.map(async (doc) => {
+          // Generate signed URL for each document
+          const { data: signedUrlData, error: signedUrlError } = await supabase
+            .storage
+            .from('kyc_documents')
+            .createSignedUrl(`${userId}/${doc.name}`, 3600); // URL valid for 1 hour
+
+          if (signedUrlError) {
+            console.error('Error creating signed URL:', signedUrlError);
+          }
+
+          return {
+            id: doc.id,
+            name: doc.name,
+            type: doc.type as DocumentType,
+            size: doc.size,
+            uploadedAt: doc.uploaded_at,
+            url: signedUrlData?.signedUrl || '',
+            status: doc.status
+          };
+        }));
+
+        setDocuments(formattedDocs);
+      }
     } catch (error) {
       console.error('Error fetching documents:', error);
       toast.error('Failed to load your documents');
@@ -102,7 +148,7 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
     try {
       // Simulate progress
       const interval = setInterval(() => {
-        setUploadProgress(prev => {
+        setUploadProgress((prev) => {
           if (prev >= 95) {
             clearInterval(interval);
             return 95;
@@ -111,33 +157,64 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
         });
       }, 100);
 
-      // In a real implementation, we would upload the file to Supabase storage
-      // For demonstration, we'll simulate the upload
-      const fileName = `${userId}_${currentDocType}_${Date.now()}_${file.name}`;
-      const filePath = `kyc/${userId}/${fileName}`;
+      // Upload file to Supabase storage
+      const fileName = `${Date.now()}_${file.name}`;
+      const filePath = `${userId}/${fileName}`;
 
-      // After successful upload, add the document to the list
-      setTimeout(() => {
-        clearInterval(interval);
-        setUploadProgress(100);
-        
-        const newDoc: Document = {
-          id: `doc_${Date.now()}`,
-          name: file.name,
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('kyc_documents')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Create a signed URL for viewing
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('kyc_documents')
+        .createSignedUrl(filePath, 3600);
+
+      if (urlError) throw urlError;
+
+      // Insert record into documents table
+      const { data: docData, error: docError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: userId,
+          name: fileName,
           type: currentDocType,
+          storage_path: filePath,
+          file_type: file.type,
           size: file.size,
-          uploadedAt: new Date().toISOString(),
-          url: `https://example.com/${filePath}`, // This would be the actual file URL
-        };
+          category: 'kyc',
+          metadata: { originalName: file.name }
+        })
+        .select()
+        .single();
 
-        setDocuments(prev => [newDoc, ...prev]);
-        toast.success('Document uploaded successfully');
-        
-        setTimeout(() => {
-          setIsUploading(false);
-          setUploadProgress(0);
-        }, 500);
-      }, 2000);
+      if (docError) throw docError;
+
+      clearInterval(interval);
+      setUploadProgress(100);
+      
+      const newDoc: Document = {
+        id: docData.id,
+        name: fileName,
+        type: currentDocType,
+        size: file.size,
+        uploadedAt: docData.uploaded_at,
+        url: urlData.signedUrl,
+        status: docData.status
+      };
+
+      setDocuments(prev => [newDoc, ...prev]);
+      toast.success('Document uploaded successfully');
+      
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
     } catch (error: any) {
       console.error('Error uploading document:', error);
       toast.error(`Upload failed: ${error.message}`);
@@ -152,10 +229,28 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleDeleteDocument = async (documentId: string) => {
+  const handleDeleteDocument = async (documentId: string, documentPath: string) => {
     try {
-      // In a real implementation, we would delete the document from storage
-      // This is just a mock implementation
+      // Delete from Supabase storage
+      const document = documents.find(doc => doc.id === documentId);
+      if (!document) return;
+      
+      const filePath = `${userId}/${document.name}`;
+      
+      const { error: storageError } = await supabase.storage
+        .from('kyc_documents')
+        .remove([filePath]);
+
+      if (storageError) throw storageError;
+
+      // Delete from documents table
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', documentId);
+
+      if (dbError) throw dbError;
+
       setDocuments(prev => prev.filter(doc => doc.id !== documentId));
       toast.success('Document deleted successfully');
     } catch (error) {
@@ -166,6 +261,42 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
 
   const getDocumentStatusForType = (type: DocumentType) => {
     return documents.find(doc => doc.type === type);
+  };
+
+  const handlePreviewDocument = (url: string) => {
+    setPreviewUrl(url);
+    setIsPreviewOpen(true);
+  };
+
+  const getDocumentPreview = (url: string, fileType: string) => {
+    if (fileType.includes('pdf')) {
+      return (
+        <iframe 
+          src={url} 
+          className="w-full h-[70vh]" 
+          title="Document Preview"
+        />
+      );
+    } else if (fileType.includes('image')) {
+      return (
+        <img 
+          src={url} 
+          alt="Document Preview" 
+          className="max-h-[70vh] max-w-full object-contain mx-auto"
+        />
+      );
+    } else {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <File className="h-16 w-16 text-muted-foreground mb-4" />
+          <p>This document type cannot be previewed directly</p>
+          <Button className="mt-4" onClick={() => window.open(url, '_blank')}>
+            <Download className="mr-2 h-4 w-4" />
+            Download to View
+          </Button>
+        </div>
+      );
+    }
   };
 
   return (
@@ -191,12 +322,19 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
                 {existingDoc ? (
                   <div className="mt-4 p-3 border rounded-md bg-muted/50 flex justify-between items-center">
                     <div className="flex-1 overflow-hidden">
-                      <p className="truncate font-medium text-sm">{existingDoc.name}</p>
+                      <p className="truncate font-medium text-sm">{existingDoc.name.split('_').slice(1).join('_')}</p>
                       <p className="text-xs text-muted-foreground">
                         {formatFileSize(existingDoc.size)} • Uploaded on {new Date(existingDoc.uploadedAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handlePreviewDocument(existingDoc.url)}
+                      >
+                        <FileCheck2 className="h-4 w-4" />
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="icon"
@@ -207,7 +345,7 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
                       <Button 
                         variant="ghost" 
                         size="icon"
-                        onClick={() => handleDeleteDocument(existingDoc.id)}
+                        onClick={() => handleDeleteDocument(existingDoc.id, existingDoc.url)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -255,6 +393,20 @@ const DocumentUpload = ({ userId, userRole }: DocumentUploadProps) => {
           All documents are encrypted and securely stored. Your information is only accessible to authorized personnel for verification purposes.
         </AlertDescription>
       </Alert>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Document Preview</DialogTitle>
+            <DialogDescription>
+              Viewing your uploaded document
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {previewUrl && getDocumentPreview(previewUrl, previewUrl.toLowerCase().includes('.pdf') ? 'application/pdf' : 'image/jpeg')}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

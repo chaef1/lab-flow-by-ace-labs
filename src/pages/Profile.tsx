@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import DocumentUpload from '@/components/profile/DocumentUpload';
 import ContractsList from '@/components/profile/ContractsList';
 import DashboardLayout from '@/components/layout/Dashboard';
-import { Upload, Building, FileCheck, Settings, UserCog } from 'lucide-react';
+import { Upload, Building, FileCheck, Settings, UserCog, File } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Profile = () => {
@@ -38,13 +39,17 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (userProfile) {
       setFirstName(userProfile.first_name || '');
       setLastName(userProfile.last_name || '');
+      setAvatarUrl(userProfile.avatar_url);
     }
   }, [userProfile]);
 
@@ -71,6 +76,75 @@ const Profile = () => {
       toast.error(`Failed to update profile: ${error.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image size should not exceed 2MB');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Only JPEG, PNG and GIF images are allowed');
+      return;
+    }
+
+    setUploading(true);
+    
+    try {
+      // Delete old avatar if exists
+      if (avatarUrl) {
+        const oldAvatarPath = avatarUrl.split('/').pop();
+        if (oldAvatarPath) {
+          await supabase.storage
+            .from('profile_images')
+            .remove([`${user.id}/${oldAvatarPath}`]);
+        }
+      }
+
+      // Upload new avatar
+      const fileName = `avatar_${Date.now()}.${file.name.split('.').pop()}`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('profile_images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('profile_images')
+        .getPublicUrl(filePath);
+
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: publicUrlData.publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrlData.publicUrl);
+      toast.success('Avatar updated successfully');
+    } catch (error: any) {
+      console.error('Error updating avatar:', error);
+      toast.error(`Failed to update avatar: ${error.message}`);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -148,13 +222,38 @@ const Profile = () => {
               <CardContent className="space-y-8">
                 <div className="flex flex-col md:flex-row gap-8 items-start">
                   <div className="flex flex-col items-center space-y-2">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={userProfile.avatar_url || ''} />
+                    <Avatar className="h-24 w-24 relative group">
+                      <AvatarImage src={avatarUrl || ''} alt={`${firstName} ${lastName}`} />
                       <AvatarFallback className="text-lg">{profileInitials}</AvatarFallback>
+                      
+                      {isEditing && (
+                        <div 
+                          className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Upload className="h-8 w-8 text-white" />
+                        </div>
+                      )}
                     </Avatar>
-                    <Button variant="outline" size="sm">
-                      Change Avatar
-                    </Button>
+                    {isEditing && (
+                      <>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleAvatarChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                        >
+                          {uploading ? 'Uploading...' : 'Change Avatar'}
+                        </Button>
+                      </>
+                    )}
                   </div>
                   
                   <div className="flex-1 grid gap-4">

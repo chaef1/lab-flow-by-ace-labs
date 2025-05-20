@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowRight, Globe, Code, Layers, Beaker, Flask, Microscope } from 'lucide-react';
+import { ArrowRight, Globe, Code, Layers, Beaker, FlaskConical, Microscope } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -94,7 +94,7 @@ const Index = () => {
             
             <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
               <div className="h-12 w-12 rounded-lg bg-ace-100 flex items-center justify-center mb-6">
-                <Flask className="h-6 w-6 text-ace-500" />
+                <FlaskConical className="h-6 w-6 text-ace-500" />
               </div>
               <h3 className="text-xl font-bold text-ace-dark mb-3">Team Collaboration</h3>
               <p className="text-gray-600">

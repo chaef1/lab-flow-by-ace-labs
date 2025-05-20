@@ -30,6 +30,16 @@ interface PdfEditorProps {
   onSaved: () => void;
 }
 
+interface AnnotationStyle {
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  fontStyle?: string;
+  textDecoration?: string;
+  color?: string;
+  textAlign?: string;
+}
+
 interface Annotation {
   type: 'text' | 'signature' | 'image' | 'rectangle' | 'circle';
   x: number;
@@ -39,16 +49,6 @@ interface Annotation {
   width?: number;
   height?: number;
   style?: AnnotationStyle;
-}
-
-interface AnnotationStyle {
-  fontFamily?: string;
-  fontSize?: string;
-  fontWeight?: string;
-  fontStyle?: string;
-  textDecoration?: string;
-  color?: string;
-  textAlign?: string;
 }
 
 // This is a simplified PDF editor component for demonstration
@@ -232,7 +232,7 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
       } else if (activeTool === 'signature') {
         // In a real app, this would open a signature pad
         // For this demo, we'll use a placeholder signature image
-        const signatureSrc = 'data:image/png;base64,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';
+        const signatureSrc = 'data:image/png;base64,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';
         const newAnnotation: Annotation = { 
           type: 'signature', 
           x, 
@@ -340,14 +340,16 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
       const newAnnotations = [...annotations];
       const currentAnnotation = newAnnotations[selectedAnnotationIndex];
       
-      newAnnotations[selectedAnnotationIndex] = {
-        ...currentAnnotation,
-        style: { 
-          ...(currentAnnotation.style || {}), 
-          [property]: value 
-        }
-      };
-      setAnnotations(newAnnotations);
+      if (currentAnnotation) {
+        newAnnotations[selectedAnnotationIndex] = {
+          ...currentAnnotation,
+          style: { 
+            ...(currentAnnotation.style || {}), 
+            [property]: value 
+          }
+        };
+        setAnnotations(newAnnotations);
+      }
     }
   };
   

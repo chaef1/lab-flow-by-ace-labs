@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -222,6 +221,64 @@ export const removeTikTokToken = () => {
 
 /* Meta Ads API Functions */
 
+// Get Meta OAuth URL for user login
+export const getMetaOAuthUrl = () => {
+  // Replace with your actual app ID (this is a placeholder)
+  const appId = "1234567890123456";
+  const redirectUri = encodeURIComponent(window.location.origin + "/advertising");
+  const state = encodeURIComponent(JSON.stringify({ platform: 'meta', timestamp: Date.now() }));
+  const scope = encodeURIComponent("ads_management,ads_read,business_management");
+  
+  return `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&state=${state}&scope=${scope}&response_type=code`;
+};
+
+// Process Meta OAuth callback
+export const processMetaAuthCallback = async (url: string) => {
+  try {
+    const urlObj = new URL(url);
+    const code = urlObj.searchParams.get('code');
+    const stateStr = urlObj.searchParams.get('state');
+    
+    if (!code) {
+      throw new Error('No authorization code found in URL');
+    }
+    
+    let state = {};
+    try {
+      if (stateStr) {
+        state = JSON.parse(decodeURIComponent(stateStr));
+      }
+    } catch (e) {
+      console.warn('Could not parse state parameter:', e);
+    }
+    
+    console.log('Processing Meta auth callback with code:', code);
+    
+    // In a real implementation, we would exchange this code for an access token
+    // via a server-side endpoint to keep the app secret secure
+    
+    // For demo purposes, we'll mock a successful response
+    const mockTokenData = {
+      access_token: "MOCK_META_ACCESS_TOKEN_" + Date.now(),
+      expires_in: 5184000, // 60 days
+      token_type: "bearer"
+    };
+    
+    // Save the mock token
+    const saved = saveMetaToken(mockTokenData.access_token);
+    console.log('Meta token saved successfully:', saved);
+    
+    return {
+      success: true,
+      token: mockTokenData.access_token,
+      tokenData: mockTokenData
+    };
+  } catch (error) {
+    console.error('Error processing Meta auth callback:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Save Meta access token to localStorage with expiration handling
 export const saveMetaToken = (token: string, accountId: string = '') => {
   try {
@@ -323,13 +380,15 @@ export const removeMetaToken = () => {
   }
 };
 
-// Mock function to get Meta ad accounts (would be replaced with actual API call)
+// Get Meta ad accounts (real implementation would call Meta Marketing API)
 export const getMetaAdAccounts = async (accessToken: string) => {
   try {
     console.log('Getting Meta ad accounts with token:', accessToken.substring(0, 5) + '...');
     
-    // For mock implementation, return hardcoded data
-    // In a real app, this would call the Meta Graph API
+    // In a real implementation, you would call the Meta Graph API endpoint:
+    // https://graph.facebook.com/v17.0/me/adaccounts?fields=name,account_id,account_status,amount_spent&access_token=${accessToken}
+    
+    // For now, return mock data
     return {
       data: [
         { 
@@ -353,13 +412,15 @@ export const getMetaAdAccounts = async (accessToken: string) => {
   }
 };
 
-// Mock function to get Meta campaigns (would be replaced with actual API call)
+// Get Meta campaigns (would call Meta Marketing API in real implementation)
 export const getMetaCampaigns = async (accessToken: string, accountId: string) => {
   try {
     console.log('Getting Meta campaigns for account:', accountId);
     
-    // For mock implementation, return hardcoded data
-    // In a real app, this would call the Meta Marketing API
+    // In a real implementation, you would call the Meta Marketing API endpoint:
+    // https://graph.facebook.com/v17.0/${accountId}/campaigns?fields=name,status,objective,spend&access_token=${accessToken}
+    
+    // For now, return mock data
     return {
       data: [
         { 

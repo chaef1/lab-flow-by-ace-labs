@@ -41,6 +41,8 @@ import {
   getSavedMetaToken,
   removeMetaToken,
   getMetaAdAccounts,
+  getMetaOAuthUrl,
+  processMetaAuthCallback
 } from "@/lib/tiktok-ads-api";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -140,7 +142,84 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     }
   }, [platform, onConnectionStatusChange, toast]);
   
-  // Check for saved tokens on component mount and location changes
+  // Check for URL parameters on component mount and location changes
+  useEffect(() => {
+    const processAuthCallback = async () => {
+      const urlParams = new URLSearchParams(location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      
+      if (!code) return;
+      
+      console.log('Found auth code in URL:', code.substring(0, 5) + '...');
+      
+      // Determine platform from state param if available
+      let authPlatform = platform;
+      if (state) {
+        try {
+          const stateObj = JSON.parse(decodeURIComponent(state));
+          if (stateObj.platform) {
+            authPlatform = stateObj.platform;
+          }
+        } catch (e) {
+          console.warn('Could not parse state parameter:', e);
+        }
+      }
+      
+      setIsLoading(true);
+      
+      try {
+        if (authPlatform === 'tiktok') {
+          // Process the TikTok authorization code
+          const result = await processTikTokAuthCallback(
+            `https://app-sandbox.acelabs.co.za/advertising?code=${code}`
+          );
+          
+          if (result.success && result.token) {
+            setIsConnected(true);
+            if (onConnectionStatusChange) onConnectionStatusChange(true);
+            await fetchAdAccounts(result.token);
+            if (result.advertiserId) {
+              setSelectedAccount(result.advertiserId);
+            }
+            toast({
+              title: "Successfully Connected",
+              description: "Your TikTok Ads account has been connected successfully."
+            });
+          } else {
+            throw new Error(result.error || 'Authentication failed');
+          }
+        } else if (authPlatform === 'meta') {
+          // Process the Meta authorization code
+          const result = await processMetaAuthCallback(window.location.href);
+          
+          if (result.success && result.token) {
+            setIsConnected(true);
+            if (onConnectionStatusChange) onConnectionStatusChange(true);
+            await fetchMetaAdAccounts(result.token);
+            toast({
+              title: "Successfully Connected",
+              description: "Your Meta Ads account has been connected successfully."
+            });
+          } else {
+            throw new Error(result.error || 'Meta authentication failed');
+          }
+        }
+      } catch (error: any) {
+        console.error('Error processing auth code from URL:', error);
+        showError(error.message || 'Authentication failed');
+      } finally {
+        setIsLoading(false);
+        
+        // Clean up the URL without reloading the page
+        navigate('/advertising', { replace: true });
+      }
+    };
+    
+    processAuthCallback();
+  }, [location.search, platform, onConnectionStatusChange, navigate, toast]);
+
+  // Check for saved tokens on component mount and platform changes
   useEffect(() => {
     const checkAuthStatus = async () => {
       console.log('Checking auth status for', platform);
@@ -203,7 +282,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     };
     
     checkAuthStatus();
-  }, [platform, onConnectionStatusChange, location.pathname]);
+  }, [platform, onConnectionStatusChange]);
   
   const fetchAdAccounts = async (accessToken: string) => {
     if (!accessToken) {
@@ -330,7 +409,12 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         setAuthUrl(authUrl);
         setAuthSheetOpen(true);
       } else if (platform === 'meta') {
-        setMetaTokenDialogOpen(true);
+        // For Meta, we'll support both OAuth flow and manual token input
+        const metaAuthUrl = getMetaOAuthUrl();
+        console.log('Opening Meta auth URL:', metaAuthUrl);
+        
+        // Open in same window, which will redirect back to our app
+        window.location.href = metaAuthUrl;
       }
     } catch (error: any) {
       console.error(`Error initiating ${platform} connection:`, error);
@@ -403,6 +487,11 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // For advanced users who want to manually enter a token
+  const showManualTokenInput = () => {
+    setMetaTokenDialogOpen(true);
   };
   
   const renderPlatformHeader = () => {
@@ -543,7 +632,17 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
             <p className="text-center text-muted-foreground mb-4 max-w-md">
               Connect your {platform === 'tiktok' ? 'TikTok' : 'Meta'} Ads account to manage campaigns directly from the Ace Labs platform
             </p>
-            <Button onClick={initiateConnect}>Connect {platform === 'tiktok' ? 'TikTok' : 'Meta'} Ads</Button>
+            
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={initiateConnect}>
+                Connect with {platform === 'tiktok' ? 'TikTok' : 'Facebook'}
+              </Button>
+              {platform === 'meta' && (
+                <Button variant="outline" onClick={showManualTokenInput}>
+                  Use API Token
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -557,7 +656,8 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         }}
       >
         <SheetContent 
-          className="w-full md:max-w-md overflow-hidden flex flex-col p-0" 
+          size="large"
+          className="w-full overflow-hidden flex flex-col p-0" 
           onInteractOutside={(e) => {
             // Prevent closing when interacting with iframe
             if (isLoading) e.preventDefault();

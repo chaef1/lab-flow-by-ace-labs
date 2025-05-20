@@ -34,6 +34,7 @@ import {
   saveTikTokToken,
   removeTikTokToken,
 } from "@/lib/tiktok-ads-api";
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface AdAccountSelectorProps {
   platform: 'tiktok' | 'meta';
@@ -268,7 +269,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
   };
   
   return (
-    <>
+    <ErrorBoundary>
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b">
           <div>
@@ -376,11 +377,15 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
       </div>
       
       {/* TikTok Auth Sheet with iframe - keeps users within our app */}
-      <Sheet open={authSheetOpen} onOpenChange={(open) => {
-        if (!open) closeAuthSheet();
-        else setAuthSheetOpen(true);
-      }}>
-        <SheetContent className="w-full md:max-w-md overflow-hidden flex flex-col p-0" 
+      <Sheet 
+        open={authSheetOpen} 
+        onOpenChange={(open) => {
+          if (!open) closeAuthSheet();
+          else setAuthSheetOpen(true);
+        }}
+      >
+        <SheetContent 
+          className="w-full md:max-w-md overflow-hidden flex flex-col p-0" 
           onInteractOutside={(e) => {
             // Prevent closing when interacting with iframe
             if (isLoading) e.preventDefault();
@@ -430,7 +435,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </ErrorBoundary>
   );
 };
 

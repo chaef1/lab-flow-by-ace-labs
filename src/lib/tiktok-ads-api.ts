@@ -121,8 +121,8 @@ export const saveTikTokToken = (token: string, advertiserId: string) => {
       return false;
     }
     
-    // Current timestamp plus 7 days (in milliseconds) - extended for testing
-    const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000);
+    // Current timestamp plus 30 days (in milliseconds) - extended for better persistence
+    const expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
     
     const tokenData = {
       token,

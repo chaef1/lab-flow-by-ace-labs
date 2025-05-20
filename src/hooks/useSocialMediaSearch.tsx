@@ -1,358 +1,208 @@
 
-import { useState, useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
-type SocialPlatform = 'instagram' | 'tiktok';
-
-interface SocialProfileResult {
+export type SocialProfile = {
   username: string;
-  full_name?: string;
-  biography?: string;
-  follower_count?: number;
-  following_count?: number;
-  post_count?: number;
-  is_verified?: boolean;
-  profile_pic_url?: string;
-  engagement_rate?: number;
+  fullName: string;
+  followersCount: number;
+  followingCount?: number;
+  postsCount?: number;
+  profilePicture: string;
+  bio?: string;
+  engagementRate?: number;
+  verified?: boolean;
+  website?: string;
+  recentPosts?: {
+    url: string;
+    type: 'image' | 'video';
+    thumbnail?: string;
+    likes?: number;
+    comments?: number;
+    caption?: string;
+    postedAt?: Date;
+  }[];
   error?: string;
-  message?: string;
-  is_mock_data?: boolean;
-  requires_auth?: boolean;
-  auth_url?: string;
-  temporary_error?: boolean;
-  requires_waiting?: boolean;
-  platform?: string;
-}
+};
 
-interface SearchHistoryItem {
-  id: string;
-  platform: SocialPlatform;
-  username: string;
-  timestamp: string;
-  user_id: string;
-}
-
-export const useSocialMediaSearch = () => {
+/**
+ * Custom hook for searching and fetching social media profiles
+ */
+export function useSocialMediaSearch() {
   const [isLoading, setIsLoading] = useState(false);
-  const [profileData, setProfileData] = useState<SocialProfileResult | null>(null);
-  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [rateLimitError, setRateLimitError] = useState<{platform: string, message: string} | null>(null);
-  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<SocialProfile | null>(null);
+  const [searchHistory, setSearchHistory] = useState<Array<{
+    id: string;
+    username: string;
+    platform: string;
+    timestamp: string;
+  }>>([]);
   const { user } = useAuth();
 
-  // Load search history on component mount
-  useEffect(() => {
-    if (user) {
-      fetchSearchHistory();
-    }
-  }, [user]);
-
-  // Check URL for OAuth callback parameters
-  useEffect(() => {
-    // Check if the current URL has OAuth parameters
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get('code');
-    const state = url.searchParams.get('state');
-    
-    // If we have a code and state from Instagram OAuth
-    if (code && (url.pathname.includes('/auth/instagram/callback') || state)) {
-      handleOAuthCallback(code, state);
-    }
-  }, []);
-
-  // Handle OAuth callback
-  const handleOAuthCallback = async (code: string, state: string | null) => {
-    console.log("OAuth callback received with code:", code);
-    
-    try {
-      // Here we would process the OAuth response
-      // For now, we'll just show a success message
-      toast({
-        title: "Instagram connected",
-        description: "You've successfully authenticated with Instagram",
-      });
-      
-      // Clean the URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } catch (error: any) {
-      console.error("OAuth error:", error);
-      toast({
-        title: "Authentication failed",
-        description: error.message || "Could not complete authentication with Instagram",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Fetch search history for current user
-  const fetchSearchHistory = async () => {
-    if (!user) return;
-    
-    setIsHistoryLoading(true);
-    try {
-      // Get searches from the last 24 hours only
-      const oneDayAgo = new Date();
-      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-      
-      // Use any() to work around type issues
-      const { data, error } = await (supabase as any)
-        .from('social_media_searches')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('timestamp', oneDayAgo.toISOString())
-        .order('timestamp', { ascending: false });
-      
-      if (error) throw error;
-      
-      // Cast the data to our interface type
-      setSearchHistory(data as SearchHistoryItem[] || []);
-    } catch (error) {
-      console.error('Error fetching search history:', error);
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  };
-
-  // Save search to history
-  const saveSearchToHistory = async (platform: SocialPlatform, username: string) => {
-    if (!user) return;
-    
-    try {
-      // Use any() to work around type issues
-      const { error } = await (supabase as any)
-        .from('social_media_searches')
-        .insert({
-          platform,
-          username,
-          user_id: user.id,
-          timestamp: new Date().toISOString()
-        });
-      
-      if (error) throw error;
-      
-      // Refresh history after adding new item
-      fetchSearchHistory();
-    } catch (error) {
-      console.error('Error saving to search history:', error);
-    }
-  };
-
-  // Clear search history
-  const clearSearchHistory = async () => {
-    if (!user) return;
-    
-    try {
-      // Use any() to work around type issues
-      const { error } = await (supabase as any)
-        .from('social_media_searches')
-        .delete()
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      setSearchHistory([]);
-      toast({
-        title: "History cleared",
-        description: "Your search history has been cleared",
-      });
-    } catch (error: any) {
-      console.error('Error clearing search history:', error);
-      toast({
-        title: "Error",
-        description: "Failed to clear search history",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Extract username from Instagram URL
-  const extractInstagramUsername = (input: string): string => {
-    // Handle various Instagram URL formats
-    if (input.includes('instagram.com')) {
-      // Try to extract username from URL
-      const urlRegex = /instagram\.com\/([^\/\?#]+)/;
-      const match = input.match(urlRegex);
-      if (match && match[1]) {
-        // Remove trailing slashes if present
-        return match[1].replace(/\/$/, '');
-      }
-    }
-    
-    // If it's not a URL or extraction failed, return the input as-is (might be a username)
-    return input.replace('@', '');
-  };
-
-  const searchProfile = async (platform: SocialPlatform, input: string, oauthCode?: string) => {
-    if (!input) {
-      toast({
-        title: "Username required",
-        description: "Please enter a username or profile URL to search",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Clear any previous rate limit errors
-    setRateLimitError(null);
-
-    // Process the input differently based on platform
-    let username = input;
-    if (platform === 'instagram') {
-      username = extractInstagramUsername(input);
-    } else {
-      // For TikTok just remove @ if present
-      username = input.replace('@', '');
-    }
-
-    // If we couldn't extract a valid username
+  const searchProfile = useCallback(async (platform: string, username: string) => {
     if (!username) {
-      toast({
-        title: "Invalid input",
-        description: `Could not extract a valid ${platform} username from the input`,
-        variant: "destructive",
-      });
-      return;
+      toast.error('Please enter a username');
+      return null;
     }
-
+    
     setIsLoading(true);
-    setProfileData(null);
-
+    setError(null);
+    setProfile(null);
+    
     try {
-      console.log(`Calling Supabase function for ${platform} profile: ${username}`);
+      console.log(`Searching for ${username} on ${platform}...`);
       
-      // Add the OAuth code to the request if provided
-      const requestBody: any = {
-        platform,
-        username,
+      // Remove @ symbol if present
+      const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
+      
+      // Log the search in the database if user is authenticated
+      if (user) {
+        await supabase.from('social_media_searches').insert([
+          {
+            user_id: user.id,
+            platform,
+            username: cleanUsername
+          }
+        ]);
+      }
+      
+      // Call our Supabase Edge Function
+      const { data, error: functionError } = await supabase.functions.invoke('social-profile', {
+        body: { platform, username: cleanUsername },
+      });
+      
+      if (functionError) {
+        console.error('Edge function error:', functionError);
+        setError(functionError.message);
+        toast.error(`Failed to fetch profile: ${functionError.message}`);
+        return null;
+      }
+      
+      // Check for rate limiting errors in the response
+      if (data.error) {
+        console.error('Profile error:', data.error);
+        
+        if (data.error.includes('rate limit') || data.error.includes('Rate limit')) {
+          setError('Rate limit exceeded. Please try again later or use a different API key.');
+          toast.error('API rate limit exceeded. Please try again in a few minutes.');
+        } else {
+          setError(data.error);
+          toast.error(`Error: ${data.error}`);
+        }
+        return null;
+      }
+      
+      console.log('Profile data:', data);
+      
+      if (!data || !data.profile) {
+        setError('No profile data returned');
+        toast.error('No profile found or API error occurred');
+        return null;
+      }
+      
+      const socialProfile: SocialProfile = {
+        username: data.profile.username || cleanUsername,
+        fullName: data.profile.fullName || '',
+        followersCount: data.profile.followersCount || 0,
+        followingCount: data.profile.followingCount,
+        postsCount: data.profile.postsCount,
+        profilePicture: data.profile.profilePicture || '',
+        bio: data.profile.bio,
+        engagementRate: data.profile.engagementRate,
+        verified: data.profile.verified || false,
+        website: data.profile.website,
+        recentPosts: data.profile.recentPosts || []
       };
       
-      if (oauthCode) {
-        requestBody.code = oauthCode;
+      setProfile(socialProfile);
+      
+      // Fetch search history after successful search
+      if (user) {
+        fetchSearchHistory();
       }
       
-      const { data, error, status } = await supabase.functions.invoke('social-profile', {
-        body: requestBody,
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Error calling social-profile function');
-      }
-
-      console.log("Response from social-profile function:", data, "Status:", status);
-
-      // Check for rate limit error (status code 429 or temporary_error flag)
-      if (data.temporary_error && data.requires_waiting) {
-        setRateLimitError({
-          platform: data.platform || platform,
-          message: data.message || `${platform} API rate limit reached. Please try again in a few minutes.`
-        });
-        
-        toast({
-          title: "API Rate Limit Reached",
-          description: data.message || `${platform} API rate limit reached. Please try again in a few minutes.`,
-          variant: "destructive",
-        });
-        
-        // Set partial profile data to show the rate limit UI
-        setProfileData({
-          username: username,
-          platform: platform,
-          temporary_error: true,
-          requires_waiting: true,
-          message: data.message
-        });
-        return;
-      }
-
-      if (data.error) {
-        toast({
-          title: "Profile not found",
-          description: `Could not find ${platform} profile for @${username}`,
-          variant: "destructive",
-        });
-        setProfileData(null);
-      } else {
-        // Normalize data to ensure it matches our expected interface
-        const normalizedData: SocialProfileResult = {
-          username: data.username || username,
-          full_name: data.full_name || data.fullName || data.display_name || '',
-          biography: data.biography || data.bio || data.bio_description || '',
-          follower_count: data.follower_count || data.followers || data.followerCount || 0,
-          following_count: data.following_count || data.following || data.followingCount || 0, 
-          post_count: data.post_count || data.posts || data.videoCount || 0,
-          is_verified: data.is_verified || data.verified || false,
-          profile_pic_url: data.profile_pic_url || data.avatar || data.avatarUrl || data.avatar_url || '',
-          engagement_rate: data.engagement_rate || 0,
-          is_mock_data: data.is_mock_data || false,
-          requires_auth: data.requires_auth || false,
-          auth_url: data.auth_url || ''
-        };
-        
-        console.log("Normalized profile data:", normalizedData);
-        setProfileData(normalizedData);
-        
-        // Save successful search to history
-        saveSearchToHistory(platform, username);
-        
-        toast({
-          title: "Profile found",
-          description: `Found ${platform} profile for @${username}`,
-        });
-      }
-    } catch (error: any) {
-      console.error("Error fetching social profile:", error);
-      
-      // Check if the error is related to rate limiting
-      if (error.message && (error.message.includes("rate limit") || error.message.includes("429"))) {
-        setRateLimitError({
-          platform: platform,
-          message: `${platform} API rate limit reached. Please try again in a few minutes.`
-        });
-        
-        setProfileData({
-          username: username,
-          platform: platform,
-          temporary_error: true,
-          requires_waiting: true,
-          message: `${platform} API rate limit reached. Please try again in a few minutes.`
-        });
-        
-        toast({
-          title: "API Rate Limit Reached",
-          description: `${platform} API rate limit reached. Please try again in a few minutes.`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Search failed",
-          description: error.message || "Could not search for profile",
-          variant: "destructive",
-        });
-        setProfileData(null);
-      }
+      return socialProfile;
+    } catch (err: any) {
+      console.error('Search error:', err);
+      const errorMessage = err.message || 'An unexpected error occurred';
+      setError(errorMessage);
+      toast.error(`Error: ${errorMessage}`);
+      return null;
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const clearProfile = () => {
-    setProfileData(null);
-    setRateLimitError(null);
-  };
-
+  }, [user]);
+  
+  const retrySearch = useCallback(async () => {
+    if (!profile && error) {
+      toast.info('Retrying search...');
+      // We don't have the previous search parameters here
+      // This would be improved if we stored the last search parameters
+      return;
+    }
+    
+    if (profile) {
+      const platform = profile.username.includes('@') ? 'instagram' : 'tiktok'; // Simple heuristic
+      return searchProfile(platform, profile.username);
+    }
+  }, [profile, error, searchProfile]);
+  
+  const fetchSearchHistory = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error: historyError } = await supabase
+        .from('social_media_searches')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('timestamp', { ascending: false })
+        .limit(10);
+        
+      if (historyError) {
+        console.error('Error fetching search history:', historyError);
+        return;
+      }
+      
+      setSearchHistory(data || []);
+    } catch (err) {
+      console.error('Failed to fetch search history:', err);
+    }
+  }, [user]);
+  
+  const clearSearchHistory = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { error: deleteError } = await supabase
+        .from('social_media_searches')
+        .delete()
+        .eq('user_id', user.id);
+        
+      if (deleteError) {
+        console.error('Error clearing search history:', deleteError);
+        toast.error('Failed to clear search history');
+        return;
+      }
+      
+      setSearchHistory([]);
+      toast.success('Search history cleared');
+    } catch (err) {
+      console.error('Failed to clear search history:', err);
+      toast.error('An error occurred while clearing search history');
+    }
+  }, [user]);
+  
   return {
-    searchProfile,
-    clearProfile,
     isLoading,
-    profileData,
-    rateLimitError,
+    error,
+    profile,
     searchHistory,
-    isHistoryLoading,
-    clearSearchHistory,
+    searchProfile,
+    retrySearch,
     fetchSearchHistory,
-    handleOAuthCallback,
+    clearSearchHistory
   };
-};
+}

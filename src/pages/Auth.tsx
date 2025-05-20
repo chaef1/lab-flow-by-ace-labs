@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -181,11 +180,12 @@ const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => P
   );
 };
 
-const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, userData: { first_name?: string; last_name?: string }) => Promise<void> }) => {
+const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, userData: { first_name?: string; last_name?: string; role?: string }) => Promise<void> }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [role, setRole] = useState('brand');
   const [isLoading, setIsLoading] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -195,7 +195,8 @@ const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, user
     try {
       await signUp(email, password, {
         first_name: firstName,
-        last_name: lastName
+        last_name: lastName,
+        role: role
       });
       // User will need to sign in after registration
     } catch (error) {
@@ -251,6 +252,25 @@ const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, user
           onChange={(e) => setPassword(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">Password must be at least 8 characters</p>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="role">Sign up as</Label>
+        <select 
+          id="role"
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+        >
+          <option value="brand">Brand</option>
+          <option value="influencer">Influencer</option>
+          <option value="creator">Content Creator</option>
+        </select>
+        <p className="text-xs text-muted-foreground">
+          {role === 'brand' && "For brand managers and marketing teams"}
+          {role === 'influencer' && "For social media influencers and content creators"}
+          {role === 'creator' && "For agency content creators"}
+        </p>
       </div>
       
       <Button 

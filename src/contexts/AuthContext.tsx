@@ -19,12 +19,13 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, userData: { first_name?: string; last_name?: string }) => Promise<void>;
+  signUp: (email: string, password: string, userData: { first_name?: string; last_name?: string; role?: string }) => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: () => boolean;
   isCreator: () => boolean;
   isBrand: () => boolean;
   isInfluencer: () => boolean;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -143,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, userData: { first_name?: string; last_name?: string }) => {
+  const signUp = async (email: string, password: string, userData: { first_name?: string; last_name?: string; role?: string }) => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signUp({
@@ -181,6 +182,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateProfile = async (data: Partial<UserProfile>) => {
+    if (!user || !userProfile) return;
+    try {
+      setIsLoading(true);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      // Update the local state
+      setUserProfile({
+        ...userProfile,
+        ...data
+      });
+      
+      toast.success('Profile updated successfully');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error(`Failed to update profile: ${error.message}`);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Helper functions to check user roles
   const isAdmin = () => userProfile?.role === 'admin';
   const isCreator = () => userProfile?.role === 'creator';
@@ -199,7 +231,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAdmin,
       isCreator,
       isBrand,
-      isInfluencer
+      isInfluencer,
+      updateProfile
     }}>
       {children}
     </AuthContext.Provider>

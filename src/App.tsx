@@ -15,6 +15,7 @@ import ContentDetails from "./pages/ContentDetails";
 import Users from "./pages/Users";
 import Reporting from "./pages/Reporting";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Influencers from "./pages/Influencers";
 import InfluencerProfile from "./pages/InfluencerProfile";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
             {/* Admin, Creator, Brand routes */}
             <Route path="/projects" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Projects /></ProtectedRoute>} />

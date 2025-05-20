@@ -15,13 +15,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, Settings, LogOut } from 'lucide-react';
 
 const UserMenu = () => {
-  const { user, signOut } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const navigate = useNavigate();
   
   if (!user) return null;
   
-  // Extract initials from email if no profile info
+  // Extract initials from profile or email
   const getInitials = () => {
+    if (userProfile?.first_name && userProfile?.last_name) {
+      return `${userProfile.first_name[0]}${userProfile.last_name[0]}`.toUpperCase();
+    }
     if (!user.email) return 'U';
     return user.email.substring(0, 2).toUpperCase();
   };
@@ -36,7 +39,7 @@ const UserMenu = () => {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.user_metadata?.avatar_url} />
+            <AvatarImage src={userProfile?.avatar_url || user.user_metadata?.avatar_url} />
             <AvatarFallback>{getInitials()}</AvatarFallback>
           </Avatar>
         </Button>
@@ -45,13 +48,20 @@ const UserMenu = () => {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user.user_metadata?.first_name
+              {userProfile?.first_name
+                ? `${userProfile.first_name} ${userProfile.last_name || ''}`
+                : user.user_metadata?.first_name
                 ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`
                 : user.email}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
+            {userProfile?.role && (
+              <p className="text-xs font-medium text-muted-foreground mt-1">
+                {userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)}
+              </p>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

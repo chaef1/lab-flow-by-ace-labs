@@ -13,7 +13,8 @@ import {
   LogOut,
   ChartBar,
   MessageSquare,
-  Star
+  Star,
+  UserCircle
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,9 @@ const Sidebar = ({ className }: SidebarProps) => {
   const menuItems = [
     // Everyone sees Dashboard
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'influencer'] },
+    
+    // Profile - all users
+    { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'influencer'] },
     
     // Projects menu - admins, creators and brands
     { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand'] },

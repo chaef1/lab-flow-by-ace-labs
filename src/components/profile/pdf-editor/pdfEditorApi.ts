@@ -68,23 +68,50 @@ export const sendContractEmail = async (
   contractId: string,
   recipientEmail: string,
   recipientName: string,
-  message?: string
+  message?: string,
+  subject?: string
 ) => {
+  if (!recipientEmail) {
+    throw new Error('Recipient email is required');
+  }
+  
+  if (!contractId) {
+    throw new Error('Contract ID is required');
+  }
+  
+  console.log(`Preparing to send email for contract ${contractId} to ${recipientEmail}`);
+  
   // Generate a shared URL for the contract
-  const { data: urlData, error: urlError } = await supabase.storage
-    .from('contracts')
-    .createSignedUrl(`${userId}/${contractId}.pdf`, 604800); // URL valid for 7 days
-  
-  if (urlError) throw urlError;
-  
-  // Get contract name
   const { data: contractData, error: contractError } = await supabase
     .from('documents')
-    .select('*')
+    .select('name, url')
     .eq('id', contractId)
     .single();
   
-  if (contractError) throw contractError;
+  if (contractError) {
+    console.error('Error fetching contract data:', contractError);
+    throw new Error(`Failed to fetch contract data: ${contractError.message}`);
+  }
+  
+  // Use stored URL or generate signed URL if needed
+  let contractUrl = contractData.url;
+  
+  if (!contractUrl) {
+    // Generate a signed URL for the contract
+    const { data: urlData, error: urlError } = await supabase.storage
+      .from('contracts')
+      .createSignedUrl(`${userId}/${contractId}.pdf`, 604800); // URL valid for 7 days
+    
+    if (urlError) {
+      console.error('Error creating signed URL:', urlError);
+      throw new Error(`Failed to create signed URL: ${urlError.message}`);
+    }
+    
+    contractUrl = urlData.signedUrl;
+  }
+  
+  // Get contract name
+  const contractName = contractData.name || 'Contract';
   
   // Get current user's name
   const { data: userData, error: userError } = await supabase
@@ -93,38 +120,46 @@ export const sendContractEmail = async (
     .eq('id', userId)
     .single();
   
-  if (userError) throw userError;
-  
-  // Get contract name from metadata
-  let contractName = contractData.name;
-  
-  // Only access metadata properties if it's an object
-  if (contractData.metadata && typeof contractData.metadata === 'object' && 'contractName' in contractData.metadata) {
-    contractName = contractData.metadata.contractName as string;
+  if (userError) {
+    console.error('Error fetching user data:', userError);
+    throw new Error(`Failed to fetch sender information: ${userError.message}`);
   }
   
   const senderName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Contract Owner';
+  const emailSubject = subject || `Document for review: ${contractName}`;
+  
+  console.log(`Sending email with subject: "${emailSubject}" from ${senderName} to ${recipientEmail}`);
   
   // Send email using the edge function
-  const response = await fetch(`${window.location.origin}/api/send-contract`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      recipientName,
-      recipientEmail,
-      contractName,
-      contractUrl: urlData.signedUrl,
-      message,
-      senderName
-    })
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to send email');
+  try {
+    const response = await fetch(`${window.location.origin}/api/send-contract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recipientName,
+        recipientEmail,
+        contractName,
+        contractUrl,
+        message,
+        senderName,
+        subject: emailSubject
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error response from send-contract function:', errorData);
+      throw new Error(errorData.error || `Failed to send email: ${response.statusText}`);
+    }
+    
+    const responseData = await response.json();
+    console.log('Email sent successfully, response:', responseData);
+    return responseData;
+  } catch (error: any) {
+    console.error('Error sending email:', error);
+    // Re-throw the error so it can be handled by the caller
+    throw new Error(`Failed to send email: ${error.message}`);
   }
-  
-  return response;
 };
 
 export const updateContractMetadata = async (contractId: string, metadata: any) => {

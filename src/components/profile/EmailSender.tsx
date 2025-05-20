@@ -47,13 +47,14 @@ export const EmailSender = ({
     setIsSending(true);
     
     try {
-      // Use the pdfEditorApi function to send the email
+      // Use the enhanced pdfEditorApi function to send the email
       await sendContractEmail(
         user.id,
         documentId,
         recipientEmail,
         recipientName || recipientEmail.split('@')[0],
-        message
+        message,
+        subject
       );
       
       toast.success(`Email sent successfully to ${recipientEmail}`);

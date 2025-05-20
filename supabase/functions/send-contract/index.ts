@@ -33,9 +33,17 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Recipient email is required');
     }
 
+    // Validate the Resend API key
+    if (!Deno.env.get("RESEND_API_KEY")) {
+      console.error("RESEND_API_KEY is not configured");
+      throw new Error('Email service is not properly configured');
+    }
+
     const emailSubject = subject || `Contract for Review: ${contractName}`;
     
     console.log(`Sending email to ${recipientEmail} about contract: ${contractName}`);
+    console.log(`From: Contracts <onboarding@resend.dev>`);
+    console.log(`Subject: ${emailSubject}`);
 
     const emailResponse = await resend.emails.send({
       from: "Contracts <onboarding@resend.dev>",

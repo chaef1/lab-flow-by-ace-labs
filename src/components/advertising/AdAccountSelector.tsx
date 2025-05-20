@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,13 +51,11 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [accounts, setAccounts] = useState<AdAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [authSheetOpen, setAuthSheetOpen] = useState(false);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const { toast } = useToast();
-  const location = useLocation();
-  const navigate = useNavigate();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Setup message listener for auth iframe
@@ -69,7 +67,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         
         try {
           setIsLoading(true);
-          setAuthDialogOpen(false); // Close the dialog immediately
+          setAuthSheetOpen(false); // Close the sheet immediately
           
           // Process the auth code
           const { success, token, advertiserId, error } = await processTikTokAuthCallback(
@@ -204,7 +202,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     try {
       const { authUrl } = await getTikTokAuthUrl();
       setAuthUrl(authUrl);
-      setAuthDialogOpen(true);
+      setAuthSheetOpen(true);
     } catch (error: any) {
       console.error('Error initiating TikTok connection:', error);
       showError(error.message || 'Error connecting to TikTok');
@@ -228,8 +226,8 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     });
   };
 
-  const closeAuthDialog = () => {
-    setAuthDialogOpen(false);
+  const closeAuthSheet = () => {
+    setAuthSheetOpen(false);
     setAuthUrl(null);
   };
   
@@ -268,7 +266,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
               {accounts.map(account => (
                 <Card 
                   key={account.id}
-                  className={`cursor-pointer transition-all ${selectedAccount === account.id ? 'ring-2 ring-ace-500' : ''}`}
+                  className={`cursor-pointer transition-all ${selectedAccount === account.id ? 'ring-2 ring-primary' : ''}`}
                   onClick={() => setSelectedAccount(account.id)}
                 >
                   <CardHeader className="pb-2">
@@ -303,7 +301,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         {!isConnected && !isLoading && !isProcessingAuth && (
           <div className="flex flex-col items-center justify-center p-8 border rounded-lg border-dashed">
             <div className="mb-4 p-3 rounded-full bg-secondary">
-              <Link className="h-6 w-6 text-ace-500" />
+              <Link className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-lg font-medium mb-2">Connect Your TikTok Account</h3>
             <p className="text-center text-muted-foreground mb-4 max-w-md">
@@ -314,33 +312,33 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         )}
       </div>
       
-      {/* TikTok Auth Dialog with iframe */}
-      <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+      {/* TikTok Auth Sheet with iframe - keeps users within our app */}
+      <Sheet open={authSheetOpen} onOpenChange={setAuthSheetOpen}>
+        <SheetContent className="w-full md:max-w-md overflow-hidden flex flex-col p-0">
+          <SheetHeader className="p-4 border-b">
             <div className="flex items-center justify-between">
-              <DialogTitle>Connect to TikTok Ads</DialogTitle>
-              <Button variant="ghost" size="icon" onClick={closeAuthDialog}>
+              <SheetTitle className="text-xl">Connect to TikTok Ads</SheetTitle>
+              <Button variant="ghost" size="icon" onClick={closeAuthSheet}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <DialogDescription>
-              Please complete the TikTok authentication process below
-            </DialogDescription>
-          </DialogHeader>
+            <SheetDescription>
+              Please complete the TikTok authentication below
+            </SheetDescription>
+          </SheetHeader>
           
-          <div className="flex-1 min-h-[400px] overflow-hidden">
+          <div className="flex-1 overflow-hidden">
             {authUrl && (
               <iframe 
                 ref={iframeRef}
                 src={authUrl}
-                className="w-full h-full border-none"
+                className="w-full h-full min-h-[70vh] border-none"
                 title="TikTok Authentication"
               />
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
       
       {/* Error Dialog */}
       <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>

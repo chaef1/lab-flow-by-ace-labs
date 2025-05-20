@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -8,10 +9,10 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// TikTok API configuration - using business API endpoint
+// TikTok API configuration
 const TIKTOK_API_URL = "https://business-api.tiktok.com/open_api";
 
-// HTML template for auth success
+// HTML template for auth success - this runs in the iframe inside our app
 const authSuccessTemplate = (code) => `
 <!DOCTYPE html>
 <html>
@@ -31,13 +32,26 @@ const authSuccessTemplate = (code) => `
   <script>
     // Send the code back to parent window
     const code = "${code}";
-    if (window.opener) {
-      window.opener.postMessage({ tiktokAuthCode: code }, "*");
-      setTimeout(() => window.close(), 1500);
-    } else {
-      // If no opener (direct navigation), store in localStorage and redirect
-      localStorage.setItem('tiktok_auth_code', code);
-      window.location.href = '/advertising';
+    
+    // First try to send a message to the parent window 
+    // (this works when in an iframe within our app)
+    try {
+      window.parent.postMessage({ tiktokAuthCode: code }, "*");
+      console.log("Message sent to parent window");
+    } catch(err) {
+      console.error("Error sending message to parent:", err);
+    }
+    
+    // For direct navigation case
+    if (!window.parent || window.parent === window) {
+      try {
+        // If we're in a new window, store in localStorage and redirect
+        localStorage.setItem('tiktok_auth_code', code);
+        window.location.href = '/advertising';
+        console.log("Redirecting to /advertising");
+      } catch (err) {
+        console.error("Error redirecting:", err);
+      }
     }
   </script>
 </body>
@@ -115,7 +129,7 @@ serve(async (req) => {
         console.log('Exchanging code for access token:', code);
         
         try {
-          // Access Token Exchange Endpoint - using sandbox API
+          // Access Token Exchange Endpoint
           const tokenResponse = await fetch(`${TIKTOK_API_URL}/oauth2/access_token/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -167,7 +181,7 @@ serve(async (req) => {
         console.log('Fetching ad accounts with token:', accessToken.substring(0, 5) + '...');
         
         try {
-          // Advertiser List Endpoint - using sandbox API
+          // Advertiser List Endpoint
           const accountsResponse = await fetch(`${TIKTOK_API_URL}/advertiser/list/`, {
             method: 'GET',
             headers: {
@@ -219,7 +233,7 @@ serve(async (req) => {
         console.log('Fetching campaigns for advertiser:', advertiser_id);
         
         try {
-          // Campaign List Endpoint - using sandbox API
+          // Campaign List Endpoint
           const campaignsResponse = await fetch(`${TIKTOK_API_URL}/campaign/get/`, {
             method: 'POST',
             headers: {

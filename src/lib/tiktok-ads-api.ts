@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Get the OAuth URL for TikTok sign-in
 export const getTikTokAuthUrl = async () => {
   try {
-    // Using the hardcoded URL as specified
+    // Using the exact URL as specified
     const authUrl = "https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2Fadvertising";
     console.log('Returning TikTok auth URL:', authUrl);
     return { authUrl };

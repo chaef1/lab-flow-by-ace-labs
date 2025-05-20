@@ -8,10 +8,10 @@ import AdAccountSelector from "@/components/advertising/AdAccountSelector";
 import CampaignCreator from "@/components/advertising/CampaignCreator";
 import MediaUploader from "@/components/advertising/MediaUploader";
 import AdPerformance from "@/components/advertising/AdPerformance";
-import { PlusCircle, TrendingUp } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { hasTikTokToken, getSavedTikTokToken, processTikTokAuthCallback } from "@/lib/tiktok-ads-api";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const AdvertisingManager = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<'tiktok' | 'meta'>('tiktok');
@@ -20,7 +20,51 @@ const AdvertisingManager = () => {
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
-  const navigate = useNavigate();
+
+  // Check for auth code in URL params (direct navigation or redirect case)
+  useEffect(() => {
+    const processAuthCode = async () => {
+      const urlParams = new URLSearchParams(location.search);
+      const code = urlParams.get('code');
+      
+      if (code) {
+        console.log('Found auth code in URL:', code.substring(0, 5) + '...');
+        setIsProcessingAuth(true);
+        
+        try {
+          // Process the authorization code
+          const { success, error } = await processTikTokAuthCallback(
+            `https://app-sandbox.acelabs.co.za/advertising?code=${code}`
+          );
+          
+          if (success) {
+            setIsConnected(true);
+            toast({
+              title: "Successfully Connected",
+              description: "Your TikTok Ads account has been connected successfully."
+            });
+          } else {
+            throw new Error(error || 'Authentication failed');
+          }
+        } catch (error: any) {
+          console.error('Error processing auth code from URL:', error);
+          toast({
+            title: "Authentication Failed",
+            description: error.message || "Failed to complete TikTok authentication",
+            variant: "destructive"
+          });
+        } finally {
+          setIsProcessingAuth(false);
+          
+          // Clean up the URL without reloading the page
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      }
+    };
+    
+    processAuthCode();
+  }, [location.search, toast]);
 
   // Check for tokens in localStorage that might have been set by direct navigation
   useEffect(() => {

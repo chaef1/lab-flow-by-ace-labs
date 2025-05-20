@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -56,6 +55,8 @@ interface DocumentMetadata {
   contractName?: string;
   signedAt?: string;
   recipientEmail?: string;
+  edited?: boolean;
+  lastEditedAt?: string;
 }
 
 interface ContractsListProps {
@@ -188,7 +189,7 @@ const ContractsList = ({ userId, userRole }: ContractsListProps) => {
       if (urlError) throw urlError;
 
       // Insert record into documents table
-      const metadata: DocumentMetadata = { 
+      const metadata: Record<string, any> = { 
         originalName: file.name,
         status: contractStatus,
         partyB: partyB || 'Counterparty',
@@ -299,7 +300,7 @@ const ContractsList = ({ userId, userRole }: ContractsListProps) => {
       if (urlError) throw urlError;
 
       // Prepare metadata
-      const metadata: DocumentMetadata = {
+      const metadata: Record<string, any> = {
         originalName: `${contractName}.pdf`,
         status: contractStatus,
         partyB: partyB,
@@ -363,12 +364,52 @@ const ContractsList = ({ userId, userRole }: ContractsListProps) => {
   };
 
   const sendContractForSignature = async (contractId: string, email: string, contractName: string) => {
-    // In a real application, this would send an email with a signing link
-    // For now, we'll just simulate this process with a toast notification
-    toast.success(`Contract "${contractName}" sent to ${email} for signature`);
-    
-    // You could implement an actual email sending service here using a Supabase Edge Function
-    // that connects to an email service like SendGrid, Mailgun, or Resend
+    try {
+      // Get a signed URL for the contract that lasts 7 days
+      const contract = contracts.find(c => c.id === contractId);
+      if (!contract) {
+        toast.error("Contract not found");
+        return;
+      }
+
+      // Get current user's profile
+      const { data: userProfile, error: userError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', userId)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user profile:', userError);
+      }
+
+      const senderName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : 'Contract Owner';
+
+      // Call the send-contract edge function
+      const response = await fetch('/api/send-contract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipientName: email.split('@')[0], // Simple way to get a name from email
+          recipientEmail: email,
+          contractName: contractName,
+          contractUrl: contract.url,
+          senderName: senderName
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send email');
+      }
+
+      toast.success(`Contract "${contractName}" sent to ${email} for signature`);
+    } catch (error) {
+      console.error('Error sending contract for signature:', error);
+      toast.error('Failed to send contract. Please try again later.');
+    }
   };
 
   const resetForm = () => {

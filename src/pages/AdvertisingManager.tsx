@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,10 +9,47 @@ import CampaignCreator from "@/components/advertising/CampaignCreator";
 import MediaUploader from "@/components/advertising/MediaUploader";
 import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle, TrendingUp } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { hasTikTokToken } from "@/lib/tiktok-ads-api";
 
 const AdvertisingManager = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<'tiktok' | 'meta'>('tiktok');
   const [activeTab, setActiveTab] = useState('campaigns');
+  const [isConnected, setIsConnected] = useState(false);
+  const { toast } = useToast();
+
+  // Check connection status on mount and platform change
+  useEffect(() => {
+    const checkConnectionStatus = () => {
+      if (selectedPlatform === 'tiktok') {
+        const hasToken = hasTikTokToken();
+        setIsConnected(hasToken);
+      } else {
+        // Meta platform is not available yet
+        setIsConnected(false);
+      }
+    };
+    
+    checkConnectionStatus();
+  }, [selectedPlatform]);
+
+  // Handle creating a new campaign
+  const handleCreateCampaign = () => {
+    if (!isConnected) {
+      toast({
+        title: "Connection Required",
+        description: "Please connect your TikTok Ads account first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Implementation would continue here in a real app
+    toast({
+      title: "Creating Campaign",
+      description: "Launching campaign creation workflow"
+    });
+  };
 
   return (
     <Dashboard 
@@ -62,7 +99,7 @@ const AdvertisingManager = () => {
           <TabsContent value="campaigns" className="mt-0">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium">Your Campaigns</h3>
-              <Button>
+              <Button onClick={handleCreateCampaign} disabled={!isConnected}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Create Campaign
               </Button>
             </div>

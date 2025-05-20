@@ -29,7 +29,10 @@ serve(async (req) => {
     const tiktokAppSecret = Deno.env.get('TIKTOK_APP_SECRET');
 
     if (!tiktokAppId || !tiktokAppSecret) {
-      console.error('TikTok API credentials not found');
+      console.error('TikTok API credentials not found', {
+        appIdExists: !!tiktokAppId,
+        appSecretExists: !!tiktokAppSecret
+      });
       return new Response(
         JSON.stringify({ error: 'TikTok API credentials not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -39,6 +42,8 @@ serve(async (req) => {
     // Parse the request body
     const requestData = req.method === 'POST' ? await req.json() : {};
     const action = requestData.action || '';
+    
+    console.log(`Processing request with action: ${action}`, { requestData });
 
     // Use a switch statement to handle different API actions
     switch (action) {
@@ -46,6 +51,15 @@ serve(async (req) => {
         // Generate OAuth authorization URL for TikTok
         const redirectUri = requestData.redirectUri;
         const state = Math.random().toString(36).substring(2);
+        
+        if (!redirectUri) {
+          return new Response(
+            JSON.stringify({ error: 'Redirect URI is required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+        
+        console.log('Generating auth URL with redirect URI:', redirectUri);
         
         const authUrl = `https://ads.tiktok.com/marketing_api/auth?app_id=${tiktokAppId}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code`;
         
@@ -64,22 +78,45 @@ serve(async (req) => {
           );
         }
 
-        const tokenResponse = await fetch(`${TIKTOK_API_URL}/oauth2/access_token/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            app_id: tiktokAppId,
-            secret: tiktokAppSecret,
-            auth_code: code,
-            grant_type: 'authorization_code',
-          }),
-        });
+        console.log('Exchanging code for access token');
+        
+        try {
+          const tokenResponse = await fetch(`${TIKTOK_API_URL}/oauth2/access_token/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              app_id: tiktokAppId,
+              secret: tiktokAppSecret,
+              auth_code: code,
+              grant_type: 'authorization_code',
+            }),
+          });
 
-        const tokenData = await tokenResponse.json();
-        return new Response(
-          JSON.stringify(tokenData),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          const tokenResult = await tokenResponse.json();
+          console.log('Token exchange response:', tokenResult);
+          
+          if (!tokenResponse.ok) {
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to exchange token', 
+                details: tokenResult,
+                status: tokenResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: tokenResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(tokenResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error exchanging code for token:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to exchange code for token', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
 
       case 'get_ad_accounts':
         // Get advertising accounts for the authenticated user
@@ -91,19 +128,42 @@ serve(async (req) => {
           );
         }
 
-        const accountsResponse = await fetch(`${TIKTOK_API_URL}/advertiser/list/`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Token': accessToken,
-          },
-        });
+        console.log('Fetching ad accounts');
+        
+        try {
+          const accountsResponse = await fetch(`${TIKTOK_API_URL}/advertiser/list/`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Token': accessToken,
+            },
+          });
 
-        const accountsData = await accountsResponse.json();
-        return new Response(
-          JSON.stringify(accountsData),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          const accountsResult = await accountsResponse.json();
+          console.log('Ad accounts response:', accountsResult);
+          
+          if (!accountsResponse.ok) {
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to fetch ad accounts', 
+                details: accountsResult,
+                status: accountsResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: accountsResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(accountsResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error fetching ad accounts:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch ad accounts', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
 
       case 'get_campaigns':
         // Get campaigns for a specific ad account
@@ -117,35 +177,58 @@ serve(async (req) => {
           );
         }
 
-        const campaignsResponse = await fetch(`${TIKTOK_API_URL}/campaign/get/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Token': campaignToken,
-          },
-          body: JSON.stringify({
-            advertiser_id: advertiser_id,
-            page_size: 10,
-            page: 1,
-          }),
-        });
+        console.log('Fetching campaigns for advertiser:', advertiser_id);
+        
+        try {
+          const campaignsResponse = await fetch(`${TIKTOK_API_URL}/campaign/get/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Token': campaignToken,
+            },
+            body: JSON.stringify({
+              advertiser_id: advertiser_id,
+              page_size: 10,
+              page: 1,
+            }),
+          });
 
-        const campaignsData = await campaignsResponse.json();
-        return new Response(
-          JSON.stringify(campaignsData),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          const campaignsResult = await campaignsResponse.json();
+          console.log('Campaigns response:', campaignsResult);
+          
+          if (!campaignsResponse.ok) {
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to fetch campaigns', 
+                details: campaignsResult,
+                status: campaignsResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: campaignsResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(campaignsResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error fetching campaigns:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch campaigns', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
 
       default:
         return new Response(
-          JSON.stringify({ error: 'Unknown action' }),
+          JSON.stringify({ error: 'Unknown action', requestedAction: action }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
         );
     }
   } catch (error) {
     console.error('Error processing request:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Unknown error occurred' }),
+      JSON.stringify({ error: error.message || 'Unknown error occurred', stack: error.stack }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

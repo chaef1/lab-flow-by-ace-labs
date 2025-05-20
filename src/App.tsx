@@ -21,6 +21,7 @@ import Influencers from "./pages/Influencers";
 import InfluencerProfile from "./pages/InfluencerProfile";
 import Campaigns from "./pages/Campaigns";
 import SubmitContent from "./pages/SubmitContent";
+import AdvertisingManager from "./pages/AdvertisingManager";
 
 // Set up React Query with default error handling
 const queryClient = new QueryClient({
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Influencers /></ProtectedRoute>} />
             <Route path="/influencers/:id" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><InfluencerProfile /></ProtectedRoute>} />
             <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Reporting /></ProtectedRoute>} />
+            <Route path="/advertising" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><AdvertisingManager /></ProtectedRoute>} />
             
             {/* Admin only routes */}
             <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />

@@ -5,8 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WalletCard from '@/components/wallet/WalletCard';
 import AdWallet from '@/components/wallet/AdWallet';
 
-// Sample transaction data
-const sampleTransactions = [
+// Import the Transaction type from the WalletCard component to ensure consistency
+import { Transaction } from '@/components/wallet/WalletCard';
+
+// Sample transaction data with explicit type annotations
+const sampleTransactions: Transaction[] = [
   {
     id: "tr1",
     type: "payment",

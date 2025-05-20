@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import DocumentUpload from '@/components/profile/DocumentUpload';
 import ContractsList from '@/components/profile/ContractsList';
 import DashboardLayout from '@/components/layout/Dashboard';
-import { Upload, Building, FileCheck, Settings, UserCog, File } from 'lucide-react';
+import { Upload, Building, FileCheck, Settings, UserCog, File, Edit, ArrowLeft, Camera } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Profile = () => {
@@ -44,6 +44,7 @@ const Profile = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('general');
 
   useEffect(() => {
     if (userProfile) {
@@ -152,7 +153,10 @@ const Profile = () => {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+          <div className="relative w-16 h-16">
+            <div className="absolute top-0 left-0 w-full h-full border-4 border-primary/20 rounded-full"></div>
+            <div className="absolute top-0 left-0 w-full h-full border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -164,7 +168,7 @@ const Profile = () => {
         <div className="flex flex-col items-center justify-center h-full">
           <h2 className="text-2xl font-semibold mb-4">Authentication Required</h2>
           <p className="text-muted-foreground mb-4">Please sign in to view your profile</p>
-          <Button onClick={() => navigate('/auth')}>Sign In</Button>
+          <Button onClick={() => navigate('/auth')} variant="gradient">Sign In</Button>
         </div>
       </DashboardLayout>
     );
@@ -176,62 +180,84 @@ const Profile = () => {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-6 space-y-8">
+      <div className="container mx-auto py-6 space-y-8 max-w-6xl">
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-            <p className="text-muted-foreground">
-              Manage your account settings and documents
-            </p>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full" 
+              onClick={() => navigate('/dashboard')}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+              <p className="text-muted-foreground">
+                Manage your account settings and documents
+              </p>
+            </div>
           </div>
           <Badge variant={
             userProfile.role === 'admin' ? 'default' : 
             userProfile.role === 'brand' ? 'secondary' : 
             userProfile.role === 'influencer' ? 'outline' : 'default'
-          }>
+          } className="py-1 px-3 text-sm">
             {userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)}
           </Badge>
         </div>
         
-        <Tabs defaultValue="general" className="space-y-4">
-          <TabsList className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <TabsTrigger value="general" className="flex gap-2">
-              <Settings size={16} /> General
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex gap-2">
-              <Upload size={16} /> Documents
-            </TabsTrigger>
-            <TabsTrigger value="contracts" className="flex gap-2">
-              <FileCheck size={16} /> Contracts
-            </TabsTrigger>
-            {userProfile.role === 'admin' && (
-              <TabsTrigger value="admin" className="flex gap-2">
-                <UserCog size={16} /> Admin Controls
+        <Tabs 
+          defaultValue="general" 
+          className="space-y-6" 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+        >
+          <div className="bg-card rounded-lg shadow-sm p-1">
+            <TabsList className="grid grid-cols-1 md:grid-cols-4 gap-2 p-1">
+              <TabsTrigger value="general" className="flex gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Settings className="h-4 w-4" /> General
               </TabsTrigger>
-            )}
-          </TabsList>
+              <TabsTrigger value="documents" className="flex gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Upload className="h-4 w-4" /> Documents
+              </TabsTrigger>
+              <TabsTrigger value="contracts" className="flex gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <FileCheck className="h-4 w-4" /> Contracts
+              </TabsTrigger>
+              {userProfile.role === 'admin' && (
+                <TabsTrigger value="admin" className="flex gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <UserCog className="h-4 w-4" /> Admin Controls
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
           
-          <TabsContent value="general" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
-                  Your personal information and account settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-8">
+          <TabsContent value="general" className="space-y-4 animate-fadeIn">
+            <Card className="overflow-hidden border-0 shadow-md bg-card">
+              <div className="relative h-32 bg-gradient-to-r from-primary/30 to-accent/30">
+                {isEditing && (
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="absolute right-4 top-4"
+                  >
+                    Change Cover
+                  </Button>
+                )}
+              </div>
+              <CardHeader className="-mt-12 pt-0">
                 <div className="flex flex-col md:flex-row gap-8 items-start">
-                  <div className="flex flex-col items-center space-y-2">
-                    <Avatar className="h-24 w-24 relative group">
+                  <div className="flex flex-col items-center space-y-2 ml-4">
+                    <Avatar className="h-24 w-24 border-4 border-card relative group shadow-md">
                       <AvatarImage src={avatarUrl || ''} alt={`${firstName} ${lastName}`} />
-                      <AvatarFallback className="text-lg">{profileInitials}</AvatarFallback>
+                      <AvatarFallback className="text-lg bg-primary/10 text-primary">{profileInitials}</AvatarFallback>
                       
                       {isEditing && (
                         <div 
                           className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                           onClick={() => fileInputRef.current?.click()}
                         >
-                          <Upload className="h-8 w-8 text-white" />
+                          <Camera className="h-8 w-8 text-white" />
                         </div>
                       )}
                     </Avatar>
@@ -249,6 +275,7 @@ const Profile = () => {
                           size="sm" 
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploading}
+                          className="mt-2"
                         >
                           {uploading ? 'Uploading...' : 'Change Avatar'}
                         </Button>
@@ -256,83 +283,98 @@ const Profile = () => {
                     )}
                   </div>
                   
-                  <div className="flex-1 grid gap-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input 
-                          id="email" 
-                          value={user.email || ''} 
-                          disabled 
-                          className="mt-1"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Email cannot be changed
-                        </p>
-                      </div>
-                      <div>
-                        <Label htmlFor="role">Account Role</Label>
-                        <Input 
-                          id="role" 
-                          value={userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)} 
-                          disabled 
-                          className="mt-1"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Contact admin to change role
-                        </p>
-                      </div>
+                  <div className="flex-1 pt-4">
+                    <CardTitle className="text-2xl mb-1">{firstName} {lastName}</CardTitle>
+                    <CardDescription className="text-base">
+                      {user.email}
+                    </CardDescription>
+                  </div>
+                  
+                  {!isEditing && (
+                    <Button 
+                      onClick={() => setIsEditing(true)} 
+                      variant="outline"
+                      size="sm"
+                      className="absolute right-6 top-6 flex gap-1"
+                    >
+                      <Edit className="h-4 w-4" /> Edit Profile
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                <div className="grid gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                      <Input 
+                        id="email" 
+                        value={user.email || ''} 
+                        disabled 
+                        className="mt-1.5 bg-muted/30"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Email cannot be changed
+                      </p>
                     </div>
-                    
-                    <Separator />
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input 
-                          id="firstName" 
-                          value={firstName} 
-                          onChange={(e) => setFirstName(e.target.value)}
-                          disabled={!isEditing}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input 
-                          id="lastName" 
-                          value={lastName} 
-                          onChange={(e) => setLastName(e.target.value)}
-                          disabled={!isEditing}
-                          className="mt-1"
-                        />
-                      </div>
+                    <div>
+                      <Label htmlFor="role" className="text-sm font-medium">Account Role</Label>
+                      <Input 
+                        id="role" 
+                        value={userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)} 
+                        disabled 
+                        className="mt-1.5 bg-muted/30"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Contact admin to change role
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="firstName" className="text-sm font-medium">First Name</Label>
+                      <Input 
+                        id="firstName" 
+                        value={firstName} 
+                        onChange={(e) => setFirstName(e.target.value)}
+                        disabled={!isEditing}
+                        className={`mt-1.5 ${!isEditing && 'bg-muted/30'}`}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lastName" className="text-sm font-medium">Last Name</Label>
+                      <Input 
+                        id="lastName" 
+                        value={lastName} 
+                        onChange={(e) => setLastName(e.target.value)}
+                        disabled={!isEditing}
+                        className={`mt-1.5 ${!isEditing && 'bg-muted/30'}`}
+                      />
                     </div>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
-                {isEditing ? (
-                  <>
-                    <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-                    <Button onClick={handleSaveProfile} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="outline" onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
-                    <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
-                  </>
-                )}
-              </CardFooter>
+              {isEditing && (
+                <CardFooter className="flex justify-between border-t bg-muted/10 py-4">
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                  <Button onClick={handleSaveProfile} disabled={saving} variant="gradient">
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           </TabsContent>
           
-          <TabsContent value="documents" className="space-y-4">
-            <Card>
+          <TabsContent value="documents" className="space-y-4 animate-fadeIn">
+            <Card className="border-0 shadow-md">
               <CardHeader>
-                <CardTitle>KYC Documents</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <File className="h-5 w-5 text-primary" />
+                  KYC Documents
+                </CardTitle>
                 <CardDescription>
                   Upload your verification documents for Know Your Customer (KYC) requirements
                 </CardDescription>
@@ -346,10 +388,13 @@ const Profile = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="contracts" className="space-y-4">
-            <Card>
+          <TabsContent value="contracts" className="space-y-4 animate-fadeIn">
+            <Card className="border-0 shadow-md">
               <CardHeader>
-                <CardTitle>Contract Management</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <FileCheck className="h-5 w-5 text-primary" />
+                  Contract Management
+                </CardTitle>
                 <CardDescription>
                   Upload, sign, and manage your contracts
                 </CardDescription>
@@ -361,10 +406,13 @@ const Profile = () => {
           </TabsContent>
           
           {userProfile.role === 'admin' && (
-            <TabsContent value="admin" className="space-y-4">
-              <Card>
+            <TabsContent value="admin" className="space-y-4 animate-fadeIn">
+              <Card className="border-0 shadow-md">
                 <CardHeader>
-                  <CardTitle>Admin Controls</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <UserCog className="h-5 w-5 text-primary" />
+                    Admin Controls
+                  </CardTitle>
                   <CardDescription>
                     Manage users and system settings
                   </CardDescription>
@@ -372,20 +420,20 @@ const Profile = () => {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button 
-                      variant="secondary"
-                      className="h-24 flex flex-col items-center justify-center"
+                      variant="outline"
+                      className="h-24 flex flex-col items-center justify-center hover:bg-primary/5 transition-colors"
                       onClick={() => navigate('/users')}
                     >
-                      <UserCog size={24} className="mb-2" />
-                      <span>Manage Users</span>
+                      <UserCog className="h-6 w-6 mb-2 text-primary" />
+                      <span className="font-medium">Manage Users</span>
                     </Button>
                     <Button 
-                      variant="secondary"
-                      className="h-24 flex flex-col items-center justify-center"
+                      variant="outline"
+                      className="h-24 flex flex-col items-center justify-center hover:bg-primary/5 transition-colors"
                       onClick={() => navigate('/invite')}
                     >
-                      <Upload size={24} className="mb-2" />
-                      <span>Invite New Brand</span>
+                      <Upload className="h-6 w-6 mb-2 text-primary" />
+                      <span className="font-medium">Invite New Brand</span>
                     </Button>
                   </div>
                 </CardContent>

@@ -19,27 +19,28 @@ const Dashboard = ({ children, title, subtitle, showSearch = false }: DashboardP
   const { user, isLoading } = useAuth();
   const location = useLocation();
   
-  // Log the dashboard render state for debugging
   useEffect(() => {
     console.log(`Dashboard rendering - Path: ${location.pathname}, User: ${user?.id || 'none'}, Loading: ${isLoading}`);
   }, [user, isLoading, location.pathname]);
   
-  // If still loading, show the loading spinner
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="relative w-16 h-16">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-primary/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+        </div>
       </div>
     );
   }
   
-  // This is a fallback - ProtectedRoute should handle this case
-  // Do not add redirect logic here, since it's already in ProtectedRoute
   if (!user) {
-    // Just render a loading state, since ProtectedRoute will handle the redirect
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="relative w-16 h-16">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-primary/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+        </div>
       </div>
     );
   }
@@ -48,10 +49,10 @@ const Dashboard = ({ children, title, subtitle, showSearch = false }: DashboardP
     <div className="flex h-screen bg-background">
       <Sidebar />
       
-      <div className="flex-1 flex flex-col overflow-hidden ml-0 md:ml-64">
+      <div className="flex-1 flex flex-col overflow-hidden ml-0 md:ml-64 transition-all duration-300">
         <Header title={title} subtitle={subtitle} showSearch={showSearch} />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pt-4">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pt-4 animate-fadeIn">
           {children}
         </main>
       </div>

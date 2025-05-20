@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -31,14 +32,28 @@ export const saveEditedContract = async (
   if (contractError) throw contractError;
   
   // Create a new version of the contract
+  // Fix: Avoid using spread operator on potentially non-object metadata
+  let updatedMetadata = {};
+  
+  // Only spread if contractData.metadata is an object
+  if (contractData.metadata && typeof contractData.metadata === 'object') {
+    updatedMetadata = {
+      ...contractData.metadata,
+      edited: true,
+      lastEditedAt: new Date().toISOString()
+    };
+  } else {
+    // Create a new metadata object if it doesn't exist or isn't an object
+    updatedMetadata = {
+      edited: true,
+      lastEditedAt: new Date().toISOString()
+    };
+  }
+  
   const { data: docData, error: docError } = await supabase
     .from('documents')
     .update({
-      metadata: {
-        ...(contractData.metadata || {}),
-        edited: true,
-        lastEditedAt: new Date().toISOString()
-      }
+      metadata: updatedMetadata
     })
     .eq('id', contractId)
     .select();
@@ -81,10 +96,12 @@ export const sendContractEmail = async (
   if (userError) throw userError;
   
   // Get contract name from metadata
-  const metadata = contractData.metadata || {};
-  const contractName = typeof metadata === 'object' && 'contractName' in metadata 
-    ? (metadata.contractName as string)
-    : contractData.name;
+  let contractName = contractData.name;
+  
+  // Only access metadata properties if it's an object
+  if (contractData.metadata && typeof contractData.metadata === 'object' && 'contractName' in contractData.metadata) {
+    contractName = contractData.metadata.contractName as string;
+  }
   
   const senderName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Contract Owner';
   
@@ -121,16 +138,27 @@ export const updateContractMetadata = async (contractId: string, metadata: any) 
 
     if (fetchError) throw fetchError;
     
-    // Ensure existing metadata is an object before spreading
-    const existingMetadata = docData.metadata && typeof docData.metadata === 'object' ? docData.metadata : {};
-    
-    // Update metadata
-    const updatedMetadata = {
-      ...existingMetadata,
-      ...(metadata || {}),
+    // Fix: Avoid using spread operator on potentially non-object metadata
+    let updatedMetadata = {
       lastEditedAt: new Date().toISOString(),
       edited: true
     };
+    
+    // Only spread existing metadata if it's an object
+    if (docData.metadata && typeof docData.metadata === 'object') {
+      updatedMetadata = {
+        ...docData.metadata,
+        ...updatedMetadata
+      };
+    }
+    
+    // Add new metadata if it's an object
+    if (metadata && typeof metadata === 'object') {
+      updatedMetadata = {
+        ...updatedMetadata,
+        ...metadata
+      };
+    }
 
     // Update in database
     const { data, error } = await supabase

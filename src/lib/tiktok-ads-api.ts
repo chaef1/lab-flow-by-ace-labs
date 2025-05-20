@@ -18,6 +18,94 @@ export const getTikTokAuthUrl = async () => {
   }
 };
 
+// Function to open a popup window for TikTok authentication
+export const openTikTokAuthPopup = async () => {
+  try {
+    const { authUrl } = await getTikTokAuthUrl();
+    console.log('Opening TikTok auth in popup with URL:', authUrl);
+    
+    // Open the auth URL in a popup window
+    const popupWindow = window.open(
+      authUrl,
+      'tiktokAuth',
+      'width=800,height=600,left=200,top=100'
+    );
+    
+    if (!popupWindow) {
+      throw new Error('Popup blocked. Please allow popups for this site.');
+    }
+    
+    // Return the popup window reference so it can be monitored
+    return { success: true, popupWindow };
+  } catch (err) {
+    console.error('Error opening TikTok auth popup:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+// Listen for authentication completion in the popup
+export const setupTikTokAuthListener = (popupWindow, onSuccess, onFailure) => {
+  if (!popupWindow) return;
+  
+  console.log('Setting up auth listener for popup window');
+  
+  // Check if the popup was closed
+  const checkClosed = setInterval(() => {
+    if (popupWindow.closed) {
+      clearInterval(checkClosed);
+      console.log('Auth popup was closed by user');
+      if (onFailure) onFailure('Authentication window was closed');
+    }
+  }, 500);
+  
+  // Setup message listener for the redirect page to communicate back
+  const messageListener = async (event) => {
+    // Only accept messages from our redirect domain
+    if (!event.origin.includes('acelabs.co.za')) return;
+    
+    console.log('Received message from popup:', event.data);
+    
+    try {
+      // If we receive a code from the popup
+      if (event.data && event.data.tiktokAuthCode) {
+        clearInterval(checkClosed);
+        window.removeEventListener('message', messageListener);
+        
+        const code = event.data.tiktokAuthCode;
+        console.log('Received auth code from popup:', code);
+        
+        // Exchange the code for a token
+        const tokenData = await exchangeTikTokCode(code);
+        console.log('Token exchange result:', tokenData);
+        
+        if (tokenData.code === 0 && tokenData.data && tokenData.data.access_token) {
+          // Extract token and advertiser ID
+          const token = tokenData.data.access_token;
+          const advertiserId = tokenData.data.advertiser_ids?.[0] || '';
+          
+          // Save the token
+          saveTikTokToken(token, advertiserId);
+          
+          if (onSuccess) onSuccess(token, advertiserId);
+        } else {
+          throw new Error(tokenData.message || 'Failed to authenticate with TikTok');
+        }
+      }
+    } catch (error) {
+      console.error('Error processing auth code:', error);
+      if (onFailure) onFailure(error.message);
+    }
+  };
+  
+  window.addEventListener('message', messageListener);
+  
+  // Return a function to clean up the listeners
+  return () => {
+    clearInterval(checkClosed);
+    window.removeEventListener('message', messageListener);
+  };
+};
+
 // Exchange the OAuth code for an access token
 export const exchangeTikTokCode = async (code: string) => {
   try {

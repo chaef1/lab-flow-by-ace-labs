@@ -6,10 +6,19 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Link, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { 
   getTikTokAuthUrl, 
   exchangeTikTokCode,
@@ -17,7 +26,9 @@ import {
   hasTikTokToken,
   getSavedTikTokToken,
   saveTikTokToken,
-  removeTikTokToken
+  removeTikTokToken,
+  openTikTokAuthPopup,
+  setupTikTokAuthListener
 } from "@/lib/tiktok-ads-api";
 
 interface AdAccountSelectorProps {
@@ -43,10 +54,10 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
   const [accounts, setAccounts] = useState<AdAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
-  const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const { toast } = useToast();
   const location = useLocation();
-  const navigate = useNavigate();
   
   // Check for saved tokens on component mount
   useEffect(() => {
@@ -82,6 +93,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         }
       } catch (error: any) {
         console.error('Error checking authentication status:', error);
+        showError(error.message || 'Error checking authentication status');
       } finally {
         setIsLoading(false);
       }
@@ -89,73 +101,6 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     
     checkAuthStatus();
   }, [platform, onConnectionStatusChange]);
-  
-  // Handle processing code if it's not handled by parent component
-  useEffect(() => {
-    const processAuthCode = async () => {
-      if (isProcessingAuth) return; // Skip if parent is handling
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      
-      if (code && platform === 'tiktok') {
-        setIsLoading(true);
-        
-        try {
-          console.log('Exchanging auth code for token');
-          const tokenData = await exchangeTikTokCode(code);
-          
-          // Clear the code from URL but stay on the same page
-          window.history.replaceState({}, document.title, window.location.pathname);
-          
-          if (tokenData.code === 0 && tokenData.data && tokenData.data.access_token) {
-            console.log('Successfully exchanged code for token');
-            
-            // Save token and advertiser ID
-            const accessToken = tokenData.data.access_token;
-            const advertiserId = tokenData.data.advertiser_ids?.[0] || null;
-            
-            console.log('Saving TikTok token', { 
-              hasToken: !!accessToken,
-              hasAdvertiserId: !!advertiserId
-            });
-            
-            const saveSuccess = saveTikTokToken(accessToken, advertiserId || '');
-            console.log('Token save success:', saveSuccess);
-            
-            setIsConnected(true);
-            if (onConnectionStatusChange) onConnectionStatusChange(true);
-            
-            // Fetch ad accounts
-            await fetchAdAccounts(accessToken);
-            
-            // Set selected account if available
-            if (advertiserId) {
-              setSelectedAccount(advertiserId);
-            }
-            
-            toast({
-              title: "Successfully connected",
-              description: "Your TikTok Ads account has been connected",
-            });
-          } else {
-            throw new Error(tokenData.message || 'Failed to authenticate with TikTok');
-          }
-        } catch (error: any) {
-          console.error('Error during TikTok authentication:', error);
-          toast({
-            title: "Authentication Error",
-            description: error.message || "Failed to connect to TikTok Ads",
-            variant: "destructive"
-          });
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    
-    processAuthCode();
-  }, [location.search, platform, toast, isProcessingAuth, onConnectionStatusChange]);
   
   const fetchAdAccounts = async (accessToken: string) => {
     try {
@@ -180,7 +125,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
           { id: '2', name: 'Ace Labs Test', budget: 1000, status: 'Paused' },
         ]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching ad accounts:', error);
       // Fallback to mock data on error
       setAccounts([
@@ -196,53 +141,75 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     }
   };
   
+  const showError = (message: string) => {
+    setErrorMessage(message);
+    setErrorDialogOpen(true);
+  };
+  
   const initiateConnect = async () => {
     setIsLoading(true);
     
     try {
-      // Get authorization URL from our backend
-      const response = await getTikTokAuthUrl();
-      
-      if (response.authUrl) {
-        console.log('Got TikTok auth URL:', response.authUrl);
-        setAuthUrl(response.authUrl);
-        setAuthDialogOpen(true);
-      } else {
-        throw new Error('Failed to generate TikTok authorization URL');
-      }
+      setAuthDialogOpen(true);
     } catch (error: any) {
-      console.error('Error connecting to TikTok:', error);
-      toast({
-        title: "Connection Error",
-        description: error.message || "Failed to connect to TikTok Ads",
-        variant: "destructive"
-      });
+      console.error('Error initiating TikTok connection:', error);
+      showError(error.message || 'Error connecting to TikTok');
     } finally {
       setIsLoading(false);
     }
   };
   
-  const handleConnect = () => {
-    if (authUrl) {
-      // Open in new window rather than redirecting
-      const authWindow = window.open(authUrl, 'tiktokAuth', 'width=800,height=600');
+  const handleConnect = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Open auth popup
+      const { success, popupWindow, error } = await openTikTokAuthPopup();
       
-      if (!authWindow) {
-        toast({
-          title: "Popup Blocked",
-          description: "Please allow popups for this site and try again",
-          variant: "destructive"
-        });
-        return;
+      if (!success || !popupWindow) {
+        throw new Error(error || 'Failed to open authentication popup');
       }
       
       // Close the dialog
       setAuthDialogOpen(false);
       
-      toast({
-        title: "Authentication Started",
-        description: "Complete the TikTok authentication in the popup window"
-      });
+      // Setup listener for auth completion
+      const cleanupListener = setupTikTokAuthListener(
+        popupWindow,
+        // Success callback
+        async (token, advertiserId) => {
+          console.log('Auth successful, token and advertiser ID received');
+          setIsConnected(true);
+          if (onConnectionStatusChange) onConnectionStatusChange(true);
+          
+          // Fetch ad accounts with the new token
+          await fetchAdAccounts(token);
+          
+          // Set selected account if available
+          if (advertiserId) {
+            setSelectedAccount(advertiserId);
+          }
+          
+          toast({
+            title: "Successfully Connected",
+            description: "Your TikTok Ads account has been connected successfully."
+          });
+          
+          setIsLoading(false);
+        },
+        // Failure callback
+        (errorMsg) => {
+          console.error('Auth failed:', errorMsg);
+          showError(errorMsg || 'Authentication failed');
+          setIsLoading(false);
+        }
+      );
+      
+      // Cleanup function will be called automatically when auth completes or fails
+    } catch (error: any) {
+      console.error('Error during TikTok authentication:', error);
+      showError(error.message || 'Error connecting to TikTok');
+      setIsLoading(false);
     }
   };
   
@@ -342,26 +309,50 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         )}
       </div>
       
-      {/* Auth Dialog */}
+      {/* TikTok Auth Dialog */}
       <Dialog open={authDialogOpen} onOpenChange={setAuthDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Connect to TikTok Ads</DialogTitle>
             <DialogDescription>
-              You'll be redirected to TikTok to authorize access to your advertising account
+              Connect your TikTok Ads account to manage campaigns directly from Ace Labs
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-4">
-            <p>Click the button below to open TikTok authentication in a popup window. After completing the authentication, return to this page.</p>
-            <Button onClick={handleConnect} className="w-full">
-              Continue to TikTok
+            <p className="text-sm text-muted-foreground">
+              You will be asked to authorize access to your TikTok Ads account. A popup window will open to complete the authentication.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Make sure popups are allowed for this site.
+            </p>
+            <Button onClick={handleConnect} className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                "Connect TikTok Ads"
+              )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Note: Ensure popups are allowed for this site. Your connection status will automatically update after successful authentication.
-          </p>
         </DialogContent>
       </Dialog>
+      
+      {/* Error Dialog */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Connection Error</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorMessage || "There was an error connecting to TikTok Ads."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

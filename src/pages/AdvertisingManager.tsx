@@ -10,63 +10,16 @@ import MediaUploader from "@/components/advertising/MediaUploader";
 import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { hasTikTokToken, getSavedTikTokToken, exchangeTikTokCode } from "@/lib/tiktok-ads-api";
+import { hasTikTokToken, getSavedTikTokToken } from "@/lib/tiktok-ads-api";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const AdvertisingManager = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<'tiktok' | 'meta'>('tiktok');
   const [activeTab, setActiveTab] = useState('campaigns');
   const [isConnected, setIsConnected] = useState(false);
-  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Process code in URL if present
-  useEffect(() => {
-    const processAuthCode = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      
-      console.log('Checking for authorization code in URL:', code ? 'found' : 'not found');
-      
-      if (code) {
-        setIsProcessingAuth(true);
-        
-        try {
-          console.log('Processing TikTok authorization code...');
-          const tokenData = await exchangeTikTokCode(code);
-          
-          // Clear code from URL
-          navigate('/advertising', { replace: true });
-          
-          if (tokenData.code === 0 && tokenData.data && tokenData.data.access_token) {
-            console.log('Successfully processed TikTok auth code');
-            toast({
-              title: "Successfully connected",
-              description: "Your TikTok Ads account has been connected"
-            });
-            
-            // Connection state will be updated by AdAccountSelector
-          } else {
-            throw new Error(tokenData.message || 'Failed to authenticate with TikTok');
-          }
-        } catch (error: any) {
-          console.error('Error processing TikTok auth code:', error);
-          toast({
-            title: "Authentication Error",
-            description: error.message || "Failed to connect to TikTok Ads",
-            variant: "destructive"
-          });
-        } finally {
-          setIsProcessingAuth(false);
-        }
-      }
-    };
-    
-    processAuthCode();
-  }, [location.search, toast, navigate]);
 
   // Check connection status on mount and token changes
   useEffect(() => {
@@ -150,7 +103,6 @@ const AdvertisingManager = () => {
             <AdAccountSelector 
               platform={selectedPlatform}
               onConnectionStatusChange={setIsConnected}
-              isProcessingAuth={isProcessingAuth}
             />
           </CardContent>
         </Card>

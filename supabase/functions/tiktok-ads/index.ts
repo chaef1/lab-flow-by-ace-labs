@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -10,6 +11,35 @@ const corsHeaders = {
 
 // TikTok API configuration - using business API endpoint
 const TIKTOK_API_URL = "https://business-api.tiktok.com/open_api";
+
+// HTML template for auth redirect
+const popupRedirectTemplate = (code) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TikTok Authentication</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    .success-icon { font-size: 48px; color: green; margin: 20px 0; }
+    .message { margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="success-icon">✓</div>
+  <h1>Authentication Successful</h1>
+  <p class="message">You've successfully authenticated with TikTok. You can close this window now.</p>
+  
+  <script>
+    // Send the code back to the parent window
+    if (window.opener) {
+      window.opener.postMessage({ tiktokAuthCode: "${code}" }, "*");
+      // Close the popup window after a short delay
+      setTimeout(() => window.close(), 2000);
+    }
+  </script>
+</body>
+</html>
+`;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -38,7 +68,19 @@ serve(async (req) => {
       );
     }
 
-    // Parse the request body
+    // Check if this is a popup redirect with code in URL
+    const url = new URL(req.url);
+    const code = url.searchParams.get('code');
+    
+    if (req.method === 'GET' && code) {
+      console.log('Detected redirect with auth code, serving popup template');
+      return new Response(
+        popupRedirectTemplate(code),
+        { headers: { 'Content-Type': 'text/html' } }
+      );
+    }
+
+    // Parse the request body for regular API requests
     const requestData = req.method === 'POST' ? await req.json() : {};
     const action = requestData.action || '';
     
@@ -48,7 +90,7 @@ serve(async (req) => {
     switch (action) {
       case 'get_auth_url':
         // Use the exact URL provided
-        const authUrl = "https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2F";
+        const authUrl = "https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2Fadvertising";
         
         console.log('Using provided auth URL:', authUrl);
         

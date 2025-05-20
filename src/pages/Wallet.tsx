@@ -47,7 +47,7 @@ const sampleTransactions = [
     status: "pending",
     date: "2025-05-18"
   }
-] as const;
+];
 
 const Wallet = () => {
   const [activeTab, setActiveTab] = useState("general");

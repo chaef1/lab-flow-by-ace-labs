@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -48,23 +47,10 @@ serve(async (req) => {
     // Use a switch statement to handle different API actions
     switch (action) {
       case 'get_auth_url':
-        // Generate OAuth authorization URL for TikTok
-        const redirectUri = requestData.redirectUri || "https://app-sandbox.acelabs.co.za/advertising";
-        const state = Math.random().toString(36).substring(2);
+        // Use the exact URL provided
+        const authUrl = "https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2F";
         
-        if (!redirectUri) {
-          return new Response(
-            JSON.stringify({ error: 'Redirect URI is required' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-        
-        console.log('Generating auth URL with redirect URI:', redirectUri);
-        
-        // Use the business portal auth endpoint as specified
-        const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${tiktokAppId}&state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-        
-        console.log('Generated auth URL:', authUrl);
+        console.log('Using provided auth URL:', authUrl);
         
         return new Response(
           JSON.stringify({ authUrl }),

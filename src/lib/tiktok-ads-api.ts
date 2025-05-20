@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -233,6 +232,34 @@ export const getMetaOAuthUrl = () => {
   return `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&state=${state}&scope=${scope}&response_type=code`;
 };
 
+// Exchange Meta authorization code for an access token
+export const exchangeMetaCode = async (code: string) => {
+  try {
+    console.log('Exchanging Meta code:', code);
+    
+    const redirectUri = window.location.origin + "/advertising";
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        code, 
+        redirectUri, 
+        action: 'exchange_code' 
+      }
+    });
+
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error(error.message);
+    }
+    
+    console.log('Meta exchange code response:', data);
+    return data;
+  } catch (err) {
+    console.error('Error exchanging Meta code:', err);
+    throw err;
+  }
+};
+
 // Process Meta OAuth callback
 export const processMetaAuthCallback = async (url: string) => {
   try {
@@ -253,27 +280,37 @@ export const processMetaAuthCallback = async (url: string) => {
       console.warn('Could not parse state parameter:', e);
     }
     
-    console.log('Processing Meta auth callback with code:', code);
+    console.log('Processing Meta auth callback with code:', code.substring(0, 5) + '...');
     
-    // In a real implementation, we would exchange this code for an access token
-    // via a server-side endpoint to keep the app secret secure
+    // Exchange the code for an access token
+    const tokenData = await exchangeMetaCode(code);
     
-    // For demo purposes, we'll mock a successful response
-    const mockTokenData = {
-      access_token: "MOCK_META_ACCESS_TOKEN_" + Date.now(),
-      expires_in: 5184000, // 60 days
-      token_type: "bearer"
-    };
-    
-    // Save the mock token
-    const saved = saveMetaToken(mockTokenData.access_token);
-    console.log('Meta token saved successfully:', saved);
-    
-    return {
-      success: true,
-      token: mockTokenData.access_token,
-      tokenData: mockTokenData
-    };
+    if (tokenData && tokenData.access_token) {
+      const accessToken = tokenData.access_token;
+      
+      // Save the token
+      const saved = saveMetaToken(accessToken);
+      console.log('Meta token saved successfully:', saved);
+      
+      // Get ad accounts to get the first available account ID
+      const accountsData = await getMetaAdAccounts(accessToken);
+      let accountId = '';
+      
+      if (accountsData && accountsData.data && accountsData.data.length > 0) {
+        accountId = accountsData.data[0].id;
+        // Update saved token with account ID
+        saveMetaToken(accessToken, accountId);
+      }
+      
+      return {
+        success: true,
+        token: accessToken,
+        accountId,
+        tokenData
+      };
+    } else {
+      throw new Error('Failed to authenticate with Meta');
+    }
   } catch (error) {
     console.error('Error processing Meta auth callback:', error);
     return { success: false, error: error.message };
@@ -381,66 +418,43 @@ export const removeMetaToken = () => {
   }
 };
 
-// Get Meta ad accounts (real implementation would call Meta Marketing API)
+// Get Meta ad accounts using our edge function
 export const getMetaAdAccounts = async (accessToken: string) => {
   try {
     console.log('Getting Meta ad accounts with token:', accessToken.substring(0, 5) + '...');
     
-    // In a real implementation, you would call the Meta Graph API endpoint:
-    // https://graph.facebook.com/v17.0/me/adaccounts?fields=name,account_id,account_status,amount_spent&access_token=${accessToken}
+    // Use our new edge function to call the Meta API securely
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        action: 'get_ad_accounts' 
+      }
+    });
     
-    // For now, return mock data
-    return {
-      data: [
-        { 
-          id: '111222333444555', 
-          name: 'Ace Labs - Facebook', 
-          status: 'ACTIVE',
-          amount_spent: 12500
-        },
-        { 
-          id: '555444333222111', 
-          name: 'Ace Labs - Instagram', 
-          status: 'ACTIVE',
-          amount_spent: 8750
-        }
-      ]
-    };
-    
+    if (error) throw new Error(error.message);
+    return data;
   } catch (err) {
     console.error('Error getting Meta ad accounts:', err);
     throw err;
   }
 };
 
-// Get Meta campaigns (would call Meta Marketing API in real implementation)
+// Get Meta campaigns using our edge function
 export const getMetaCampaigns = async (accessToken: string, accountId: string) => {
   try {
     console.log('Getting Meta campaigns for account:', accountId);
     
-    // In a real implementation, you would call the Meta Marketing API endpoint:
-    // https://graph.facebook.com/v17.0/${accountId}/campaigns?fields=name,status,objective,spend&access_token=${accessToken}
+    // Use our new edge function to call the Meta API securely
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        accountId, 
+        action: 'get_campaigns' 
+      }
+    });
     
-    // For now, return mock data
-    return {
-      data: [
-        { 
-          id: 'camp_1234567890', 
-          name: 'Summer Promotion',
-          status: 'ACTIVE',
-          objective: 'BRAND_AWARENESS',
-          spend: 5000
-        },
-        { 
-          id: 'camp_0987654321', 
-          name: 'Product Launch',
-          status: 'ACTIVE',
-          objective: 'CONVERSIONS',
-          spend: 7500
-        }
-      ]
-    };
-    
+    if (error) throw new Error(error.message);
+    return data;
   } catch (err) {
     console.error('Error getting Meta campaigns:', err);
     throw err;

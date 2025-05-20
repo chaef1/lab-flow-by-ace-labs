@@ -63,6 +63,24 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
+				ace: {
+                    50: '#F0F6FF',
+                    100: '#E5EDFF',
+                    200: '#CCDCFF',
+                    300: '#99B8FF',
+                    400: '#6694FF',
+                    500: '#3370FF', // Primary blue
+                    600: '#0D4CD1',
+                    700: '#003DB7',
+                    800: '#002F8C',
+                    900: '#00134D',
+                    red: '#E63946', // Red accent
+                    yellow: '#F9B81A', // Yellow accent
+                    green: '#2AB58D', // Green accent
+                    dark: '#0A192F', // Dark blue
+                    light: '#F8F9FA', // Light background
+                    gray: '#6C757D', // Gray text
+                },
 				agency: {
 					50: '#F0F1FB',
 					100: '#E1E4F6',

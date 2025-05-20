@@ -86,10 +86,10 @@ const Sidebar = ({ className }: SidebarProps) => {
     <>
       <div className="flex items-center justify-between px-4 py-2">
         <Link to="/dashboard" className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full bg-agency-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-md bg-ace-500 flex items-center justify-center">
             <span className="text-white font-bold text-lg">A</span>
           </div>
-          <span className="font-bold text-lg text-agency-800">Agency</span>
+          <span className="font-bold text-lg text-ace-dark">Ace Labs</span>
         </Link>
         {isMobile && (
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>
@@ -118,10 +118,10 @@ const Sidebar = ({ className }: SidebarProps) => {
               variant={isActive(item.path) ? "secondary" : "ghost"}
               className={cn(
                 "w-full justify-start font-medium",
-                isActive(item.path) ? "bg-agency-100 text-agency-800" : "text-muted-foreground"
+                isActive(item.path) ? "bg-ace-100 text-ace-700" : "text-muted-foreground"
               )}
             >
-              <item.icon className={cn("w-5 h-5 mr-3", isActive(item.path) ? "text-agency-600" : "")} />
+              <item.icon className={cn("w-5 h-5 mr-3", isActive(item.path) ? "text-ace-500" : "")} />
               {item.name}
             </Button>
           </Link>

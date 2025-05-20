@@ -38,7 +38,7 @@ const Header = ({ title, subtitle, showSearch = false }: HeaderProps) => {
           )}
           
           <div>
-            {title && <h1 className="text-xl font-bold tracking-tight">{title}</h1>}
+            {title && <h1 className="text-xl font-bold tracking-tight text-ace-dark">{title}</h1>}
             {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
           </div>
         </div>
@@ -72,7 +72,7 @@ const Header = ({ title, subtitle, showSearch = false }: HeaderProps) => {
           
           <Button variant="ghost" size="icon" className="rounded-full relative">
             <Bell className="h-5 w-5" />
-            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+            <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-ace-red">
               3
             </Badge>
           </Button>
@@ -83,7 +83,7 @@ const Header = ({ title, subtitle, showSearch = false }: HeaderProps) => {
                 userProfile.role === 'admin' ? 'default' : 
                 userProfile.role === 'brand' ? 'secondary' : 
                 userProfile.role === 'influencer' ? 'outline' : 'default'
-              }>
+              } className={userProfile.role === 'admin' ? 'bg-ace-500 hover:bg-ace-600' : ''}>
                 {userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)}
               </Badge>
             </div>

@@ -25,6 +25,8 @@ export type SocialProfile = {
     postedAt?: Date;
   }[];
   error?: string;
+  temporary_error?: boolean;
+  message?: string;
 };
 
 /**
@@ -40,6 +42,9 @@ export function useSocialMediaSearch() {
     platform: string;
     timestamp: string;
   }>>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [rateLimitError, setRateLimitError] = useState(false);
+  const [profileData, setProfileData] = useState<any>(null);
   const { user } = useAuth();
 
   const searchProfile = useCallback(async (platform: string, username: string) => {
@@ -51,6 +56,8 @@ export function useSocialMediaSearch() {
     setIsLoading(true);
     setError(null);
     setProfile(null);
+    setProfileData(null);
+    setRateLimitError(false);
     
     try {
       console.log(`Searching for ${username} on ${platform}...`);
@@ -88,6 +95,19 @@ export function useSocialMediaSearch() {
         if (data.error.includes('rate limit') || data.error.includes('Rate limit')) {
           setError('Rate limit exceeded. Please try again later or use a different API key.');
           toast.error('API rate limit exceeded. Please try again in a few minutes.');
+          setRateLimitError(true);
+          
+          // Also set a modified profile object with temporary error flag
+          const errorProfile = {
+            username: cleanUsername,
+            fullName: '',
+            followersCount: 0,
+            profilePicture: '',
+            temporary_error: true,
+            message: data.error
+          };
+          setProfile(errorProfile as SocialProfile);
+          setProfileData(errorProfile);
         } else {
           setError(data.error);
           toast.error(`Error: ${data.error}`);
@@ -118,6 +138,7 @@ export function useSocialMediaSearch() {
       };
       
       setProfile(socialProfile);
+      setProfileData(data.profile);
       
       // Fetch search history after successful search
       if (user) {
@@ -136,6 +157,13 @@ export function useSocialMediaSearch() {
     }
   }, [user]);
   
+  const clearProfile = useCallback(() => {
+    setProfile(null);
+    setProfileData(null);
+    setError(null);
+    setRateLimitError(false);
+  }, []);
+  
   const retrySearch = useCallback(async () => {
     if (!profile && error) {
       toast.info('Retrying search...');
@@ -153,6 +181,8 @@ export function useSocialMediaSearch() {
   const fetchSearchHistory = useCallback(async () => {
     if (!user) return;
     
+    setIsHistoryLoading(true);
+    
     try {
       const { data, error: historyError } = await supabase
         .from('social_media_searches')
@@ -169,6 +199,8 @@ export function useSocialMediaSearch() {
       setSearchHistory(data || []);
     } catch (err) {
       console.error('Failed to fetch search history:', err);
+    } finally {
+      setIsHistoryLoading(false);
     }
   }, [user]);
   
@@ -199,10 +231,14 @@ export function useSocialMediaSearch() {
     isLoading,
     error,
     profile,
+    profileData,
     searchHistory,
     searchProfile,
     retrySearch,
     fetchSearchHistory,
-    clearSearchHistory
+    clearSearchHistory,
+    clearProfile,
+    rateLimitError,
+    isHistoryLoading
   };
 }

@@ -31,8 +31,10 @@ interface SocialMediaSearchProps {
   onAddInfluencer?: (profileData: any) => void;
 }
 
+type Platform = 'instagram' | 'tiktok';
+
 export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearchProps) {
-  const [platform, setPlatform] = useState<'instagram' | 'tiktok'>('instagram');
+  const [platform, setPlatform] = useState<Platform>('instagram');
   const [username, setUsername] = useState('');
   const [searchTab, setSearchTab] = useState<'search' | 'history'>('search');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -44,7 +46,8 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     rateLimitError,
     searchHistory,
     isHistoryLoading,
-    clearSearchHistory
+    clearSearchHistory,
+    profile
   } = useSocialMediaSearch();
   const { toast } = useToast();
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
@@ -54,7 +57,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     searchProfile(platform, username);
   };
 
-  const handleHistoryItemClick = (platform: 'instagram' | 'tiktok', username: string) => {
+  const handleHistoryItemClick = (platform: Platform, username: string) => {
     setPlatform(platform);
     setUsername(username);
     setSearchTab('search');
@@ -62,7 +65,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   };
 
   const handlePlatformChange = (value: string) => {
-    setPlatform(value as 'instagram' | 'tiktok');
+    setPlatform(value as Platform);
     clearProfile();
     setUsername('');
   };
@@ -202,7 +205,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   };
 
   // Helper function to render platform-specific icon
-  const PlatformIcon = ({platform}: {platform: 'instagram' | 'tiktok'}) => {
+  const PlatformIcon = ({platform}: {platform: Platform}) => {
     if (platform === 'instagram') {
       return <Instagram className="mr-2 h-4 w-4" />;
     } else if (platform === 'tiktok') {
@@ -429,10 +432,10 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                       <div 
                         key={item.id}
                         className="flex items-center justify-between p-3 rounded-md border hover:bg-muted/50 cursor-pointer transition-colors"
-                        onClick={() => handleHistoryItemClick(item.platform, item.username)}
+                        onClick={() => handleHistoryItemClick(item.platform as Platform, item.username)}
                       >
                         <div className="flex items-center gap-3">
-                          <PlatformIcon platform={item.platform} />
+                          <PlatformIcon platform={item.platform as Platform} />
                           <span className="font-medium">@{item.username}</span>
                         </div>
                         <div className="flex items-center text-xs text-muted-foreground">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import DocumentUpload from '@/components/profile/DocumentUpload';
 import ContractsList from '@/components/profile/ContractsList';
 import DashboardLayout from '@/components/layout/Dashboard';
-import { FileUpload, Upload, Building, FileCheck, Settings, UserCog } from 'lucide-react';
+import { Upload, Building, FileCheck, Settings, UserCog } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Profile = () => {
@@ -126,7 +125,7 @@ const Profile = () => {
               <Settings size={16} /> General
             </TabsTrigger>
             <TabsTrigger value="documents" className="flex gap-2">
-              <FileUpload size={16} /> Documents
+              <Upload size={16} /> Documents
             </TabsTrigger>
             <TabsTrigger value="contracts" className="flex gap-2">
               <FileCheck size={16} /> Contracts

@@ -268,12 +268,16 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
   };
   
   const handleUploadImage = () => {
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
   
   const handleImageSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
     
     // Validate file
     if (!file.type.startsWith('image/')) {
@@ -291,11 +295,14 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
       const x = rect.width / 2 - 75;
       const y = rect.height / 2 - 30;
       
+      const result = event.target?.result;
+      if (typeof result !== 'string') return;
+      
       const newAnnotation: Annotation = { 
         type: 'image', 
         x, 
         y, 
-        src: event.target?.result as string,
+        src: result,
         width: 150,
         height: 100
       };
@@ -331,10 +338,12 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
     // Update the style of the selected annotation if it's a text annotation
     if (selectedAnnotationIndex !== null && annotations[selectedAnnotationIndex]?.type === 'text') {
       const newAnnotations = [...annotations];
+      const currentAnnotation = newAnnotations[selectedAnnotationIndex];
+      
       newAnnotations[selectedAnnotationIndex] = {
-        ...newAnnotations[selectedAnnotationIndex],
+        ...currentAnnotation,
         style: { 
-          ...newAnnotations[selectedAnnotationIndex].style, 
+          ...(currentAnnotation.style || {}), 
           [property]: value 
         }
       };
@@ -455,7 +464,12 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
       
       if (userError) throw userError;
       
-      const contractName = contractData.metadata?.contractName || contractData.name;
+      // Get contract name from metadata
+      const metadata = contractData.metadata || {};
+      const contractName = typeof metadata === 'object' && 'contractName' in metadata 
+        ? metadata.contractName 
+        : contractData.name;
+      
       const senderName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'Contract Owner';
       
       // Send email using the edge function
@@ -680,3 +694,4 @@ export const PdfEditor = ({ documentUrl, contractId, onSaved }: PdfEditorProps) 
     </div>
   );
 };
+

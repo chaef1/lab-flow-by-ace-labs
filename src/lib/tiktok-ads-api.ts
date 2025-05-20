@@ -54,15 +54,23 @@ export const processTikTokAuthCallback = async (url: string) => {
     // Exchange the code for a token
     const tokenData = await exchangeTikTokCode(code);
     
+    console.log('Token exchange result:', tokenData);
+    
     if (tokenData.code === 0 && tokenData.data && tokenData.data.access_token) {
       // Extract token and advertiser ID
       const token = tokenData.data.access_token;
       const advertiserId = tokenData.data.advertiser_ids?.[0] || '';
       
-      // Save the token
-      saveTikTokToken(token, advertiserId);
+      // Save the token with extended expiration (7 days for testing)
+      const saved = saveTikTokToken(token, advertiserId);
+      console.log('Token saved successfully:', saved);
       
-      return { success: true, token, advertiserId };
+      return { 
+        success: true, 
+        token, 
+        advertiserId,
+        tokenData // Include the full token data for debugging
+      };
     } else {
       throw new Error(tokenData.message || 'Failed to authenticate with TikTok');
     }
@@ -108,8 +116,13 @@ export const getTikTokCampaigns = async (accessToken: string, advertiserId: stri
 // Save TikTok access token to localStorage with expiration handling
 export const saveTikTokToken = (token: string, advertiserId: string) => {
   try {
-    // Current timestamp plus 24 hours (in milliseconds)
-    const expiresAt = Date.now() + (24 * 60 * 60 * 1000);
+    if (!token) {
+      console.error('Cannot save empty token');
+      return false;
+    }
+    
+    // Current timestamp plus 7 days (in milliseconds) - extended for testing
+    const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000);
     
     const tokenData = {
       token,
@@ -125,7 +138,8 @@ export const saveTikTokToken = (token: string, advertiserId: string) => {
       lastUsed: new Date().toISOString()
     });
     
-    localStorage.setItem('tiktok_auth', JSON.stringify(tokenData));
+    // Use a more consistent key name
+    localStorage.setItem('tiktok_auth_data', JSON.stringify(tokenData));
     return true;
   } catch (error) {
     console.error('Error saving TikTok token:', error);
@@ -136,8 +150,9 @@ export const saveTikTokToken = (token: string, advertiserId: string) => {
 // Get saved TikTok access token
 export const getSavedTikTokToken = () => {
   try {
-    const tokenDataStr = localStorage.getItem('tiktok_auth');
-    console.log('Retrieved token data string:', tokenDataStr ? 'exists' : 'null');
+    // Use the consistent key name
+    const tokenDataStr = localStorage.getItem('tiktok_auth_data');
+    console.log('Retrieved token data string exists:', !!tokenDataStr);
     
     if (!tokenDataStr) {
       return { accessToken: null, advertiserId: null };
@@ -148,7 +163,7 @@ export const getSavedTikTokToken = () => {
     // Handle malformed token data
     if (!tokenData || typeof tokenData !== 'object') {
       console.error('Malformed token data in localStorage');
-      localStorage.removeItem('tiktok_auth');
+      localStorage.removeItem('tiktok_auth_data');
       return { accessToken: null, advertiserId: null };
     }
     
@@ -170,7 +185,7 @@ export const getSavedTikTokToken = () => {
     // Update the last used timestamp
     if (tokenData.token) {
       tokenData.lastUsed = Date.now();
-      localStorage.setItem('tiktok_auth', JSON.stringify(tokenData));
+      localStorage.setItem('tiktok_auth_data', JSON.stringify(tokenData));
     }
     
     return { 
@@ -192,7 +207,11 @@ export const hasTikTokToken = () => {
 // Remove TikTok token from storage
 export const removeTikTokToken = () => {
   try {
+    // Use the consistent key name
+    localStorage.removeItem('tiktok_auth_data');
+    // Also remove any legacy keys
     localStorage.removeItem('tiktok_auth');
+    localStorage.removeItem('tiktok_auth_code');
     console.log('TikTok token removed from storage');
     return true;
   } catch (error) {

@@ -15,6 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, 
+  DialogContent, 
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Link, Loader2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -55,35 +61,45 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const { toast } = useToast();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Setup message listener for auth iframe
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
+      // Log all received messages to help with debugging
+      console.log('Received message event:', event.data);
+      
       // Only process messages with TikTok auth code
       if (event.data && event.data.tiktokAuthCode) {
-        console.log('Received auth code from iframe message');
+        console.log('Received auth code from iframe message:', event.data.tiktokAuthCode);
         
         try {
           setIsLoading(true);
           setAuthSheetOpen(false); // Close the sheet immediately
           
           // Process the auth code
-          const { success, token, advertiserId, error } = await processTikTokAuthCallback(
+          const result = await processTikTokAuthCallback(
             `https://app-sandbox.acelabs.co.za/advertising?code=${event.data.tiktokAuthCode}`
           );
           
-          if (success && token) {
+          // Store debug info for troubleshooting
+          setDebugInfo(result);
+          
+          if (result.success && result.token) {
             setIsConnected(true);
             if (onConnectionStatusChange) onConnectionStatusChange(true);
             
             // Fetch ad accounts with the new token
-            await fetchAdAccounts(token);
+            await fetchAdAccounts(result.token);
             
             // Set selected account if available
-            if (advertiserId) {
-              setSelectedAccount(advertiserId);
+            if (result.advertiserId) {
+              setSelectedAccount(result.advertiserId);
             }
             
             toast({
@@ -91,7 +107,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
               description: "Your TikTok Ads account has been connected successfully."
             });
           } else {
-            throw new Error(error || 'Authentication failed');
+            throw new Error(result.error || 'Authentication failed');
           }
         } catch (error: any) {
           console.error('Error processing auth code from message:', error);
@@ -102,14 +118,16 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
       }
     };
     
+    console.log('Setting up message event listener');
     window.addEventListener('message', handleMessage);
     
     return () => {
+      console.log('Removing message event listener');
       window.removeEventListener('message', handleMessage);
     };
   }, [onConnectionStatusChange, toast]);
   
-  // Check for saved tokens on component mount
+  // Check for saved tokens on component mount and location changes
   useEffect(() => {
     const checkAuthStatus = async () => {
       console.log('Checking auth status for', platform);
@@ -150,11 +168,16 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     };
     
     checkAuthStatus();
-  }, [platform, onConnectionStatusChange]);
+  }, [platform, onConnectionStatusChange, location.pathname]);
   
   const fetchAdAccounts = async (accessToken: string) => {
+    if (!accessToken) {
+      console.error('Cannot fetch ad accounts without an access token');
+      return;
+    }
+    
     try {
-      console.log('Fetching ad accounts with token');
+      console.log('Fetching ad accounts with token:', accessToken.substring(0, 5) + '...');
       const accountsData = await getTikTokAdAccounts(accessToken);
       
       if (accountsData.code === 0 && accountsData.data && accountsData.data.list) {
@@ -167,6 +190,11 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         }));
         
         setAccounts(formattedAccounts);
+        
+        // If we have accounts but no selected account, select the first one
+        if (formattedAccounts.length > 0 && !selectedAccount) {
+          setSelectedAccount(formattedAccounts[0].id);
+        }
       } else {
         console.log('No accounts found or API error, using mock data');
         // If API call succeeded but no accounts found, use mock data
@@ -174,6 +202,9 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
           { id: '1', name: 'Ace Labs Main', budget: 5000, status: 'Active' },
           { id: '2', name: 'Ace Labs Test', budget: 1000, status: 'Paused' },
         ]);
+        
+        // Select the first mock account
+        setSelectedAccount('1');
       }
     } catch (error: any) {
       console.error('Error fetching ad accounts:', error);
@@ -182,6 +213,9 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         { id: '1', name: 'Ace Labs Main', budget: 5000, status: 'Active' },
         { id: '2', name: 'Ace Labs Test', budget: 1000, status: 'Paused' },
       ]);
+      
+      // Select the first mock account
+      setSelectedAccount('1');
       
       toast({
         title: "Error Fetching Accounts",
@@ -201,6 +235,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     
     try {
       const { authUrl } = await getTikTokAuthUrl();
+      console.log('Retrieved auth URL:', authUrl);
       setAuthUrl(authUrl);
       setAuthSheetOpen(true);
     } catch (error: any) {
@@ -227,6 +262,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
   };
 
   const closeAuthSheet = () => {
+    console.log('Closing auth sheet');
     setAuthSheetOpen(false);
     setAuthUrl(null);
   };
@@ -292,9 +328,36 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
               ))}
             </div>
             
-            <div className="flex justify-end">
+            <div className="flex justify-between">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDebugInfo(!showDebugInfo)}
+                size="sm"
+              >
+                {showDebugInfo ? "Hide Debug Info" : "Show Debug Info"}
+              </Button>
               <Button disabled={!selectedAccount}>Continue with Selected Account</Button>
             </div>
+            
+            {showDebugInfo && (
+              <div className="mt-4 p-4 bg-muted/50 rounded-md overflow-x-auto">
+                <h4 className="font-medium mb-2">Local Storage Token Status</h4>
+                <pre className="text-xs whitespace-pre-wrap">
+                  {JSON.stringify(getSavedTikTokToken(), null, 2)}
+                </pre>
+                {debugInfo && (
+                  <>
+                    <h4 className="font-medium mt-4 mb-2">Last Authentication Result</h4>
+                    <pre className="text-xs whitespace-pre-wrap">
+                      {JSON.stringify(debugInfo, (key, value) => {
+                        if (key === 'token') return '[REDACTED]';
+                        return value;
+                      }, 2)}
+                    </pre>
+                  </>
+                )}
+              </div>
+            )}
           </>
         )}
         
@@ -313,17 +376,29 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
       </div>
       
       {/* TikTok Auth Sheet with iframe - keeps users within our app */}
-      <Sheet open={authSheetOpen} onOpenChange={setAuthSheetOpen}>
-        <SheetContent className="w-full md:max-w-md overflow-hidden flex flex-col p-0">
+      <Sheet open={authSheetOpen} onOpenChange={(open) => {
+        if (!open) closeAuthSheet();
+        else setAuthSheetOpen(true);
+      }}>
+        <SheetContent className="w-full md:max-w-md overflow-hidden flex flex-col p-0" 
+          onInteractOutside={(e) => {
+            // Prevent closing when interacting with iframe
+            if (isLoading) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            // Prevent closing with ESC when loading
+            if (isLoading) e.preventDefault();
+          }}
+        >
           <SheetHeader className="p-4 border-b">
             <div className="flex items-center justify-between">
               <SheetTitle className="text-xl">Connect to TikTok Ads</SheetTitle>
-              <Button variant="ghost" size="icon" onClick={closeAuthSheet}>
+              <Button variant="ghost" size="icon" onClick={closeAuthSheet} disabled={isLoading}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <SheetDescription>
-              Please complete the TikTok authentication below
+              Please complete the TikTok authentication below. Do not close this window until authentication is complete.
             </SheetDescription>
           </SheetHeader>
           
@@ -334,6 +409,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
                 src={authUrl}
                 className="w-full h-full min-h-[70vh] border-none"
                 title="TikTok Authentication"
+                onLoad={() => console.log('TikTok auth iframe loaded')}
               />
             )}
           </div>

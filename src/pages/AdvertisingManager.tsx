@@ -11,7 +11,7 @@ import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { hasTikTokToken, getSavedTikTokToken, processTikTokAuthCallback } from "@/lib/tiktok-ads-api";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const AdvertisingManager = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<'tiktok' | 'meta'>('tiktok');
@@ -20,6 +20,7 @@ const AdvertisingManager = () => {
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Check for auth code in URL params (direct navigation or redirect case)
   useEffect(() => {
@@ -33,18 +34,18 @@ const AdvertisingManager = () => {
         
         try {
           // Process the authorization code
-          const { success, error } = await processTikTokAuthCallback(
+          const result = await processTikTokAuthCallback(
             `https://app-sandbox.acelabs.co.za/advertising?code=${code}`
           );
           
-          if (success) {
+          if (result.success) {
             setIsConnected(true);
             toast({
               title: "Successfully Connected",
               description: "Your TikTok Ads account has been connected successfully."
             });
           } else {
-            throw new Error(error || 'Authentication failed');
+            throw new Error(result.error || 'Authentication failed');
           }
         } catch (error: any) {
           console.error('Error processing auth code from URL:', error);
@@ -57,14 +58,13 @@ const AdvertisingManager = () => {
           setIsProcessingAuth(false);
           
           // Clean up the URL without reloading the page
-          const cleanUrl = window.location.pathname;
-          window.history.replaceState({}, document.title, cleanUrl);
+          navigate('/advertising', { replace: true });
         }
       }
     };
     
     processAuthCode();
-  }, [location.search, toast]);
+  }, [location.search, toast, navigate]);
 
   // Check for tokens in localStorage that might have been set by direct navigation
   useEffect(() => {
@@ -80,18 +80,18 @@ const AdvertisingManager = () => {
           localStorage.removeItem('tiktok_auth_code');
           
           // Process the auth code
-          const { success, token, advertiserId, error } = await processTikTokAuthCallback(
+          const result = await processTikTokAuthCallback(
             `https://app-sandbox.acelabs.co.za/advertising?code=${storedCode}`
           );
           
-          if (success && token) {
+          if (result.success && result.token) {
             setIsConnected(true);
             toast({
               title: "Successfully Connected",
               description: "Your TikTok Ads account has been connected successfully."
             });
           } else {
-            throw new Error(error || 'Authentication failed');
+            throw new Error(result.error || 'Authentication failed');
           }
         } catch (error: any) {
           console.error('Error processing stored auth code:', error);
@@ -120,7 +120,7 @@ const AdvertisingManager = () => {
         
         if (hasToken) {
           const { accessToken, advertiserId } = getSavedTikTokToken();
-          console.log('Using saved token:', accessToken?.substring(0, 5) + '...', 'Advertiser ID:', advertiserId);
+          console.log('Using saved token:', accessToken ? 'exists' : 'none', 'Advertiser ID:', advertiserId || 'none');
         }
       } else {
         // Meta platform is not available yet

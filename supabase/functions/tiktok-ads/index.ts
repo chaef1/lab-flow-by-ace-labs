@@ -34,10 +34,9 @@ const authSuccessTemplate = (code) => `
     const code = "${code}";
     
     // First try to send a message to the parent window 
-    // (this works when in an iframe within our app)
     try {
+      console.log("Sending authentication code to parent:", code);
       window.parent.postMessage({ tiktokAuthCode: code }, "*");
-      console.log("Message sent to parent window");
     } catch(err) {
       console.error("Error sending message to parent:", err);
     }
@@ -45,7 +44,6 @@ const authSuccessTemplate = (code) => `
     // For direct navigation case
     if (!window.parent || window.parent === window) {
       try {
-        // If we're in a new window, store in localStorage and redirect
         localStorage.setItem('tiktok_auth_code', code);
         window.location.href = '/advertising';
         console.log("Redirecting to /advertising");
@@ -53,6 +51,17 @@ const authSuccessTemplate = (code) => `
         console.error("Error redirecting:", err);
       }
     }
+
+    // Close the window automatically after sending the message (for popup case)
+    setTimeout(function() {
+      try {
+        if (window.opener && !window.parent.closed) {
+          window.close();
+        }
+      } catch (e) {
+        console.log('Window cannot be closed automatically');
+      }
+    }, 2000);
   </script>
 </body>
 </html>
@@ -142,7 +151,9 @@ serve(async (req) => {
           });
 
           const tokenResult = await tokenResponse.json();
-          console.log('Token exchange response:', tokenResult);
+          console.log('Token exchange response status:', tokenResponse.status);
+          console.log('Token exchange response code:', tokenResult.code);
+          console.log('Token exchange response message:', tokenResult.message);
           
           if (!tokenResponse.ok) {
             console.error('Token exchange failed with status:', tokenResponse.status);
@@ -155,6 +166,26 @@ serve(async (req) => {
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: tokenResponse.status }
             );
           }
+          
+          if (tokenResult.code !== 0) {
+            console.error('Token exchange failed with TikTok error:', tokenResult.message);
+            return new Response(
+              JSON.stringify({ 
+                error: `TikTok API Error: ${tokenResult.message}`,
+                code: tokenResult.code,
+                details: tokenResult
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+          }
+          
+          // Log the full token data structure to help with debugging
+          console.log('Token exchange successful, data structure:', 
+            JSON.stringify(tokenResult, (key, value) => {
+              if (key === 'access_token') return '[REDACTED]';
+              return value;
+            }, 2)
+          );
           
           return new Response(
             JSON.stringify(tokenResult),
@@ -182,7 +213,7 @@ serve(async (req) => {
         
         try {
           // Advertiser List Endpoint
-          const accountsResponse = await fetch(`${TIKTOK_API_URL}/advertiser/list/`, {
+          const accountsResponse = await fetch(`${TIKTOK_API_URL}/v1.3/oauth2/advertiser/get/`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -203,6 +234,15 @@ serve(async (req) => {
                 status: accountsResponse.status
               }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: accountsResponse.status }
+            );
+          }
+          
+          // More detailed logging for ad accounts response
+          if (accountsResult.code !== 0) {
+            console.warn('TikTok API returned non-zero code:', accountsResult.code, accountsResult.message);
+          } else {
+            console.log('Successfully fetched ad accounts, count:', 
+              accountsResult.data?.list?.length || 0
             );
           }
           
@@ -234,7 +274,7 @@ serve(async (req) => {
         
         try {
           // Campaign List Endpoint
-          const campaignsResponse = await fetch(`${TIKTOK_API_URL}/campaign/get/`, {
+          const campaignsResponse = await fetch(`${TIKTOK_API_URL}/v1.3/campaign/get/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

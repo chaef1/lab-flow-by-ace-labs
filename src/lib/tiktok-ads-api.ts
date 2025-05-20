@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Get the OAuth URL for TikTok sign-in
 export const getTikTokAuthUrl = async () => {
+  // Use the current origin plus /advertising as the redirect URI
   const redirectUri = `${window.location.origin}/advertising`;
   
   try {

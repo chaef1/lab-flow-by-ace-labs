@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -109,4 +108,41 @@ export const sendContractEmail = async (
   }
   
   return response;
+};
+
+export const updateContractMetadata = async (contractId: string, metadata: any) => {
+  try {
+    // Get the existing document
+    const { data: docData, error: fetchError } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('id', contractId)
+      .single();
+
+    if (fetchError) throw fetchError;
+    
+    // Ensure existing metadata is an object before spreading
+    const existingMetadata = docData.metadata && typeof docData.metadata === 'object' ? docData.metadata : {};
+    
+    // Update metadata
+    const updatedMetadata = {
+      ...existingMetadata,
+      ...(metadata || {}),
+      lastEditedAt: new Date().toISOString(),
+      edited: true
+    };
+
+    // Update in database
+    const { data, error } = await supabase
+      .from('documents')
+      .update({ metadata: updatedMetadata })
+      .eq('id', contractId);
+
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error updating contract metadata:', error);
+    return { success: false, error: error.message };
+  }
 };

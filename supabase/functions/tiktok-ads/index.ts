@@ -115,10 +115,18 @@ serve(async (req) => {
     // Use a switch statement to handle different API actions
     switch (action) {
       case 'get_auth_url':
-        // Use the exact URL provided
-        const authUrl = "https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2Fadvertising";
+        // Generate the auth URL dynamically 
+        const currentHost = url.hostname;
+        const isLocal = currentHost.includes('localhost');
         
-        console.log('Using provided auth URL:', authUrl);
+        // Use app ID from environment
+        const redirectUri = isLocal 
+          ? encodeURIComponent(`http://localhost:3000/advertising`)
+          : encodeURIComponent(`https://app-sandbox.acelabs.co.za/advertising`);
+        
+        const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${tiktokAppId}&state=your_custom_params&redirect_uri=${redirectUri}`;
+        
+        console.log('Generated dynamic auth URL:', authUrl);
         
         return new Response(
           JSON.stringify({ authUrl }),
@@ -127,15 +135,15 @@ serve(async (req) => {
 
       case 'exchange_code':
         // Exchange authorization code for access token
-        const code = requestData.code;
-        if (!code) {
+        const exchangeCode = requestData.code;
+        if (!exchangeCode) {
           return new Response(
             JSON.stringify({ error: 'Authorization code is required' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
 
-        console.log('Exchanging code for access token:', code);
+        console.log('Exchanging code for access token:', exchangeCode);
         
         try {
           // Access Token Exchange Endpoint
@@ -145,7 +153,7 @@ serve(async (req) => {
             body: JSON.stringify({
               app_id: tiktokAppId,
               secret: tiktokAppSecret,
-              auth_code: code,
+              auth_code: exchangeCode,
               grant_type: 'authorization_code',
             }),
           });
@@ -310,6 +318,68 @@ serve(async (req) => {
           console.error('Error fetching campaigns:', error);
           return new Response(
             JSON.stringify({ error: 'Failed to fetch campaigns', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+      case 'create_campaign':
+        // Create a new campaign for a specific ad account
+        const createToken = requestData.accessToken;
+        const createAdvertiserId = requestData.advertiserId;
+        const campaignData = requestData.campaignData;
+        
+        if (!createToken || !createAdvertiserId || !campaignData) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, advertiser ID, and campaign data are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Creating campaign for advertiser:', createAdvertiserId);
+        console.log('Campaign data:', campaignData);
+        
+        try {
+          // Campaign Create Endpoint
+          const createResponse = await fetch(`${TIKTOK_API_URL}/v1.3/campaign/create/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Token': createToken,
+            },
+            body: JSON.stringify({
+              advertiser_id: createAdvertiserId,
+              campaign_name: campaignData.name,
+              campaign_type: campaignData.objective || "REACH",
+              budget_mode: campaignData.budget_mode || "BUDGET_MODE_DAY",
+              budget: campaignData.budget || 1000,
+              objective_type: campaignData.objective_type || "REACH",
+              app_promotion_type: campaignData.app_promotion_type || "APP_INSTALL",
+            }),
+          });
+
+          const createResult = await createResponse.json();
+          console.log('Campaign create response status:', createResponse.status);
+          
+          if (!createResponse.ok) {
+            console.error('Campaign creation failed with status:', createResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to create campaign', 
+                details: createResult,
+                status: createResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: createResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(createResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error creating campaign:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create campaign', message: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }

@@ -7,10 +7,18 @@ import { supabase } from "@/integrations/supabase/client";
 // Get the OAuth URL for TikTok sign-in
 export const getTikTokAuthUrl = async () => {
   try {
-    // Using the exact URL as specified
-    const authUrl = "https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2Fadvertising";
-    console.log('Returning TikTok auth URL:', authUrl);
-    return { authUrl };
+    // Call our edge function to get the auth URL
+    const { data, error } = await supabase.functions.invoke('tiktok-ads', {
+      body: { action: 'get_auth_url' }
+    });
+
+    if (error) {
+      console.error('Error getting TikTok auth URL:', error);
+      throw error;
+    }
+    
+    console.log('Returning TikTok auth URL:', data.authUrl);
+    return { authUrl: data.authUrl };
   } catch (err) {
     console.error('Error getting TikTok auth URL:', err);
     throw err;
@@ -106,6 +114,27 @@ export const getTikTokCampaigns = async (accessToken: string, advertiserId: stri
     return data;
   } catch (err) {
     console.error('Error getting TikTok campaigns:', err);
+    throw err;
+  }
+};
+
+// Create a new TikTok campaign
+export const createTikTokCampaign = async (accessToken: string, advertiserId: string, campaignData: any) => {
+  try {
+    console.log('Creating TikTok campaign:', campaignData);
+    const { data, error } = await supabase.functions.invoke('tiktok-ads', {
+      body: { 
+        accessToken, 
+        advertiserId,
+        campaignData,
+        action: 'create_campaign' 
+      }
+    });
+
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (err) {
+    console.error('Error creating TikTok campaign:', err);
     throw err;
   }
 };

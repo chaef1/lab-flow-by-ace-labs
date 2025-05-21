@@ -20,7 +20,8 @@ export {
   getSavedMetaToken,
   removeMetaToken,
   saveMetaToken,
-  refreshMetaTokenStatus
+  refreshMetaTokenStatus,
+  updateMetaCampaignStatus
 } from './api/meta-api';
 
 // Re-export all TikTok functions

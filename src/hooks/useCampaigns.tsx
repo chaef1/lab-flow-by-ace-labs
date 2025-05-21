@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -210,7 +209,7 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
   };
 
   // Update campaign status
-  const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
+  const updateCampaignStatus = async (campaignId: string, newStatus: string): Promise<void> => {
     try {
       setIsRefreshing(true);
       
@@ -226,7 +225,6 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
       // Refresh campaigns after update
       fetchCampaigns();
       
-      return true;
     } catch (error: any) {
       console.error('Error updating campaign status:', error);
       

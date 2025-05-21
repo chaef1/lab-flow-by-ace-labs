@@ -22,3 +22,17 @@ export {
   saveMetaToken,
   refreshMetaTokenStatus
 } from './api/meta-api';
+
+// Re-export all TikTok functions
+export {
+  getTikTokAuthUrl,
+  exchangeTikTokCode,
+  processTikTokAuthCallback,
+  getTikTokAdAccounts,
+  getTikTokCampaigns,
+  createTikTokCampaign,
+  hasTikTokToken,
+  getSavedTikTokToken,
+  saveTikTokToken,
+  removeTikTokToken
+} from './api/tiktok-api';

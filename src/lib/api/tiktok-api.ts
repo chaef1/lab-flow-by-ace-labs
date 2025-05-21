@@ -1,5 +1,11 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { saveTikTokToken, hasTikTokToken, getSavedTikTokToken, removeTikTokToken } from "@/lib/storage/token-storage";
+import { formatCurrency } from "@/lib/utils";
+
+// Local storage keys for TikTok tokens
+const TIKTOK_TOKEN_KEY = 'tiktok_access_token';
+const TIKTOK_ADVERTISER_ID_KEY = 'tiktok_advertiser_id';
+const TIKTOK_TOKEN_EXPIRY_KEY = 'tiktok_token_expiry';
 
 /**
  * Helper functions for interacting with the TikTok Ads API through our Supabase Edge Function
@@ -140,5 +146,67 @@ export const createTikTokCampaign = async (accessToken: string, advertiserId: st
   }
 };
 
-// Export token storage functions directly for use in other modules
-export { saveTikTokToken, hasTikTokToken, getSavedTikTokToken, removeTikTokToken };
+// Token storage utilities
+export function saveTikTokToken(accessToken: string, advertiserId: string = ''): boolean {
+  try {
+    if (!accessToken) return false;
+    
+    // Set expiration to 7 days from now (could be adjusted based on actual token lifespan)
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 7);
+    
+    localStorage.setItem(TIKTOK_TOKEN_KEY, accessToken);
+    localStorage.setItem(TIKTOK_TOKEN_EXPIRY_KEY, expiryDate.toISOString());
+    
+    if (advertiserId) {
+      localStorage.setItem(TIKTOK_ADVERTISER_ID_KEY, advertiserId);
+    }
+    
+    return true;
+  } catch (e) {
+    console.error('Error saving TikTok token to localStorage:', e);
+    return false;
+  }
+}
+
+export function hasTikTokToken(): boolean {
+  try {
+    const token = localStorage.getItem(TIKTOK_TOKEN_KEY);
+    const expiryStr = localStorage.getItem(TIKTOK_TOKEN_EXPIRY_KEY);
+    
+    if (!token || !expiryStr) return false;
+    
+    // Check if token is expired
+    const expiry = new Date(expiryStr);
+    const now = new Date();
+    
+    return expiry > now;
+  } catch (e) {
+    console.error('Error checking TikTok token in localStorage:', e);
+    return false;
+  }
+}
+
+export function getSavedTikTokToken(): { accessToken: string, advertiserId: string } {
+  try {
+    const accessToken = localStorage.getItem(TIKTOK_TOKEN_KEY) || '';
+    const advertiserId = localStorage.getItem(TIKTOK_ADVERTISER_ID_KEY) || '';
+    
+    return { accessToken, advertiserId };
+  } catch (e) {
+    console.error('Error getting TikTok token from localStorage:', e);
+    return { accessToken: '', advertiserId: '' };
+  }
+}
+
+export function removeTikTokToken(): boolean {
+  try {
+    localStorage.removeItem(TIKTOK_TOKEN_KEY);
+    localStorage.removeItem(TIKTOK_ADVERTISER_ID_KEY);
+    localStorage.removeItem(TIKTOK_TOKEN_EXPIRY_KEY);
+    return true;
+  } catch (e) {
+    console.error('Error removing TikTok token from localStorage:', e);
+    return false;
+  }
+}

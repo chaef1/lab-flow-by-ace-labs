@@ -8,11 +8,14 @@ import { useCampaigns } from '@/hooks/useCampaigns';
 
 interface CampaignCreatorProps {
   isConnected?: boolean;
+  platform?: 'meta' | 'tiktok';
 }
 
-const CampaignCreator: React.FC<CampaignCreatorProps> = ({ isConnected = false }) => {
+const CampaignCreator: React.FC<CampaignCreatorProps> = ({ 
+  isConnected = false,
+  platform = 'meta' // Default to Meta
+}) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const platform = 'meta'; // Hardcoded to Meta only
   
   const {
     campaigns,

@@ -10,11 +10,22 @@ import { saveMetaToken, hasMetaToken, getSavedMetaToken, removeMetaToken } from 
 export const getMetaOAuthUrl = () => {
   // Use the dedicated Facebook Ads app ID for advertising
   const appId = "1749800232620671";
-  const redirectUri = encodeURIComponent(window.location.origin + "/advertising");
+  
+  // Determine the appropriate redirect URI based on the current domain
+  let redirectUri = window.location.origin + "/advertising";
+  
+  // Check if we're on the sandbox domain and use it instead
+  if (window.location.hostname === 'app-sandbox.acelabs.co.za') {
+    redirectUri = 'https://app-sandbox.acelabs.co.za/advertising';
+  }
+  
+  const encodedRedirectUri = encodeURIComponent(redirectUri);
   const state = encodeURIComponent(JSON.stringify({ platform: 'meta', timestamp: Date.now() }));
   const scope = encodeURIComponent("ads_management,ads_read,business_management");
   
-  return `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${redirectUri}&state=${state}&scope=${scope}&response_type=code`;
+  console.log('Generating Meta OAuth URL with redirect URI:', redirectUri);
+  
+  return `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodedRedirectUri}&state=${state}&scope=${scope}&response_type=code`;
 };
 
 // Exchange Meta authorization code for an access token
@@ -22,7 +33,13 @@ export const exchangeMetaCode = async (code: string) => {
   try {
     console.log('Exchanging Meta code:', code);
     
-    const redirectUri = window.location.origin + "/advertising";
+    // Determine the appropriate redirect URI based on the current domain
+    let redirectUri = window.location.origin + "/advertising";
+    
+    // Check if we're on the sandbox domain and use it instead
+    if (window.location.hostname === 'app-sandbox.acelabs.co.za') {
+      redirectUri = 'https://app-sandbox.acelabs.co.za/advertising';
+    }
     
     const { data, error } = await supabase.functions.invoke('meta-auth', {
       body: { 

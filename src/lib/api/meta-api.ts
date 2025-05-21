@@ -210,5 +210,5 @@ export const uploadMetaCreative = async (accessToken: string, accountId: string,
   }
 };
 
-// Re-export token storage functions for backward compatibility
+// Export token storage functions directly
 export { saveMetaToken, hasMetaToken, getSavedMetaToken, removeMetaToken };

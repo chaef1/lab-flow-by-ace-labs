@@ -7,7 +7,7 @@
 // TikTok Token Handling Functions
 
 // Save TikTok access token to localStorage with expiration handling
-export const saveTikTokToken = (token: string, advertiserId: string) => {
+export const saveTikTokToken = (token: string, advertiserId: string = '') => {
   try {
     if (!token) {
       console.error('Cannot save empty token');

@@ -14,8 +14,11 @@ import {
   hasTikTokToken, 
   getSavedTikTokToken, 
   processTikTokAuthCallback, 
-  hasMetaToken, 
-  getTikTokAuthUrl 
+  hasMetaToken,
+  getSavedMetaToken,
+  processMetaAuthCallback,
+  getTikTokAuthUrl,
+  getMetaOAuthUrl 
 } from "@/lib/ads-api";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -118,6 +121,20 @@ const AdvertisingManager = () => {
             } else {
               throw new Error(result.error || 'Authentication failed');
             }
+          } else if (platform === 'meta') {
+            // Process the authorization code for Meta
+            const result = await processMetaAuthCallback(window.location.href);
+            
+            if (result.success) {
+              setIsConnected(true);
+              setSelectedPlatform('meta'); // Ensure we're showing Meta platform after auth
+              toast({
+                title: "Successfully Connected",
+                description: "Your Meta Ads account has been connected successfully."
+              });
+            } else {
+              throw new Error(result.error || 'Meta authentication failed');
+            }
           }
         } catch (error: any) {
           console.error('Error processing auth code from URL:', error);
@@ -200,6 +217,11 @@ const AdvertisingManager = () => {
         const hasToken = hasMetaToken();
         console.log('Has Meta token:', hasToken);
         setIsConnected(hasToken);
+        
+        if (hasToken) {
+          const { accessToken, accountId } = getSavedMetaToken();
+          console.log('Using saved Meta token:', accessToken ? 'exists' : 'none', 'Account ID:', accountId || 'none');
+        }
       }
     };
     
@@ -258,6 +280,25 @@ const AdvertisingManager = () => {
       toast({
         title: "Authentication Error",
         description: error.message || "Could not initiate TikTok authentication",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Handle Meta authentication
+  const handleTestMetaAuth = () => {
+    try {
+      // Get the Meta auth URL
+      const metaAuthUrl = getMetaOAuthUrl();
+      console.log('Opening Meta auth URL:', metaAuthUrl);
+      
+      // Open the auth URL in the same window as it will redirect back
+      window.location.href = metaAuthUrl;
+    } catch (error: any) {
+      console.error('Error initiating Meta authentication:', error);
+      toast({
+        title: "Authentication Error",
+        description: error.message || "Could not initiate Meta authentication",
         variant: "destructive"
       });
     }

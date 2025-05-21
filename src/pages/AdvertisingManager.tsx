@@ -11,13 +11,9 @@ import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  hasTikTokToken, 
-  getSavedTikTokToken, 
-  processTikTokAuthCallback, 
   hasMetaToken,
   getSavedMetaToken,
   processMetaAuthCallback,
-  getTikTokAuthUrl,
   getMetaOAuthUrl,
   refreshMetaTokenStatus
 } from "@/lib/ads-api";
@@ -25,57 +21,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const AdvertisingManager = () => {
-  const [selectedPlatform, setSelectedPlatform] = useState<'tiktok' | 'meta'>('tiktok');
+  const [selectedPlatform, setSelectedPlatform] = useState<'meta'>('meta');
   const [activeTab, setActiveTab] = useState('campaigns');
   const [isConnected, setIsConnected] = useState(false);
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Listen for TikTok auth messages from iframe or popup
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      // Check if the event contains TikTok auth data
-      if (event.data && event.data.tiktokAuthCode) {
-        console.log('Received TikTok auth code via postMessage:', event.data.tiktokAuthCode.substring(0, 5) + '...');
-        
-        // Process the authorization code
-        setIsProcessingAuth(true);
-        try {
-          const result = await processTikTokAuthCallback(
-            `https://app-sandbox.acelabs.co.za/advertising?code=${event.data.tiktokAuthCode}`
-          );
-          
-          if (result.success) {
-            setIsConnected(true);
-            setSelectedPlatform('tiktok');
-            toast({
-              title: "Successfully Connected",
-              description: "Your TikTok Ads account has been connected successfully."
-            });
-          } else {
-            throw new Error(result.error || 'Authentication failed');
-          }
-        } catch (error: any) {
-          console.error('Error processing auth code from postMessage:', error);
-          toast({
-            title: "Authentication Failed",
-            description: error.message || "Failed to complete TikTok authentication",
-            variant: "destructive"
-          });
-        } finally {
-          setIsProcessingAuth(false);
-        }
-      }
-    };
-    
-    // Add the message listener
-    window.addEventListener('message', handleMessage);
-    
-    // Clean up
-    return () => window.removeEventListener('message', handleMessage);
-  }, [toast]);
 
   // Listen for Meta auth status changes
   useEffect(() => {
@@ -107,10 +59,10 @@ const AdvertisingManager = () => {
         setIsProcessingAuth(true);
         
         try {
-          // First check if this is a TikTok or Meta auth code
+          // First check if this is a Meta auth code
           // Meta usually comes with a state parameter
           const state = urlParams.get('state');
-          let platform = 'tiktok';
+          let platform = 'meta';
           
           if (state) {
             try {
@@ -125,23 +77,7 @@ const AdvertisingManager = () => {
           
           console.log(`Processing ${platform} auth code from URL`);
           
-          if (platform === 'tiktok') {
-            // Process the authorization code for TikTok
-            const result = await processTikTokAuthCallback(
-              `https://app-sandbox.acelabs.co.za/advertising?code=${code}`
-            );
-            
-            if (result.success) {
-              setIsConnected(true);
-              setSelectedPlatform('tiktok'); // Ensure we're showing TikTok platform after auth
-              toast({
-                title: "Successfully Connected",
-                description: "Your TikTok Ads account has been connected successfully."
-              });
-            } else {
-              throw new Error(result.error || 'Authentication failed');
-            }
-          } else if (platform === 'meta') {
+          if (platform === 'meta') {
             // Process the authorization code for Meta
             const result = await processMetaAuthCallback(window.location.href);
             
@@ -175,64 +111,11 @@ const AdvertisingManager = () => {
     processAuthCode();
   }, [location.search, toast, navigate]);
 
-  // Check for tokens in localStorage that might have been set by direct navigation
-  useEffect(() => {
-    const checkDirectAuthCode = async () => {
-      const storedCode = localStorage.getItem('tiktok_auth_code');
-      
-      if (storedCode) {
-        console.log('Found stored auth code from direct navigation');
-        setIsProcessingAuth(true);
-        
-        try {
-          // Remove the code immediately to prevent repeated processing
-          localStorage.removeItem('tiktok_auth_code');
-          
-          // Process the auth code
-          const result = await processTikTokAuthCallback(
-            `https://app-sandbox.acelabs.co.za/advertising?code=${storedCode}`
-          );
-          
-          if (result.success && result.token) {
-            setIsConnected(true);
-            setSelectedPlatform('tiktok'); // Ensure we're showing TikTok platform after auth
-            toast({
-              title: "Successfully Connected",
-              description: "Your TikTok Ads account has been connected successfully."
-            });
-          } else {
-            throw new Error(result.error || 'Authentication failed');
-          }
-        } catch (error: any) {
-          console.error('Error processing stored auth code:', error);
-          toast({
-            title: "Authentication Failed",
-            description: error.message || "Failed to complete TikTok authentication",
-            variant: "destructive"
-          });
-        } finally {
-          setIsProcessingAuth(false);
-        }
-      }
-    };
-    
-    checkDirectAuthCode();
-  }, [toast]);
-
   // Check connection status on mount and platform changes
   useEffect(() => {
     const checkConnectionStatus = () => {
       console.log('Checking connection status for platform:', selectedPlatform);
-      if (selectedPlatform === 'tiktok') {
-        const hasToken = hasTikTokToken();
-        console.log('Has TikTok token:', hasToken);
-        setIsConnected(hasToken);
-        
-        if (hasToken) {
-          const { accessToken, advertiserId } = getSavedTikTokToken();
-          console.log('Using saved token:', accessToken ? 'exists' : 'none', 'Advertiser ID:', advertiserId || 'none');
-        }
-      } else if (selectedPlatform === 'meta') {
+      if (selectedPlatform === 'meta') {
         // Check Meta token status
         const hasToken = hasMetaToken();
         console.log('Has Meta token:', hasToken);
@@ -263,7 +146,7 @@ const AdvertisingManager = () => {
     if (!isConnected) {
       toast({
         title: "Connection Required",
-        description: `Please connect your ${selectedPlatform === 'tiktok' ? 'TikTok' : 'Meta'} Ads account first`,
+        description: "Please connect your Meta Ads account first",
         variant: "destructive"
       });
       return;
@@ -275,7 +158,7 @@ const AdvertisingManager = () => {
     // Implementation would continue here in a real app
     toast({
       title: "Creating Campaign",
-      description: `Launching ${selectedPlatform === 'tiktok' ? 'TikTok' : 'Meta'} campaign creation workflow`
+      description: "Launching Meta campaign creation workflow"
     });
   };
 
@@ -287,30 +170,6 @@ const AdvertisingManager = () => {
       description: error.message || "Please try again or contact support if the issue persists",
       variant: "destructive",
     });
-  };
-
-  // Handle TikTok authentication testing
-  const handleTestTikTokAuth = async () => {
-    try {
-      // Get the auth URL from our edge function
-      const { authUrl } = await getTikTokAuthUrl();
-      console.log('Opening TikTok auth URL:', authUrl);
-      
-      // Open the auth URL in a new window
-      window.open(authUrl, 'tiktok_auth', 'width=600,height=700');
-      
-      toast({
-        title: "TikTok Authentication",
-        description: "Authentication window opened. Please complete the process there."
-      });
-    } catch (error: any) {
-      console.error('Error initiating TikTok authentication:', error);
-      toast({
-        title: "Authentication Error",
-        description: error.message || "Could not initiate TikTok authentication",
-        variant: "destructive"
-      });
-    }
   };
 
   // Handle Meta authentication
@@ -332,23 +191,6 @@ const AdvertisingManager = () => {
     }
   };
 
-  // Handle platform change
-  const handlePlatformChange = (platform: 'tiktok' | 'meta') => {
-    setSelectedPlatform(platform);
-    
-    // Check connection status immediately after platform change
-    if (platform === 'tiktok') {
-      setIsConnected(hasTikTokToken());
-    } else {
-      const metaConnected = hasMetaToken();
-      console.log('Changing to Meta platform, connection status:', metaConnected);
-      setIsConnected(metaConnected);
-      
-      // Force refresh Meta token status
-      refreshMetaTokenStatus();
-    }
-  };
-
   return (
     <ErrorBoundary onError={handleError}>
       <Dashboard 
@@ -361,23 +203,17 @@ const AdvertisingManager = () => {
             <CardHeader>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <CardTitle>Advertising Platform</CardTitle>
-                  <CardDescription>Select the platform to create and manage your ads</CardDescription>
+                  <CardTitle>Meta Advertising Platform</CardTitle>
+                  <CardDescription>Create and manage your ads on the Meta platform</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button 
-                    variant={selectedPlatform === 'tiktok' ? 'default' : 'outline'} 
-                    onClick={() => handlePlatformChange('tiktok')}
+                    variant="default" 
+                    onClick={handleTestMetaAuth}
                     className="flex-1 md:flex-auto"
+                    disabled={isProcessingAuth}
                   >
-                    TikTok Ads
-                  </Button>
-                  <Button 
-                    variant={selectedPlatform === 'meta' ? 'default' : 'outline'} 
-                    onClick={() => handlePlatformChange('meta')}
-                    className="flex-1 md:flex-auto"
-                  >
-                    Meta Ads
+                    {isConnected ? "Reconnect Meta Ads" : "Connect Meta Ads"}
                   </Button>
                 </div>
               </div>
@@ -406,7 +242,7 @@ const AdvertisingManager = () => {
                 </Button>
               </div>
               <CampaignCreator 
-                platform={selectedPlatform} 
+                platform="meta"
                 isConnected={isConnected}
               />
             </TabsContent>

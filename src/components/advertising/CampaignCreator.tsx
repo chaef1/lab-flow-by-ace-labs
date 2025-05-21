@@ -8,7 +8,7 @@ import { useCampaigns } from '@/hooks/useCampaigns';
 
 interface CampaignCreatorProps {
   isConnected?: boolean;
-  platform?: 'meta'; // Only Meta platform supported now
+  platform: 'meta'; // Only Meta platform supported now
 }
 
 const CampaignCreator: React.FC<CampaignCreatorProps> = ({ 

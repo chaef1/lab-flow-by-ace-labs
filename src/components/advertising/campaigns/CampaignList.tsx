@@ -23,7 +23,7 @@ export interface Campaign {
 
 interface CampaignListProps {
   campaigns: Campaign[];
-  platform: 'tiktok' | 'meta';
+  platform: 'meta';  // Removed 'tiktok' option as requested
   isConnected?: boolean;
   isLoading?: boolean;
   isRefreshing?: boolean;
@@ -86,8 +86,8 @@ const CampaignList: React.FC<CampaignListProps> = ({
         <CardContent className="pt-6 text-center">
           <p className="text-muted-foreground mb-2">
             {isConnected ? 
-              `No ${platform === 'tiktok' ? 'TikTok' : 'Meta'} campaigns found.` : 
-              `Connect your ${platform === 'tiktok' ? 'TikTok' : 'Meta'} account to view campaigns.`
+              `No ${platform === 'meta' ? 'Meta' : ''} campaigns found.` : 
+              `Connect your ${platform === 'meta' ? 'Meta' : ''} account to view campaigns.`
             }
           </p>
           <p className="text-sm text-muted-foreground">
@@ -115,30 +115,25 @@ const CampaignList: React.FC<CampaignListProps> = ({
 
   // Get the right objective name based on platform
   const getObjective = (campaign: Campaign) => {
-    if (platform === 'meta') {
-      // Map Meta objectives to readable names
-      const objectiveMap: {[key: string]: string} = {
-        'AWARENESS': 'Brand Awareness',
-        'REACH': 'Reach',
-        'TRAFFIC': 'Traffic',
-        'APP_INSTALLS': 'App Installs',
-        'ENGAGEMENT': 'Engagement',
-        'VIDEO_VIEWS': 'Video Views',
-        'LEAD_GENERATION': 'Lead Generation',
-        'CONVERSIONS': 'Conversions',
-        'CATALOG_SALES': 'Catalog Sales'
-      };
-      
-      return objectiveMap[campaign.objective || ''] || campaign.objective || 'N/A';
-    } else {
-      // For TikTok, return the objective directly
-      return campaign.objective || 'N/A';
-    }
+    // Map Meta objectives to readable names
+    const objectiveMap: {[key: string]: string} = {
+      'AWARENESS': 'Brand Awareness',
+      'REACH': 'Reach',
+      'TRAFFIC': 'Traffic',
+      'APP_INSTALLS': 'App Installs',
+      'ENGAGEMENT': 'Engagement',
+      'VIDEO_VIEWS': 'Video Views',
+      'LEAD_GENERATION': 'Lead Generation',
+      'CONVERSIONS': 'Conversions',
+      'CATALOG_SALES': 'Catalog Sales'
+    };
+    
+    return objectiveMap[campaign.objective || ''] || campaign.objective || 'N/A';
   };
 
   // Convert spend to number for formatting
   const formatSpend = (spend: string | number | undefined): string => {
-    if (!spend) return '$0.00';
+    if (!spend) return formatCurrency(0);
     
     // If it's already a number, format it
     if (typeof spend === 'number') {

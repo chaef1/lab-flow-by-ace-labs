@@ -1,19 +1,18 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
 import CampaignList from './campaigns/CampaignList';
 import CampaignFilters from './campaigns/CampaignFilters';
 import CreateCampaignDialog from './campaigns/CreateCampaignDialog';
 import { useCampaigns } from '@/hooks/useCampaigns';
 
 interface CampaignCreatorProps {
-  platform: 'tiktok' | 'meta';
   isConnected?: boolean;
 }
 
-const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform, isConnected = false }) => {
+const CampaignCreator: React.FC<CampaignCreatorProps> = ({ isConnected = false }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const platform = 'meta'; // Hardcoded to Meta only
   
   const {
     campaigns,

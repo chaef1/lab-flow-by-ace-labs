@@ -2,13 +2,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { corsHeaders, formatResponse } from '../_shared/utils.ts'
 import { fetchInstagramProfile } from './instagram.ts'
-import { fetchTikTokProfile } from './tiktok.ts'
 
 // Get environment variables
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || ''
 const INSTAGRAM_APP_ID = Deno.env.get('INSTAGRAM_APP_ID') || ''
 const INSTAGRAM_APP_SECRET = Deno.env.get('INSTAGRAM_APP_SECRET') || ''
+const APIFY_SOCIALSCRAPER = Deno.env.get('APIFY_SOCIALSCRAPER') || ''
 
 // Create a single Deno deploy function that can handle multiple platforms
 Deno.serve(async (req) => {
@@ -39,9 +39,9 @@ Deno.serve(async (req) => {
     }
     
     // Validate platform
-    if (!['instagram', 'tiktok'].includes(platform)) {
+    if (platform !== 'instagram') {
       return formatResponse(
-        { error: 'Platform must be instagram or tiktok' },
+        { error: 'Platform must be instagram' },
         400
       )
     }
@@ -98,20 +98,13 @@ Deno.serve(async (req) => {
               });
             }
             
-            // Regular profile fetch
-            profileData = await fetchInstagramProfile(cleanUsername, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET);
-            break; // Break the loop if successful
-          } else if (platform === 'tiktok') {
-            // Use the configured API key 
-            const tiktokApiKey = Deno.env.get('APIFY_SOCIALSCRAPER') || '';
-            profileData = await fetchTikTokProfile(cleanUsername, tiktokApiKey);
-            
-            // Add a flag to indicate if the returned data is mock data
-            // This helps the UI show appropriate messaging
-            if (profileData && !profileData.is_mock_data && 
-                (!profileData.follower_count || typeof profileData.is_verified !== 'boolean')) {
-              profileData.is_mock_data = true;
-            }
+            // Regular profile fetch with dedicated API key for influencer module
+            profileData = await fetchInstagramProfile(
+              cleanUsername, 
+              INSTAGRAM_APP_ID, 
+              INSTAGRAM_APP_SECRET,
+              APIFY_SOCIALSCRAPER // Pass the social scraper API key for enhanced profile data
+            );
             break; // Break the loop if successful
           }
         } catch (error) {
@@ -143,10 +136,10 @@ Deno.serve(async (req) => {
       }
       
       if (!profileData) {
-        throw new Error(`${platform} profile not found for ${cleanUsername}`);
+        throw new Error(`Instagram profile not found for ${cleanUsername}`);
       }
       
-      console.log(`Successfully retrieved ${platform} profile for: ${cleanUsername}`);
+      console.log(`Successfully retrieved Instagram profile for: ${cleanUsername}`);
       return formatResponse(profileData);
     } catch (platformError) {
       console.error(`Error fetching ${platform} profile:`, platformError);
@@ -155,7 +148,7 @@ Deno.serve(async (req) => {
       if (platformError.message.includes("rate limit") || platformError.status === 429) {
         return formatResponse({
           error: "Rate limit exceeded",
-          message: `${platform.charAt(0).toUpperCase() + platform.slice(1)} API rate limit reached. Please try again in a few minutes.`,
+          message: `Instagram API rate limit reached. Please try again in a few minutes.`,
           username: cleanUsername,
           temporary_error: true,
           requires_waiting: true,

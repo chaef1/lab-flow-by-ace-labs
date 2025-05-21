@@ -24,12 +24,82 @@ const INSTAGRAM_TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
 const INSTAGRAM_GRAPH_URL = 'https://graph.instagram.com';
 
 /**
- * Fetches Instagram profile data using the Instagram Graph API
+ * Fetches Instagram profile data using the Instagram Graph API and social scraper
  */
-export async function fetchInstagramProfile(username: string, appId: string, appSecret: string) {
+export async function fetchInstagramProfile(
+  username: string, 
+  appId: string, 
+  appSecret: string,
+  apiKey?: string
+) {
   console.log(`Fetching Instagram profile for user: ${username}`);
   
   try {
+    // First, try using the social scraper API if key is provided
+    if (apiKey) {
+      try {
+        console.log("Attempting to fetch Instagram profile with dedicated scraper API");
+        const scraperUrl = `https://api.apify.com/v2/acts/zuzka~instagram-profile-scraper/run-sync-get-dataset-items?token=${apiKey}`;
+        
+        const response = await fetch(scraperUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            usernames: [username],
+            resultsLimit: 1,
+            resultsType: "posts",
+            extendOutputFunction: "($) => { return {} }"
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data && data.length > 0) {
+            const profile = data[0];
+            
+            // Extract posts for engagement calculation
+            const posts = profile.latestPosts || [];
+            
+            // Calculate engagement rate
+            const engagementRate = calculateEngagementRate(
+              posts, 
+              profile.followersCount || 0
+            );
+            
+            // Map to our app format
+            return {
+              username: profile.username,
+              full_name: profile.fullName,
+              biography: profile.biography,
+              follower_count: profile.followersCount || 0,
+              following_count: profile.followingCount || 0,
+              post_count: profile.postsCount || 0,
+              is_verified: profile.verified || false,
+              profile_pic_url: profile.profilePicUrl,
+              engagement_rate: engagementRate,
+              website: profile.websiteUrl,
+              posts: posts.map((post: any) => ({
+                url: post.url,
+                thumbnail: post.displayUrl,
+                caption: post.caption,
+                likes: post.likesCount,
+                comments: post.commentsCount,
+                timestamp: post.timestamp,
+                type: post.isVideo ? 'video' : 'image'
+              }))
+            };
+          }
+        } else {
+          console.log("Scraper API returned an error, falling back to other methods");
+        }
+      } catch (error) {
+        console.log("Error using scraper API, falling back to other methods:", error);
+      }
+    }
+    
     // Improved error handling and request strategy
     // We'll make the request with proper headers and retry logic
     const headers = {
@@ -62,6 +132,19 @@ export async function fetchInstagramProfile(username: string, appId: string, app
         if (data && data.graphql && data.graphql.user) {
           const user = data.graphql.user;
           
+          // Get recent posts for engagement calculation if available
+          const posts = user.edge_owner_to_timeline_media?.edges || [];
+          
+          // Calculate engagement rate
+          const engagementRate = posts.length > 0 ? 
+            calculateEngagementRate(
+              posts.map((post: any) => ({
+                likesCount: post.node.edge_liked_by?.count || 0,
+                commentsCount: post.node.edge_media_to_comment?.count || 0
+              })),
+              user.edge_followed_by?.count || 0
+            ) : 0;
+          
           // Map Instagram data to our app format
           return {
             username: user.username,
@@ -72,7 +155,17 @@ export async function fetchInstagramProfile(username: string, appId: string, app
             post_count: user.edge_owner_to_timeline_media?.count || 0,
             is_verified: user.is_verified || false,
             profile_pic_url: user.profile_pic_url,
-            engagement_rate: 0
+            engagement_rate: engagementRate,
+            website: user.external_url,
+            posts: posts.slice(0, 12).map((post: any) => ({
+              url: `https://www.instagram.com/p/${post.node.shortcode}/`,
+              thumbnail: post.node.thumbnail_src || post.node.display_url,
+              caption: post.node.edge_media_to_caption?.edges[0]?.node?.text || '',
+              likes: post.node.edge_liked_by?.count || 0,
+              comments: post.node.edge_media_to_comment?.count || 0,
+              timestamp: new Date(post.node.taken_at_timestamp * 1000).toISOString(),
+              type: post.node.is_video ? 'video' : 'image'
+            }))
           };
         }
       }
@@ -121,6 +214,19 @@ export async function fetchInstagramProfile(username: string, appId: string, app
         const userData = sharedData.entry_data?.ProfilePage?.[0]?.graphql?.user;
         
         if (userData) {
+          // Get recent posts for engagement calculation if available
+          const posts = userData.edge_owner_to_timeline_media?.edges || [];
+          
+          // Calculate engagement rate
+          const engagementRate = posts.length > 0 ? 
+            calculateEngagementRate(
+              posts.map((post: any) => ({
+                likesCount: post.node.edge_liked_by?.count || 0,
+                commentsCount: post.node.edge_media_to_comment?.count || 0
+              })),
+              userData.edge_followed_by?.count || 0
+            ) : 0;
+          
           return {
             username: userData.username,
             full_name: userData.full_name,
@@ -130,7 +236,17 @@ export async function fetchInstagramProfile(username: string, appId: string, app
             post_count: userData.edge_owner_to_timeline_media?.count || 0,
             is_verified: userData.is_verified || false,
             profile_pic_url: userData.profile_pic_url,
-            engagement_rate: 0
+            engagement_rate: engagementRate,
+            website: userData.external_url,
+            posts: posts.slice(0, 12).map((post: any) => ({
+              url: `https://www.instagram.com/p/${post.node.shortcode}/`,
+              thumbnail: post.node.thumbnail_src || post.node.display_url,
+              caption: post.node.edge_media_to_caption?.edges[0]?.node?.text || '',
+              likes: post.node.edge_liked_by?.count || 0,
+              comments: post.node.edge_media_to_comment?.count || 0,
+              timestamp: new Date(post.node.taken_at_timestamp * 1000).toISOString(),
+              type: post.node.is_video ? 'video' : 'image'
+            }))
           };
         }
       }
@@ -155,7 +271,8 @@ export async function fetchInstagramProfile(username: string, appId: string, app
           post_count: postsMatcher ? parseInt(postsMatcher[1]) : 0,
           is_verified: verifiedMatcher ? verifiedMatcher[1] === 'true' : false,
           profile_pic_url: profilePicMatcher ? profilePicMatcher[1].replace(/\\/g, '') : '',
-          engagement_rate: 0
+          engagement_rate: 0,
+          posts: []
         };
       }
 
@@ -178,8 +295,9 @@ export async function fetchInstagramProfile(username: string, appId: string, app
           is_verified: false,
           profile_pic_url: "",
           engagement_rate: 0,
+          posts: [],
           requires_auth: true,
-          auth_url: `${INSTAGRAM_OAUTH_URL}?client_id=${appId}&redirect_uri=${encodeURIComponent("https://your-redirect-uri.com/auth/instagram/callback")}&scope=user_profile,user_media&response_type=code`
+          auth_url: `${INSTAGRAM_OAUTH_URL}?client_id=${appId}&redirect_uri=${encodeURIComponent("https://app-sandbox.acelabs.co.za/influencers")}&scope=user_profile,user_media&response_type=code`
         };
       }
     } catch (error) {
@@ -197,6 +315,77 @@ export async function fetchInstagramProfile(username: string, appId: string, app
   } catch (error) {
     console.error('Instagram profile fetch error:', error);
     throw new Error(`Failed to fetch Instagram profile: ${error.message}`);
+  }
+}
+
+/**
+ * Fetches Instagram post data for a specific post URL
+ * This can be used to get detailed engagement metrics for a specific post
+ */
+export async function fetchInstagramPost(postUrl: string, apiKey?: string) {
+  try {
+    console.log(`Fetching Instagram post data for: ${postUrl}`);
+    
+    if (!apiKey) {
+      throw new Error("API key is required to fetch Instagram post data");
+    }
+    
+    // Extract the post ID/shortcode from the URL
+    const shortcodeMatch = postUrl.match(/instagram\.com\/p\/([^\/\?#]+)/);
+    if (!shortcodeMatch || !shortcodeMatch[1]) {
+      throw new Error("Invalid Instagram post URL");
+    }
+    
+    const shortcode = shortcodeMatch[1];
+    
+    // Use the social scraper API to get detailed post data
+    const scraperUrl = `https://api.apify.com/v2/acts/zuzka~instagram-post-scraper/run-sync-get-dataset-items?token=${apiKey}`;
+    
+    const response = await fetch(scraperUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        directUrls: [`https://www.instagram.com/p/${shortcode}/`],
+        resultsLimit: 1
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch post data: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || data.length === 0) {
+      throw new Error("No post data found");
+    }
+    
+    const post = data[0];
+    
+    return {
+      id: post.id,
+      shortcode: post.shortcode,
+      url: post.url,
+      type: post.isVideo ? 'video' : 'image',
+      caption: post.caption,
+      likes_count: post.likesCount,
+      comments_count: post.commentsCount,
+      timestamp: post.timestamp,
+      owner: {
+        username: post.ownerUsername,
+        id: post.ownerId
+      },
+      image_url: post.displayUrl,
+      video_url: post.videoUrl,
+      engagement_rate: post.likesCount && post.ownerFollowersCount ? 
+        parseFloat(((post.likesCount + post.commentsCount) / post.ownerFollowersCount * 100).toFixed(2)) : 
+        null
+    };
+  } catch (error) {
+    console.error('Error fetching Instagram post data:', error);
+    throw error;
   }
 }
 

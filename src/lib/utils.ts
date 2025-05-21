@@ -31,3 +31,16 @@ export function formatRelativeDate(dateString: string): string {
     return days === 0 ? "Today" : days === 1 ? "Tomorrow" : `in ${days} days`;
   }
 }
+
+/**
+ * Format a number as South African Rand (ZAR) currency
+ * @param amount The amount to format
+ * @returns Formatted currency string
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-ZA', {
+    style: 'currency',
+    currency: 'ZAR',
+    minimumFractionDigits: 2
+  }).format(amount);
+}

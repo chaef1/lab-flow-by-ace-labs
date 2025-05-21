@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { useToast } from "@/hooks/use-toast";
+import { getMetaCampaigns, getSavedMetaToken, getMetaAdAccounts, getTikTokCampaigns, getSavedTikTokToken } from "@/lib/tiktok-ads-api";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface CampaignCreatorProps {
   platform: 'tiktok' | 'meta';
@@ -41,6 +45,10 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
   ]);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [realCampaigns, setRealCampaigns] = useState<any[]>([]);
+  const { toast } = useToast();
   
   const form = useForm({
     defaultValues: {
@@ -53,27 +61,241 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
       description: ''
     }
   });
-  
-  const handleCreateCampaign = (data: any) => {
-    const newCampaign = {
-      id: (campaigns.length + 1).toString(),
-      name: data.name,
-      objective: data.objective,
-      budget: data.budget,
-      status: 'Draft',
-      startDate: data.startDate,
-      endDate: data.endDate,
-      creatives: 0
-    };
-    
-    setCampaigns([...campaigns, newCampaign]);
-    setIsDialogOpen(false);
-    form.reset();
+
+  // Fetch real campaigns when platform or component mounts
+  useEffect(() => {
+    fetchRealCampaigns();
+  }, [platform]);
+
+  // Function to fetch real campaigns from the selected platform
+  const fetchRealCampaigns = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      if (platform === 'meta') {
+        const { accessToken, accountId } = getSavedMetaToken();
+        
+        if (accessToken && accountId) {
+          console.log('Fetching Meta campaigns for account:', accountId);
+          const campaignsData = await getMetaCampaigns(accessToken, accountId);
+          
+          if (campaignsData && campaignsData.data) {
+            console.log('Meta campaigns fetched:', campaignsData.data);
+            setRealCampaigns(campaignsData.data);
+          }
+        }
+      } else if (platform === 'tiktok') {
+        const { accessToken, advertiserId } = getSavedTikTokToken();
+        
+        if (accessToken && advertiserId) {
+          console.log('Fetching TikTok campaigns for advertiser:', advertiserId);
+          const campaignsData = await getTikTokCampaigns(accessToken, advertiserId);
+          
+          if (campaignsData && campaignsData.data && campaignsData.data.list) {
+            console.log('TikTok campaigns fetched:', campaignsData.data.list);
+            setRealCampaigns(campaignsData.data.list);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching ${platform} campaigns:`, error);
+      setError(`Failed to fetch ${platform} campaigns. Please try again.`);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  return (
-    <div className="space-y-6">
-      {campaigns.length > 0 ? (
+  const handleCreateCampaign = async (data: any) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Different handling based on platform
+      if (platform === 'meta') {
+        // Get Meta token and account ID
+        const { accessToken, accountId } = getSavedMetaToken();
+        
+        if (!accessToken || !accountId) {
+          throw new Error('Meta authentication required. Please connect your Meta account first.');
+        }
+        
+        // This is where we would normally call the Meta API to create a real campaign
+        // For now, we'll simulate a successful campaign creation with a delay
+        console.log('Creating Meta campaign with data:', {
+          ...data,
+          accountId,
+          platform: 'meta'
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+        
+        // For now, we're just creating a simulated campaign until the real API integration is complete
+        const newCampaign = {
+          id: `meta-${Date.now()}`,
+          name: data.name,
+          objective: data.objective,
+          budget: data.budget,
+          status: 'Draft',
+          startDate: data.startDate,
+          endDate: data.endDate,
+          creatives: 0
+        };
+        
+        setCampaigns([...campaigns, newCampaign]);
+        
+        toast({
+          title: "Meta Campaign Created",
+          description: "Your Meta campaign has been created successfully (simulated).",
+        });
+        
+        // In a real implementation, we would create the campaign via the Meta API
+        // const result = await createMetaCampaign(accessToken, accountId, data);
+        // Then handle the result accordingly
+      } else if (platform === 'tiktok') {
+        // Get TikTok token and advertiser ID
+        const { accessToken, advertiserId } = getSavedTikTokToken();
+        
+        if (!accessToken || !advertiserId) {
+          throw new Error('TikTok authentication required. Please connect your TikTok account first.');
+        }
+        
+        console.log('Creating TikTok campaign with data:', {
+          ...data,
+          advertiserId,
+          platform: 'tiktok'
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+        
+        // For now, we're just creating a simulated campaign until the real API integration is complete
+        const newCampaign = {
+          id: `tiktok-${Date.now()}`,
+          name: data.name,
+          objective: data.objective,
+          budget: data.budget,
+          status: 'Draft',
+          startDate: data.startDate,
+          endDate: data.endDate,
+          creatives: 0
+        };
+        
+        setCampaigns([...campaigns, newCampaign]);
+        
+        toast({
+          title: "TikTok Campaign Created",
+          description: "Your TikTok campaign has been created successfully (simulated).",
+        });
+      }
+      
+      setIsDialogOpen(false);
+      form.reset();
+      
+      // Refresh the campaign list to show new campaign
+      fetchRealCampaigns();
+      
+    } catch (error: any) {
+      console.error('Error creating campaign:', error);
+      setError(error.message || 'Failed to create campaign');
+      
+      toast({
+        title: "Campaign Creation Failed",
+        description: error.message || "There was an error creating your campaign.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Render function for campaign list or empty state
+  const renderCampaignList = () => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center p-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      );
+    }
+    
+    if (realCampaigns.length > 0) {
+      return (
+        <div className="grid gap-4">
+          {/* Display real campaigns from the API when available */}
+          {realCampaigns.map((campaign: any) => (
+            <Card key={campaign.id || campaign.campaign_id} className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{campaign.name}</CardTitle>
+                    <CardDescription>
+                      {platform === 'meta' ? `Objective: ${campaign.objective || 'Not specified'}` : 
+                       `Objective: ${campaign.objective_type || 'Not specified'}`}
+                    </CardDescription>
+                  </div>
+                  <Badge variant={
+                    (campaign.status === 'Active' || campaign.status === 'ACTIVE') ? 'default' : 
+                    (campaign.status === 'Scheduled' || campaign.status === 'SCHEDULED') ? 'secondary' :
+                    'outline'
+                  }>
+                    {campaign.status || 'Unknown'}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Budget</p>
+                    <p className="text-xl font-bold">
+                      ${platform === 'meta' ? 
+                        (parseFloat(campaign.spend || '0') || 0).toFixed(2) : 
+                        (parseFloat(campaign.budget || '0') || 0).toFixed(2)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">ID</p>
+                    <p className="text-base">{campaign.id || campaign.campaign_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Created</p>
+                    <p className="text-base">
+                      {campaign.created_time ? new Date(campaign.created_time).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" size="sm">View Details</Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">Edit</Button>
+                  <Button 
+                    variant={(campaign.status === 'Active' || campaign.status === 'ACTIVE') ? 'destructive' : 'default'} 
+                    size="sm"
+                  >
+                    {(campaign.status === 'Active' || campaign.status === 'ACTIVE') ? 'Pause' : 
+                     (campaign.status === 'Scheduled' || campaign.status === 'SCHEDULED') ? 'Cancel' : 'Activate'}
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      );
+    }
+    
+    // If no real campaigns, show the sample campaigns or empty state
+    if (campaigns.length > 0) {
+      return (
         <div className="grid gap-4">
           {campaigns.map(campaign => (
             <Card key={campaign.id} className="overflow-hidden">
@@ -122,16 +344,27 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
             </Card>
           ))}
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center p-12 border rounded-lg border-dashed">
-          <h3 className="text-lg font-medium mb-2">No Campaigns Created Yet</h3>
-          <p className="text-center text-muted-foreground mb-4">
-            Create your first advertising campaign to start promoting your content
-          </p>
-          <Button onClick={() => setIsDialogOpen(true)}>Create Campaign</Button>
-        </div>
-      )}
+      );
+    }
+    
+    // Empty state
+    return (
+      <div className="flex flex-col items-center justify-center p-12 border rounded-lg border-dashed">
+        <h3 className="text-lg font-medium mb-2">No Campaigns Created Yet</h3>
+        <p className="text-center text-muted-foreground mb-4">
+          Create your first {platform === 'meta' ? 'Meta' : 'TikTok'} advertising campaign to start promoting your content
+        </p>
+        <Button onClick={() => setIsDialogOpen(true)}>Create Campaign</Button>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Campaign List Section */}
+      {renderCampaignList()}
       
+      {/* Create Campaign Dialog */}
       <div className="flex justify-center mt-4">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -139,9 +372,9 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create New Campaign</DialogTitle>
+              <DialogTitle>Create New {platform === 'meta' ? 'Meta' : 'TikTok'} Campaign</DialogTitle>
               <DialogDescription>
-                Set up your advertising campaign for TikTok
+                Set up your advertising campaign for {platform === 'meta' ? 'Facebook/Instagram' : 'TikTok'}
               </DialogDescription>
             </DialogHeader>
             
@@ -178,11 +411,23 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Conversions">Conversions</SelectItem>
-                            <SelectItem value="Reach">Reach & Awareness</SelectItem>
-                            <SelectItem value="Traffic">Traffic</SelectItem>
-                            <SelectItem value="Engagement">Engagement</SelectItem>
-                            <SelectItem value="VideoViews">Video Views</SelectItem>
+                            {platform === 'meta' ? (
+                              <>
+                                <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
+                                <SelectItem value="REACH">Reach</SelectItem>
+                                <SelectItem value="TRAFFIC">Traffic</SelectItem>
+                                <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
+                                <SelectItem value="CONVERSIONS">Conversions</SelectItem>
+                              </>
+                            ) : (
+                              <>
+                                <SelectItem value="Conversions">Conversions</SelectItem>
+                                <SelectItem value="Reach">Reach & Awareness</SelectItem>
+                                <SelectItem value="Traffic">Traffic</SelectItem>
+                                <SelectItem value="Engagement">Engagement</SelectItem>
+                                <SelectItem value="VideoViews">Video Views</SelectItem>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -299,10 +544,19 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
                 />
                 
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>
                     Cancel
                   </Button>
-                  <Button type="submit">Create Campaign</Button>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Campaign'
+                    )}
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,7 @@ import {
   createMetaCampaign,
   getMetaAudiences
 } from "@/lib/ads-api";
-import { AlertCircle, Trash, Edit, Pause, Play, Refresh, MoreHorizontal, Filter, Download } from "lucide-react";
+import { AlertCircle, Trash, Edit, Pause, Play, RefreshCw, MoreHorizontal, Filter, Download } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -507,7 +506,7 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
         
         <div className="flex gap-2 w-full md:w-auto">
           <Button variant="outline" size="sm" onClick={fetchRealCampaigns} disabled={isRefreshing}>
-            <Refresh className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
           </Button>
           <Button variant="outline" size="sm">
             <Filter className="mr-2 h-4 w-4" /> Filter

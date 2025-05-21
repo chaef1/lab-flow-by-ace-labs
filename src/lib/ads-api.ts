@@ -15,7 +15,8 @@ export {
   createTikTokCampaign,
   hasTikTokToken,
   getSavedTikTokToken,
-  removeTikTokToken
+  removeTikTokToken,
+  saveTikTokToken
 } from './api/tiktok-api';
 
 // Re-export all Meta functions

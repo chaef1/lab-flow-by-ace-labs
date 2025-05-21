@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -192,6 +191,65 @@ serve(async (req) => {
           );
         }
 
+      case 'update_campaign_status':
+        // Update campaign status
+        const statusToken = requestData.accessToken;
+        const statusAccountId = requestData.accountId;
+        const campaignId = requestData.campaignId;
+        const status = requestData.status;
+        
+        if (!statusToken || !statusAccountId || !campaignId || !status) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, account ID, campaign ID, and status are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log(`Updating campaign ${campaignId} status to ${status}`);
+        
+        try {
+          // Prepare the status update data
+          const statusParams = new URLSearchParams();
+          statusParams.append('status', status);
+          statusParams.append('access_token', statusToken);
+          
+          // Update Campaign Status Endpoint
+          const statusResponse = await fetch(`${META_API_URL}/${campaignId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: statusParams.toString()
+          });
+          
+          const statusResult = await statusResponse.json();
+          
+          console.log('Campaign status update response status:', statusResponse.status);
+          
+          if (!statusResponse.ok) {
+            console.error('Campaign status update failed with status:', statusResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to update campaign status', 
+                details: statusResult,
+                status: statusResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: statusResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(statusResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error updating campaign status:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to update campaign status', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
       case 'create_campaign':
         // Create a new campaign
         const createToken = requestData.accessToken;
@@ -212,7 +270,7 @@ serve(async (req) => {
           const campaignParams = new URLSearchParams();
           campaignParams.append('name', campaignData.name);
           campaignParams.append('objective', campaignData.objective);
-          campaignParams.append('status', 'PAUSED'); // Start as paused for safety
+          campaignParams.append('status', campaignData.status || 'PAUSED'); // Start as paused for safety
           
           if (campaignData.dailyBudget) {
             campaignParams.append('daily_budget', Math.floor(campaignData.dailyBudget * 100).toString());
@@ -358,7 +416,7 @@ serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }
-        
+
       case 'create_ad':
         // Create a new ad
         const adToken = requestData.accessToken;

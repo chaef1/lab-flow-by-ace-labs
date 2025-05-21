@@ -5,8 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Play, Pause, BarChart } from "lucide-react";
+import { Play, Pause, BarChart, AlertCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Campaign {
   id: string;
@@ -40,6 +41,8 @@ const CampaignList: React.FC<CampaignListProps> = ({
   error = null,
   onUpdateStatus
 }) => {
+  const { toast } = useToast();
+
   // Helper function for status badge display
   const getStatusBadge = (status: string) => {
     const statusLower = status.toLowerCase();
@@ -54,9 +57,31 @@ const CampaignList: React.FC<CampaignListProps> = ({
       return <Badge className="bg-blue-500">Completed</Badge>;
     } else if (statusLower === 'archived') {
       return <Badge className="bg-gray-700 text-white">Archived</Badge>;
+    } else if (statusLower === 'error' || statusLower === 'rejected') {
+      return <Badge variant="destructive">Error</Badge>;
     }
     
     return <Badge>{status}</Badge>;
+  };
+
+  // Handle status change button click with error handling
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    if (!onUpdateStatus) return;
+    
+    try {
+      await onUpdateStatus(id, newStatus);
+      
+      toast({
+        title: "Campaign Updated",
+        description: `Campaign status changed to ${newStatus === 'ACTIVE' ? 'Active' : 'Paused'}`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Status Update Failed",
+        description: error.message || "There was an error updating the campaign status",
+      });
+    }
   };
 
   // Loading skeleton
@@ -105,9 +130,12 @@ const CampaignList: React.FC<CampaignListProps> = ({
   if (error) {
     return (
       <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-red-500 mb-2">Error loading campaigns</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center justify-center text-center p-4">
+            <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
+            <p className="text-red-500 font-medium mb-1">Error loading campaigns</p>
+            <p className="text-sm text-muted-foreground">{error}</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -165,41 +193,56 @@ const CampaignList: React.FC<CampaignListProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.map((campaign) => (
-              <TableRow key={campaign.id}>
-                <TableCell className="font-medium">{campaign.name}</TableCell>
-                <TableCell>{getObjective(campaign)}</TableCell>
-                <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                <TableCell>
-                  {campaign.budget ? formatCurrency(campaign.budget) : 'N/A'}
-                </TableCell>
-                <TableCell>{formatSpend(campaign.spend)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    {onUpdateStatus && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => onUpdateStatus(
-                          campaign.id,
-                          campaign.status.toLowerCase() === 'active' ? 'PAUSED' : 'ACTIVE'
-                        )}
-                      >
-                        {campaign.status.toLowerCase() === 'active' ? 
-                          <Pause className="h-4 w-4" /> : 
-                          <Play className="h-4 w-4" />
-                        }
+            {campaigns.map((campaign) => {
+              // Convert status to lowercase for consistent comparison
+              const isActive = campaign.status.toLowerCase() === 'active';
+              
+              return (
+                <TableRow key={campaign.id} className="transition-colors hover:bg-muted/30">
+                  <TableCell className="font-medium">{campaign.name}</TableCell>
+                  <TableCell>{getObjective(campaign)}</TableCell>
+                  <TableCell>{getStatusBadge(campaign.status)}</TableCell>
+                  <TableCell>
+                    {campaign.budget ? formatCurrency(campaign.budget) : 'N/A'}
+                  </TableCell>
+                  <TableCell>{formatSpend(campaign.spend)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      {onUpdateStatus && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleUpdateStatus(
+                            campaign.id,
+                            isActive ? 'PAUSED' : 'ACTIVE'
+                          )}
+                          title={isActive ? "Pause campaign" : "Activate campaign"}
+                        >
+                          {isActive ? 
+                            <Pause className="h-4 w-4" /> : 
+                            <Play className="h-4 w-4" />
+                          }
+                        </Button>
+                      )}
+                      <Button variant="outline" size="sm" title="View insights">
+                        <BarChart className="h-4 w-4" />
                       </Button>
-                    )}
-                    <Button variant="outline" size="sm">
-                      <BarChart className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
+        
+        {isRefreshing && (
+          <div className="flex justify-center mt-4">
+            <p className="text-sm text-muted-foreground flex items-center">
+              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+              Refreshing campaigns...
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

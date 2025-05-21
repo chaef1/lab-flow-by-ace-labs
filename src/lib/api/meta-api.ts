@@ -25,7 +25,8 @@ export const getMetaOAuthUrl = () => {
   
   console.log('Generating Meta OAuth URL with redirect URI:', redirectUri);
   
-  return `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodedRedirectUri}&state=${state}&scope=${scope}&response_type=code`;
+  // Use the enhanced URL with more debug parameters and proper OAuth flow
+  return `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodedRedirectUri}&state=${state}&scope=${scope}&response_type=code&auth_type=rerequest`;
 };
 
 // Exchange Meta authorization code for an access token
@@ -51,7 +52,7 @@ export const exchangeMetaCode = async (code: string) => {
 
     if (error) {
       console.error('Supabase function error:', error);
-      throw new Error(error.message);
+      throw new Error(error.message || 'Error exchanging code');
     }
     
     console.log('Meta exchange code response:', data);
@@ -68,6 +69,12 @@ export const processMetaAuthCallback = async (url: string) => {
     const urlObj = new URL(url);
     const code = urlObj.searchParams.get('code');
     const stateStr = urlObj.searchParams.get('state');
+    const error = urlObj.searchParams.get('error');
+    const errorDescription = urlObj.searchParams.get('error_description');
+    
+    if (error) {
+      throw new Error(`Authentication error: ${errorDescription || error}`);
+    }
     
     if (!code) {
       throw new Error('No authorization code found in URL');
@@ -115,7 +122,7 @@ export const processMetaAuthCallback = async (url: string) => {
     }
   } catch (error) {
     console.error('Error processing Meta auth callback:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || 'Authentication failed' };
   }
 };
 
@@ -132,7 +139,7 @@ export const getMetaAdAccounts = async (accessToken: string) => {
       }
     });
     
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message || 'Error getting ad accounts');
     return data;
   } catch (err) {
     console.error('Error getting Meta ad accounts:', err);
@@ -154,7 +161,7 @@ export const getMetaCampaigns = async (accessToken: string, accountId: string) =
       }
     });
     
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message || 'Error getting campaigns');
     return data;
   } catch (err) {
     console.error('Error getting Meta campaigns:', err);
@@ -176,10 +183,33 @@ export const createMetaCampaign = async (accessToken: string, accountId: string,
       }
     });
     
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message || 'Error creating campaign');
     return data;
   } catch (err) {
     console.error('Error creating Meta campaign:', err);
+    throw err;
+  }
+};
+
+// Update Meta campaign status (new function)
+export const updateMetaCampaignStatus = async (accessToken: string, accountId: string, campaignId: string, status: string) => {
+  try {
+    console.log(`Updating Meta campaign ${campaignId} status to ${status}`);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken,
+        accountId,
+        campaignId,
+        status,
+        action: 'update_campaign_status' 
+      }
+    });
+    
+    if (error) throw new Error(error.message || 'Error updating campaign status');
+    return data;
+  } catch (err) {
+    console.error('Error updating Meta campaign status:', err);
     throw err;
   }
 };
@@ -197,7 +227,7 @@ export const getMetaAudiences = async (accessToken: string, accountId: string) =
       }
     });
     
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message || 'Error getting audiences');
     return data;
   } catch (err) {
     console.error('Error getting Meta audiences:', err);
@@ -219,7 +249,7 @@ export const createMetaAdSet = async (accessToken: string, accountId: string, ad
       }
     });
     
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message || 'Error creating ad set');
     return data;
   } catch (err) {
     console.error('Error creating Meta ad set:', err);
@@ -241,7 +271,7 @@ export const createMetaAd = async (accessToken: string, accountId: string, adDat
       }
     });
     
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message || 'Error creating ad');
     return data;
   } catch (err) {
     console.error('Error creating Meta ad:', err);
@@ -263,7 +293,7 @@ export const uploadMetaCreative = async (accessToken: string, accountId: string,
       }
     });
     
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message || 'Error uploading creative');
     return data;
   } catch (err) {
     console.error('Error uploading creative to Meta:', err);

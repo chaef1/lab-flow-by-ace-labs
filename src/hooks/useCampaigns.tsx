@@ -7,12 +7,12 @@ import {
   createMetaCampaign,
   getMetaAudiences,
   createMetaAdSet,
-  createMetaAd
+  createMetaAd,
+  updateMetaCampaignStatus
 } from '@/lib/ads-api';
 
 export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
   const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [sampleCampaigns, setSampleCampaigns] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -82,13 +82,18 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
             }));
             
             setCampaigns(transformedCampaigns);
-            setSampleCampaigns([]); // Clear sample campaigns
           }
         }
       }
     } catch (error: any) {
       console.error(`Error fetching ${platform} campaigns:`, error);
-      setError(`Failed to fetch ${platform} campaigns. Please try again.`);
+      setError(`Failed to fetch ${platform} campaigns: ${error.message || 'Unknown error'}`);
+      
+      toast({
+        variant: "destructive",
+        title: "Error Loading Campaigns",
+        description: error.message || `Failed to fetch ${platform} campaigns. Please try again.`,
+      });
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -149,7 +154,7 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
         lifetimeBudget: data.budgetType === 'lifetime' ? data.budget : undefined,
         startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
         endTime: data.endDate ? new Date(data.endDate).toISOString() : undefined,
-        targeting: {
+        targeting: data.targeting || {
           age_min: 18,
           age_max: 65,
           genders: [1, 2], // All genders
@@ -159,9 +164,15 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
         }
       };
       
-      if (data.targetAudience && data.targetAudience !== 'All') {
+      // Handle custom audience if selected
+      if (data.targetAudience && data.targetAudience !== 'All' && data.targetAudience !== '') {
         // If custom audience selected, add it to targeting
         adSetData.targeting['custom_audiences'] = [{id: data.targetAudience}];
+      }
+      
+      // Add interests if provided
+      if (data.interests && data.interests.length > 0) {
+        adSetData.targeting['interests'] = data.interests.map((id: string) => ({ id }));
       }
       
       console.log('Creating ad set with data:', adSetData);
@@ -201,42 +212,47 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
   // Update campaign status
   const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
     try {
+      setIsRefreshing(true);
+      
       const { accessToken, accountId } = getSavedMetaToken();
       
       if (!accessToken || !accountId) {
         throw new Error('Meta authentication required');
       }
       
-      // In real implementation, this would call an API to update the campaign status
-      toast({
-        title: "Campaign Status Update",
-        description: `Campaign status updated to ${newStatus}`,
-      });
+      // Call the API to update the campaign status
+      await updateMetaCampaignStatus(accessToken, accountId, campaignId, newStatus);
       
       // Refresh campaigns after update
       fetchCampaigns();
+      
+      return true;
     } catch (error: any) {
       console.error('Error updating campaign status:', error);
+      
       toast({
         title: "Status Update Failed",
         description: error.message || "There was an error updating the campaign status",
         variant: "destructive"
       });
+      
+      throw error;
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
   // Filter campaigns based on active tab
   const filteredCampaigns = campaigns.filter(campaign => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'active') return campaign.status === 'ACTIVE' || campaign.status === 'Active';
-    if (activeTab === 'paused') return campaign.status === 'PAUSED' || campaign.status === 'Paused';
-    if (activeTab === 'draft') return campaign.status === 'DRAFT' || campaign.status === 'Draft';
+    if (activeTab === 'active') return campaign.status.toLowerCase() === 'active';
+    if (activeTab === 'paused') return campaign.status.toLowerCase() === 'paused';
+    if (activeTab === 'draft') return campaign.status.toLowerCase() === 'draft';
     return true;
   });
 
   return {
     campaigns: filteredCampaigns,
-    sampleCampaigns,
     isLoading,
     isRefreshing,
     error,

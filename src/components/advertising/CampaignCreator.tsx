@@ -18,7 +18,9 @@ import {
   getTikTokCampaigns, 
   getSavedTikTokToken,
   createMetaCampaign,
-  getMetaAudiences
+  getMetaAudiences,
+  createMetaAdSet,
+  createMetaAd
 } from "@/lib/ads-api";
 import { AlertCircle, Trash, Edit, Pause, Play, RefreshCw, MoreHorizontal, Filter, Download } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -27,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CampaignCreatorProps {
   platform: 'tiktok' | 'meta';
+  isConnected?: boolean;
 }
 
 interface Campaign {
@@ -42,7 +45,7 @@ interface Campaign {
   spend?: string;
 }
 
-const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
+const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform, isConnected = false }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,17 +69,19 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
     }
   });
 
-  // Fetch real campaigns when platform or component mounts
+  // Fetch real campaigns when platform or connection status changes
   useEffect(() => {
-    fetchRealCampaigns();
-  }, [platform]);
+    if (isConnected) {
+      fetchRealCampaigns();
+    }
+  }, [platform, isConnected]);
 
-  // Fetch audiences when platform changes
+  // Fetch audiences when platform changes and connected
   useEffect(() => {
-    if (platform === 'meta') {
+    if (platform === 'meta' && isConnected) {
       fetchMetaAudiences();
     }
-  }, [platform]);
+  }, [platform, isConnected]);
 
   // Function to fetch Meta audiences
   const fetchMetaAudiences = async () => {
@@ -170,6 +175,7 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
           name: data.name,
           objective: data.objective,
           status: 'PAUSED', // Start as paused for safety
+          specialAdCategories: [],
           startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
           endTime: data.endDate ? new Date(data.endDate).toISOString() : undefined
         };
@@ -183,20 +189,59 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
         
         console.log('Creating Meta campaign with data:', campaignData);
         
-        // Call the actual API
-        const result = await createMetaCampaign(accessToken, accountId, campaignData);
+        // Call the API to create the campaign
+        const campaignResult = await createMetaCampaign(accessToken, accountId, campaignData);
         
-        if (result && result.id) {
+        if (!campaignResult || !campaignResult.id) {
+          throw new Error('Failed to create campaign. Please try again.');
+        }
+        
+        const campaignId = campaignResult.id;
+        console.log('Campaign created successfully with ID:', campaignId);
+        
+        // Create ad set with targeting
+        const adSetData = {
+          name: `${data.name} - Ad Set`,
+          campaignId: campaignId,
+          optimizationGoal: data.objective === 'AWARENESS' ? 'REACH' : 
+                            data.objective === 'TRAFFIC' ? 'LINK_CLICKS' : 
+                            'CONVERSIONS',
+          billingEvent: data.objective === 'AWARENESS' ? 'IMPRESSIONS' : 'IMPRESSIONS',
+          dailyBudget: data.budgetType === 'daily' ? data.budget : undefined,
+          lifetimeBudget: data.budgetType === 'lifetime' ? data.budget : undefined,
+          startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
+          endTime: data.endDate ? new Date(data.endDate).toISOString() : undefined,
+          targeting: {
+            age_min: 18,
+            age_max: 65,
+            genders: [1, 2], // All genders
+            geo_locations: {
+              countries: ['US', 'CA'] // Default targeting
+            }
+          }
+        };
+        
+        if (data.targetAudience && data.targetAudience !== 'All') {
+          // If custom audience selected, add it to targeting
+          adSetData.targeting['custom_audiences'] = [{id: data.targetAudience}];
+        }
+        
+        console.log('Creating ad set with data:', adSetData);
+        
+        // Create the ad set
+        const adSetResult = await createMetaAdSet(accessToken, accountId, adSetData);
+        
+        if (adSetResult && adSetResult.id) {
+          console.log('Ad set created successfully with ID:', adSetResult.id);
+          
           toast({
             title: "Campaign Created",
             description: `Your Meta campaign "${data.name}" has been created successfully.`,
           });
-          
-          // Refresh the campaign list to show the new campaign
-          fetchRealCampaigns();
-        } else {
-          throw new Error('Failed to create campaign. Please try again.');
         }
+        
+        // Refresh the campaign list to show the new campaign
+        fetchRealCampaigns();
       } else if (platform === 'tiktok') {
         // Get TikTok token and advertiser ID
         const { accessToken, advertiserId } = getSavedTikTokToken();
@@ -210,8 +255,6 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
           advertiserId,
           platform: 'tiktok'
         });
-        
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
         
         // For now, we're just creating a simulated campaign until the real API integration is complete
         const newCampaign = {
@@ -275,6 +318,17 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
   
   // Render function for campaign list or empty state
   const renderCampaignList = () => {
+    if (!isConnected) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 border rounded-lg border-dashed">
+          <h3 className="text-lg font-medium mb-2">Connect Your {platform === 'meta' ? 'Meta' : 'TikTok'} Account</h3>
+          <p className="text-center text-muted-foreground mb-4">
+            Please connect your {platform === 'meta' ? 'Meta' : 'TikTok'} account to view and manage your campaigns
+          </p>
+        </div>
+      );
+    }
+  
     if (isLoading && !isRefreshing) {
       return (
         <div className="flex justify-center items-center p-12">
@@ -494,98 +548,228 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
   return (
     <div className="space-y-6">
       {/* Campaign filtering and management */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="paused">Paused</TabsTrigger>
-            <TabsTrigger value="draft">Draft</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        
-        <div className="flex gap-2 w-full md:w-auto">
-          <Button variant="outline" size="sm" onClick={fetchRealCampaigns} disabled={isRefreshing}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
-          </Button>
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" /> Export
-          </Button>
+      {isConnected && (
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-start">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="paused">Paused</TabsTrigger>
+              <TabsTrigger value="draft">Draft</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button variant="outline" size="sm" onClick={fetchRealCampaigns} disabled={isRefreshing}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
+            </Button>
+            <Button variant="outline" size="sm">
+              <Filter className="mr-2 h-4 w-4" /> Filter
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="mr-2 h-4 w-4" /> Export
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
       
       {/* Campaign List Section */}
       {renderCampaignList()}
       
       {/* Create Campaign Dialog */}
-      <div className="flex justify-center mt-4">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>Create New Campaign</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New {platform === 'meta' ? 'Meta' : 'TikTok'} Campaign</DialogTitle>
-              <DialogDescription>
-                Set up your advertising campaign for {platform === 'meta' ? 'Facebook/Instagram' : 'TikTok'}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateCampaign)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Campaign Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Summer Product Launch" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid gap-4 md:grid-cols-2">
+      {isConnected && (
+        <div className="flex justify-center mt-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>Create New Campaign</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New {platform === 'meta' ? 'Meta' : 'TikTok'} Campaign</DialogTitle>
+                <DialogDescription>
+                  Set up your advertising campaign for {platform === 'meta' ? 'Facebook/Instagram' : 'TikTok'}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleCreateCampaign)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="objective"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Campaign Objective</FormLabel>
+                        <FormLabel>Campaign Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Summer Product Launch" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="objective"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Campaign Objective</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select objective" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {platform === 'meta' ? (
+                                <>
+                                  <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
+                                  <SelectItem value="REACH">Reach</SelectItem>
+                                  <SelectItem value="TRAFFIC">Traffic</SelectItem>
+                                  <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
+                                  <SelectItem value="CONVERSIONS">Conversions</SelectItem>
+                                </>
+                              ) : (
+                                <>
+                                  <SelectItem value="Conversions">Conversions</SelectItem>
+                                  <SelectItem value="Reach">Reach & Awareness</SelectItem>
+                                  <SelectItem value="Traffic">Traffic</SelectItem>
+                                  <SelectItem value="Engagement">Engagement</SelectItem>
+                                  <SelectItem value="VideoViews">Video Views</SelectItem>
+                                </>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="budgetType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Budget Type</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Budget type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily Budget</SelectItem>
+                              <SelectItem value="lifetime">Lifetime Budget</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="budget"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Budget (USD)</FormLabel>
+                        <FormControl>
+                          <div className="space-y-2">
+                            <Slider
+                              defaultValue={[field.value]}
+                              min={100}
+                              max={5000}
+                              step={100}
+                              onValueChange={(value) => field.onChange(value[0])}
+                              className="py-4"
+                            />
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">$100</span>
+                              <span className="text-sm font-medium">${field.value}</span>
+                              <span className="text-sm text-muted-foreground">$5000</span>
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>End Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="targetAudience"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Target Audience</FormLabel>
                         <Select 
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select objective" />
+                              <SelectValue placeholder="Select audience" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {platform === 'meta' ? (
-                              <>
-                                <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
-                                <SelectItem value="REACH">Reach</SelectItem>
-                                <SelectItem value="TRAFFIC">Traffic</SelectItem>
-                                <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
-                                <SelectItem value="CONVERSIONS">Conversions</SelectItem>
-                              </>
+                            {platform === 'meta' && audiences.length > 0 ? (
+                              audiences.map(audience => (
+                                <SelectItem key={audience.id} value={audience.id}>
+                                  {audience.name} ({audience.approximate_count || 'Unknown size'})
+                                </SelectItem>
+                              ))
                             ) : (
                               <>
-                                <SelectItem value="Conversions">Conversions</SelectItem>
-                                <SelectItem value="Reach">Reach & Awareness</SelectItem>
-                                <SelectItem value="Traffic">Traffic</SelectItem>
-                                <SelectItem value="Engagement">Engagement</SelectItem>
-                                <SelectItem value="VideoViews">Video Views</SelectItem>
+                                <SelectItem value="All">All Users</SelectItem>
+                                <SelectItem value="Youth">Youth (18-24)</SelectItem>
+                                <SelectItem value="YoungAdults">Young Adults (25-34)</SelectItem>
+                                <SelectItem value="Adults">Adults (35-44)</SelectItem>
+                                <SelectItem value="Seniors">Seniors (45+)</SelectItem>
                               </>
                             )}
                           </SelectContent>
                         </Select>
+                        <FormDescription>
+                          {platform === 'meta' && audiences.length > 0 
+                            ? 'Select a custom audience from your Meta account' 
+                            : 'Select the demographics you want to target'}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -593,169 +777,43 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
                   
                   <FormField
                     control={form.control}
-                    name="budgetType"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Budget Type</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Budget type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="daily">Daily Budget</SelectItem>
-                            <SelectItem value="lifetime">Lifetime Budget</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="budget"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Budget (USD)</FormLabel>
-                      <FormControl>
-                        <div className="space-y-2">
-                          <Slider
-                            defaultValue={[field.value]}
-                            min={100}
-                            max={5000}
-                            step={100}
-                            onValueChange={(value) => field.onChange(value[0])}
-                            className="py-4"
+                        <FormLabel>Campaign Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Describe the goals and strategy for this campaign" 
+                            {...field}
+                            rows={3}
                           />
-                          <div className="flex justify-between">
-                            <span className="text-sm text-muted-foreground">$100</span>
-                            <span className="text-sm font-medium">${field.value}</span>
-                            <span className="text-sm text-muted-foreground">$5000</span>
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="startDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
-                  <FormField
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="targetAudience"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Target Audience</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select audience" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {platform === 'meta' && audiences.length > 0 ? (
-                            audiences.map(audience => (
-                              <SelectItem key={audience.id} value={audience.id}>
-                                {audience.name} ({audience.approximate_count || 'Unknown size'})
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <>
-                              <SelectItem value="All">All Users</SelectItem>
-                              <SelectItem value="Youth">Youth (18-24)</SelectItem>
-                              <SelectItem value="YoungAdults">Young Adults (25-34)</SelectItem>
-                              <SelectItem value="Adults">Adults (35-44)</SelectItem>
-                              <SelectItem value="Seniors">Seniors (45+)</SelectItem>
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        {platform === 'meta' && audiences.length > 0 
-                          ? 'Select a custom audience from your Meta account' 
-                          : 'Select the demographics you want to target'}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Campaign Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe the goals and strategy for this campaign" 
-                          {...field}
-                          rows={3}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
-                        Creating...
-                      </>
-                    ) : (
-                      'Create Campaign'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isLoading}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+                          Creating...
+                        </>
+                      ) : (
+                        'Create Campaign'
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
     </div>
   );
 };

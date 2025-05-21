@@ -148,7 +148,7 @@ export const getMetaCampaigns = async (accessToken: string, accountId: string) =
 // Create a new Meta campaign
 export const createMetaCampaign = async (accessToken: string, accountId: string, campaignData: any) => {
   try {
-    console.log('Creating Meta campaign for account:', accountId);
+    console.log('Creating Meta campaign for account:', accountId, 'with data:', campaignData);
     
     const { data, error } = await supabase.functions.invoke('meta-auth', {
       body: { 
@@ -184,6 +184,50 @@ export const getMetaAudiences = async (accessToken: string, accountId: string) =
     return data;
   } catch (err) {
     console.error('Error getting Meta audiences:', err);
+    throw err;
+  }
+};
+
+// Create Ad Set with targeting options
+export const createMetaAdSet = async (accessToken: string, accountId: string, adSetData: any) => {
+  try {
+    console.log('Creating Meta ad set for account:', accountId);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        accountId, 
+        adSetData,
+        action: 'create_ad_set' 
+      }
+    });
+    
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (err) {
+    console.error('Error creating Meta ad set:', err);
+    throw err;
+  }
+};
+
+// Create Ad with creative
+export const createMetaAd = async (accessToken: string, accountId: string, adData: any) => {
+  try {
+    console.log('Creating Meta ad for account:', accountId);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        accountId, 
+        adData,
+        action: 'create_ad' 
+      }
+    });
+    
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (err) {
+    console.error('Error creating Meta ad:', err);
     throw err;
   }
 };

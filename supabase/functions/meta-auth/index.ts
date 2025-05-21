@@ -228,6 +228,10 @@ serve(async (req) => {
             campaignParams.append('end_time', campaignData.endTime);
           }
           
+          if (campaignData.specialAdCategories) {
+            campaignParams.append('special_ad_categories', JSON.stringify(campaignData.specialAdCategories));
+          }
+          
           campaignParams.append('access_token', createToken);
           
           // Create Campaign Endpoint
@@ -263,6 +267,162 @@ serve(async (req) => {
           console.error('Error creating campaign:', error);
           return new Response(
             JSON.stringify({ error: 'Failed to create campaign', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+      case 'create_ad_set':
+        // Create a new ad set
+        const adSetToken = requestData.accessToken;
+        const adSetAccountId = requestData.accountId;
+        const adSetData = requestData.adSetData;
+        
+        if (!adSetToken || !adSetAccountId || !adSetData) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, account ID, and ad set data are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Creating ad set for account:', adSetAccountId);
+        
+        try {
+          // Prepare the ad set creation data
+          const adSetParams = new URLSearchParams();
+          adSetParams.append('name', adSetData.name);
+          adSetParams.append('campaign_id', adSetData.campaignId);
+          adSetParams.append('optimization_goal', adSetData.optimizationGoal || 'REACH');
+          adSetParams.append('billing_event', adSetData.billingEvent || 'IMPRESSIONS');
+          adSetParams.append('status', 'PAUSED'); // Start as paused for safety
+          
+          // Budget settings
+          if (adSetData.dailyBudget) {
+            adSetParams.append('daily_budget', Math.floor(adSetData.dailyBudget * 100).toString());
+          } else if (adSetData.lifetimeBudget) {
+            adSetParams.append('lifetime_budget', Math.floor(adSetData.lifetimeBudget * 100).toString());
+          }
+          
+          // Schedule
+          if (adSetData.startTime) {
+            adSetParams.append('start_time', adSetData.startTime);
+          }
+          if (adSetData.endTime) {
+            adSetParams.append('end_time', adSetData.endTime);
+          }
+          
+          // Targeting - stringify the targeting spec
+          if (adSetData.targeting) {
+            adSetParams.append('targeting', JSON.stringify(adSetData.targeting));
+          }
+          
+          // Bid amount
+          if (adSetData.bidAmount) {
+            adSetParams.append('bid_amount', Math.floor(adSetData.bidAmount * 100).toString());
+          }
+          
+          adSetParams.append('access_token', adSetToken);
+          
+          // Create Ad Set Endpoint
+          const adSetResponse = await fetch(`${META_API_URL}/${adSetAccountId}/adsets`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: adSetParams.toString()
+          });
+          
+          const adSetResult = await adSetResponse.json();
+          
+          console.log('Ad set creation response status:', adSetResponse.status);
+          
+          if (!adSetResponse.ok) {
+            console.error('Ad set creation failed with status:', adSetResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to create ad set', 
+                details: adSetResult,
+                status: adSetResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: adSetResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(adSetResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error creating ad set:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create ad set', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+      case 'create_ad':
+        // Create a new ad
+        const adToken = requestData.accessToken;
+        const adAccountId = requestData.accountId;
+        const adData = requestData.adData;
+        
+        if (!adToken || !adAccountId || !adData) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, account ID, and ad data are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Creating ad for account:', adAccountId);
+        
+        try {
+          // Prepare the ad creation data
+          const adParams = new URLSearchParams();
+          adParams.append('name', adData.name);
+          adParams.append('adset_id', adData.adsetId);
+          adParams.append('status', 'PAUSED'); // Start as paused for safety
+          
+          // Creative
+          if (adData.creativeId) {
+            adParams.append('creative', JSON.stringify({ creative_id: adData.creativeId }));
+          } else if (adData.creative) {
+            adParams.append('creative', JSON.stringify(adData.creative));
+          }
+          
+          adParams.append('access_token', adToken);
+          
+          // Create Ad Endpoint
+          const adResponse = await fetch(`${META_API_URL}/${adAccountId}/ads`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: adParams.toString()
+          });
+          
+          const adResult = await adResponse.json();
+          
+          console.log('Ad creation response status:', adResponse.status);
+          
+          if (!adResponse.ok) {
+            console.error('Ad creation failed with status:', adResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to create ad', 
+                details: adResult,
+                status: adResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: adResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(adResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error creating ad:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create ad', message: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }

@@ -123,7 +123,7 @@ export const saveMetaToken = (token: string, accountId: string = '') => {
       return false;
     }
     
-    // Current timestamp plus 60 days (in milliseconds)
+    // Current timestamp plus 60 days (in milliseconds) - Meta tokens have longer validity
     const expiresAt = Date.now() + (60 * 24 * 60 * 60 * 1000);
     
     const tokenData = {
@@ -136,11 +136,15 @@ export const saveMetaToken = (token: string, accountId: string = '') => {
     console.log('Saving Meta token data:', { 
       tokenPreview: token.substring(0, 5) + '...', 
       accountId, 
-      expiresAt,
+      expiresAt: new Date(expiresAt).toISOString(),
       lastUsed: new Date().toISOString()
     });
     
     localStorage.setItem('meta_auth_data', JSON.stringify(tokenData));
+    
+    // Also trigger event for listeners to pick up the token change
+    window.dispatchEvent(new Event('meta_auth_changed'));
+    
     return true;
   } catch (error) {
     console.error('Error saving Meta token:', error);
@@ -201,6 +205,7 @@ export const getSavedMetaToken = () => {
 // Check if Meta token is saved and valid
 export const hasMetaToken = () => {
   const { accessToken } = getSavedMetaToken();
+  console.log('Checking Meta token availability:', !!accessToken);
   return !!accessToken;
 };
 
@@ -209,9 +214,24 @@ export const removeMetaToken = () => {
   try {
     localStorage.removeItem('meta_auth_data');
     console.log('Meta token removed from storage');
+    
+    // Trigger event for listeners
+    window.dispatchEvent(new Event('meta_auth_changed'));
+    
     return true;
   } catch (error) {
     console.error('Error removing Meta token:', error);
     return false;
   }
+};
+
+// Function to force token refresh check
+export const refreshMetaTokenStatus = () => {
+  const { accessToken } = getSavedMetaToken();
+  console.log('Force refreshing Meta token status, token exists:', !!accessToken);
+  
+  // Dispatch event to notify listeners of potential token change
+  window.dispatchEvent(new Event('meta_auth_changed'));
+  
+  return !!accessToken;
 };

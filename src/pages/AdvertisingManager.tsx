@@ -18,7 +18,8 @@ import {
   getSavedMetaToken,
   processMetaAuthCallback,
   getTikTokAuthUrl,
-  getMetaOAuthUrl 
+  getMetaOAuthUrl,
+  refreshMetaTokenStatus
 } from "@/lib/ads-api";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -75,6 +76,25 @@ const AdvertisingManager = () => {
     // Clean up
     return () => window.removeEventListener('message', handleMessage);
   }, [toast]);
+
+  // Listen for Meta auth status changes
+  useEffect(() => {
+    const handleMetaAuthChange = () => {
+      console.log('Meta auth status changed');
+      const connected = hasMetaToken();
+      console.log('Meta connection status:', connected);
+      
+      if (selectedPlatform === 'meta') {
+        setIsConnected(connected);
+      }
+    };
+    
+    // Add the auth change listener
+    window.addEventListener('meta_auth_changed', handleMetaAuthChange);
+    
+    // Clean up
+    return () => window.removeEventListener('meta_auth_changed', handleMetaAuthChange);
+  }, [selectedPlatform]);
 
   // Check for auth code in URL params (direct navigation or redirect case)
   useEffect(() => {
@@ -199,7 +219,7 @@ const AdvertisingManager = () => {
     checkDirectAuthCode();
   }, [toast]);
 
-  // Check connection status on mount and token changes
+  // Check connection status on mount and platform changes
   useEffect(() => {
     const checkConnectionStatus = () => {
       console.log('Checking connection status for platform:', selectedPlatform);
@@ -227,6 +247,11 @@ const AdvertisingManager = () => {
     
     checkConnectionStatus();
     
+    // Force refresh Meta token status to ensure we have the latest info
+    if (selectedPlatform === 'meta') {
+      refreshMetaTokenStatus();
+    }
+    
     // Set up an interval to check token status periodically
     const tokenCheckInterval = setInterval(checkConnectionStatus, 60000); // Check every minute
     
@@ -243,6 +268,9 @@ const AdvertisingManager = () => {
       });
       return;
     }
+    
+    // Set active tab to campaigns tab
+    setActiveTab('campaigns');
     
     // Implementation would continue here in a real app
     toast({
@@ -304,6 +332,23 @@ const AdvertisingManager = () => {
     }
   };
 
+  // Handle platform change
+  const handlePlatformChange = (platform: 'tiktok' | 'meta') => {
+    setSelectedPlatform(platform);
+    
+    // Check connection status immediately after platform change
+    if (platform === 'tiktok') {
+      setIsConnected(hasTikTokToken());
+    } else {
+      const metaConnected = hasMetaToken();
+      console.log('Changing to Meta platform, connection status:', metaConnected);
+      setIsConnected(metaConnected);
+      
+      // Force refresh Meta token status
+      refreshMetaTokenStatus();
+    }
+  };
+
   return (
     <ErrorBoundary onError={handleError}>
       <Dashboard 
@@ -322,14 +367,14 @@ const AdvertisingManager = () => {
                 <div className="flex items-center gap-2">
                   <Button 
                     variant={selectedPlatform === 'tiktok' ? 'default' : 'outline'} 
-                    onClick={() => setSelectedPlatform('tiktok')}
+                    onClick={() => handlePlatformChange('tiktok')}
                     className="flex-1 md:flex-auto"
                   >
                     TikTok Ads
                   </Button>
                   <Button 
                     variant={selectedPlatform === 'meta' ? 'default' : 'outline'} 
-                    onClick={() => setSelectedPlatform('meta')}
+                    onClick={() => handlePlatformChange('meta')}
                     className="flex-1 md:flex-auto"
                   >
                     Meta Ads
@@ -360,7 +405,10 @@ const AdvertisingManager = () => {
                   <PlusCircle className="mr-2 h-4 w-4" /> Create Campaign
                 </Button>
               </div>
-              <CampaignCreator platform={selectedPlatform} />
+              <CampaignCreator 
+                platform={selectedPlatform} 
+                isConnected={isConnected}
+              />
             </TabsContent>
             
             <TabsContent value="creatives" className="mt-0">

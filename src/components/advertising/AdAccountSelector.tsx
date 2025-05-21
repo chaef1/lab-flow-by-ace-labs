@@ -43,7 +43,7 @@ import {
   getMetaAdAccounts,
   getMetaOAuthUrl,
   processMetaAuthCallback
-} from "@/lib/tiktok-ads-api";
+} from "@/lib/ads-api";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface AdAccountSelectorProps {

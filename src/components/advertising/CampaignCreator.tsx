@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
-import { getMetaCampaigns, getSavedMetaToken, getMetaAdAccounts, getTikTokCampaigns, getSavedTikTokToken } from "@/lib/tiktok-ads-api";
+import { getMetaCampaigns, getSavedMetaToken, getMetaAdAccounts, getTikTokCampaigns, getSavedTikTokToken } from "@/lib/ads-api";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 

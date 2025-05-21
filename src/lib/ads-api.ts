@@ -28,9 +28,12 @@ export {
   getMetaCampaigns,
   createMetaCampaign,
   getMetaAudiences,
+  createMetaAdSet,
+  createMetaAd,
   uploadMetaCreative,
   hasMetaToken,
   getSavedMetaToken,
   removeMetaToken,
-  saveMetaToken
+  saveMetaToken,
+  refreshMetaTokenStatus
 } from './api/meta-api';

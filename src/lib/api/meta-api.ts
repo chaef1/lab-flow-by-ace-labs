@@ -254,5 +254,16 @@ export const uploadMetaCreative = async (accessToken: string, accountId: string,
   }
 };
 
+// Force refresh Meta token status and trigger listeners
+export const refreshMetaTokenStatus = () => {
+  const { accessToken } = getSavedMetaToken();
+  console.log('Force refreshing Meta token status, token exists:', !!accessToken);
+  
+  // Dispatch event to notify listeners of potential token change
+  window.dispatchEvent(new Event('meta_auth_changed'));
+  
+  return !!accessToken;
+};
+
 // Export token storage functions directly
 export { saveMetaToken, hasMetaToken, getSavedMetaToken, removeMetaToken };

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { saveTikTokToken, hasTikTokToken, getSavedTikTokToken, removeTikTokToken } from "@/lib/storage/token-storage";
 
@@ -141,5 +140,5 @@ export const createTikTokCampaign = async (accessToken: string, advertiserId: st
   }
 };
 
-// Re-export token storage functions for backward compatibility
-export { hasTikTokToken, getSavedTikTokToken, removeTikTokToken };
+// Export token storage functions directly for use in other modules
+export { saveTikTokToken, hasTikTokToken, getSavedTikTokToken, removeTikTokToken };

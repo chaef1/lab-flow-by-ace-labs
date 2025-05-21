@@ -10,7 +10,13 @@ import MediaUploader from "@/components/advertising/MediaUploader";
 import AdPerformance from "@/components/advertising/AdPerformance";
 import { PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { hasTikTokToken, getSavedTikTokToken, processTikTokAuthCallback, hasMetaToken, getTikTokAuthUrl } from "@/lib/tiktok-ads-api";
+import { 
+  hasTikTokToken, 
+  getSavedTikTokToken, 
+  processTikTokAuthCallback, 
+  hasMetaToken, 
+  getTikTokAuthUrl 
+} from "@/lib/ads-api";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 

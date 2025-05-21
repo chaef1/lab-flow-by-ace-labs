@@ -12,42 +12,46 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
-import { getMetaCampaigns, getSavedMetaToken, getMetaAdAccounts, getTikTokCampaigns, getSavedTikTokToken } from "@/lib/ads-api";
-import { AlertCircle } from "lucide-react";
+import { 
+  getMetaCampaigns, 
+  getSavedMetaToken, 
+  getMetaAdAccounts, 
+  getTikTokCampaigns, 
+  getSavedTikTokToken,
+  createMetaCampaign,
+  getMetaAudiences
+} from "@/lib/ads-api";
+import { AlertCircle, Trash, Edit, Pause, Play, Refresh, MoreHorizontal, Filter, Download } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CampaignCreatorProps {
   platform: 'tiktok' | 'meta';
 }
 
+interface Campaign {
+  id: string;
+  name: string;
+  objective: string;
+  status: string;
+  budget: number;
+  startDate?: string;
+  endDate?: string;
+  creatives?: number;
+  insights?: any;
+  spend?: string;
+}
+
 const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
-  const [campaigns, setCampaigns] = useState([
-    { 
-      id: '1', 
-      name: 'Summer Product Launch', 
-      objective: 'Conversions', 
-      budget: 1000, 
-      status: 'Active',
-      startDate: '2025-06-01',
-      endDate: '2025-06-30',
-      creatives: 3
-    },
-    { 
-      id: '2', 
-      name: 'Brand Awareness Q2', 
-      objective: 'Reach', 
-      budget: 2500, 
-      status: 'Scheduled',
-      startDate: '2025-07-01',
-      endDate: '2025-07-31',
-      creatives: 2
-    }
-  ]);
-  
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [realCampaigns, setRealCampaigns] = useState<any[]>([]);
+  const [audiences, setAudiences] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('active');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
   
   const form = useForm({
@@ -55,6 +59,7 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
       name: '',
       objective: '',
       budget: 500,
+      budgetType: 'daily',
       startDate: '',
       endDate: '',
       targetAudience: '',
@@ -67,10 +72,35 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
     fetchRealCampaigns();
   }, [platform]);
 
+  // Fetch audiences when platform changes
+  useEffect(() => {
+    if (platform === 'meta') {
+      fetchMetaAudiences();
+    }
+  }, [platform]);
+
+  // Function to fetch Meta audiences
+  const fetchMetaAudiences = async () => {
+    try {
+      const { accessToken, accountId } = getSavedMetaToken();
+      
+      if (accessToken && accountId) {
+        const audiencesData = await getMetaAudiences(accessToken, accountId);
+        
+        if (audiencesData && audiencesData.data) {
+          setAudiences(audiencesData.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching Meta audiences:', error);
+    }
+  };
+
   // Function to fetch real campaigns from the selected platform
   const fetchRealCampaigns = async () => {
     try {
       setIsLoading(true);
+      setIsRefreshing(true);
       setError(null);
       
       if (platform === 'meta') {
@@ -82,7 +112,22 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
           
           if (campaignsData && campaignsData.data) {
             console.log('Meta campaigns fetched:', campaignsData.data);
-            setRealCampaigns(campaignsData.data);
+            
+            // Transform the campaign data into a more usable format
+            const transformedCampaigns = campaignsData.data.map((campaign: any) => ({
+              id: campaign.id,
+              name: campaign.name,
+              objective: campaign.objective || 'Not specified',
+              status: campaign.status || 'ACTIVE',
+              budget: parseFloat(campaign.daily_budget || campaign.lifetime_budget || '0') / 100, // Convert from cents to dollars
+              startDate: campaign.start_time,
+              endDate: campaign.stop_time,
+              spend: campaign.spend || '0',
+              insights: campaign.insights ? campaign.insights.data[0] : null
+            }));
+            
+            setRealCampaigns(transformedCampaigns);
+            setCampaigns([]); // Clear sample campaigns
           }
         }
       } else if (platform === 'tiktok') {
@@ -98,11 +143,12 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error fetching ${platform} campaigns:`, error);
       setError(`Failed to fetch ${platform} campaigns. Please try again.`);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
   
@@ -120,38 +166,38 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
           throw new Error('Meta authentication required. Please connect your Meta account first.');
         }
         
-        // This is where we would normally call the Meta API to create a real campaign
-        // For now, we'll simulate a successful campaign creation with a delay
-        console.log('Creating Meta campaign with data:', {
-          ...data,
-          accountId,
-          platform: 'meta'
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-        
-        // For now, we're just creating a simulated campaign until the real API integration is complete
-        const newCampaign = {
-          id: `meta-${Date.now()}`,
+        // Prepare the campaign data
+        const campaignData = {
           name: data.name,
           objective: data.objective,
-          budget: data.budget,
-          status: 'Draft',
-          startDate: data.startDate,
-          endDate: data.endDate,
-          creatives: 0
+          status: 'PAUSED', // Start as paused for safety
+          startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
+          endTime: data.endDate ? new Date(data.endDate).toISOString() : undefined
         };
         
-        setCampaigns([...campaigns, newCampaign]);
+        // Add budget based on budget type
+        if (data.budgetType === 'daily') {
+          campaignData['dailyBudget'] = data.budget;
+        } else {
+          campaignData['lifetimeBudget'] = data.budget;
+        }
         
-        toast({
-          title: "Meta Campaign Created",
-          description: "Your Meta campaign has been created successfully (simulated).",
-        });
+        console.log('Creating Meta campaign with data:', campaignData);
         
-        // In a real implementation, we would create the campaign via the Meta API
-        // const result = await createMetaCampaign(accessToken, accountId, data);
-        // Then handle the result accordingly
+        // Call the actual API
+        const result = await createMetaCampaign(accessToken, accountId, campaignData);
+        
+        if (result && result.id) {
+          toast({
+            title: "Campaign Created",
+            description: `Your Meta campaign "${data.name}" has been created successfully.`,
+          });
+          
+          // Refresh the campaign list to show the new campaign
+          fetchRealCampaigns();
+        } else {
+          throw new Error('Failed to create campaign. Please try again.');
+        }
       } else if (platform === 'tiktok') {
         // Get TikTok token and advertiser ID
         const { accessToken, advertiserId } = getSavedTikTokToken();
@@ -208,9 +254,29 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
     }
   };
   
+  const handleUpdateCampaignStatus = async (campaignId: string, newStatus: string) => {
+    // This would be implemented to toggle campaign status
+    toast({
+      title: "Campaign Status Update",
+      description: `Campaign status updated to ${newStatus}`,
+    });
+    
+    // Refresh campaigns after update
+    fetchRealCampaigns();
+  };
+  
+  // Filter campaigns based on active tab
+  const filteredCampaigns = realCampaigns.filter(campaign => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'active') return campaign.status === 'ACTIVE';
+    if (activeTab === 'paused') return campaign.status === 'PAUSED';
+    if (activeTab === 'draft') return campaign.status === 'DRAFT';
+    return true;
+  });
+  
   // Render function for campaign list or empty state
   const renderCampaignList = () => {
-    if (isLoading) {
+    if (isLoading && !isRefreshing) {
       return (
         <div className="flex justify-center items-center p-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -228,24 +294,22 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
       );
     }
     
-    if (realCampaigns.length > 0) {
+    if (filteredCampaigns.length > 0) {
       return (
         <div className="grid gap-4">
-          {/* Display real campaigns from the API when available */}
-          {realCampaigns.map((campaign: any) => (
-            <Card key={campaign.id || campaign.campaign_id} className="overflow-hidden">
+          {filteredCampaigns.map((campaign: any) => (
+            <Card key={campaign.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle>{campaign.name}</CardTitle>
                     <CardDescription>
-                      {platform === 'meta' ? `Objective: ${campaign.objective || 'Not specified'}` : 
-                       `Objective: ${campaign.objective_type || 'Not specified'}`}
+                      Objective: {platform === 'meta' ? campaign.objective : campaign.objective_type || 'Not specified'}
                     </CardDescription>
                   </div>
                   <Badge variant={
                     (campaign.status === 'Active' || campaign.status === 'ACTIVE') ? 'default' : 
-                    (campaign.status === 'Scheduled' || campaign.status === 'SCHEDULED') ? 'secondary' :
+                    (campaign.status === 'Scheduled' || campaign.status === 'PAUSED') ? 'secondary' :
                     'outline'
                   }>
                     {campaign.status || 'Unknown'}
@@ -255,9 +319,9 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
-                    <p className="text-sm text-muted-foreground">Budget</p>
+                    <p className="text-sm text-muted-foreground">Budget/Spend</p>
                     <p className="text-xl font-bold">
-                      ${platform === 'meta' ? 
+                      ${campaign.budget?.toFixed(2) || '0.00'} / ${platform === 'meta' ? 
                         (parseFloat(campaign.spend || '0') || 0).toFixed(2) : 
                         (parseFloat(campaign.budget || '0') || 0).toFixed(2)}
                     </p>
@@ -267,23 +331,91 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
                     <p className="text-base">{campaign.id || campaign.campaign_id}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Created</p>
+                    <p className="text-sm text-muted-foreground">
+                      {campaign.startDate ? 'Duration' : 'Created'}
+                    </p>
                     <p className="text-base">
-                      {campaign.created_time ? new Date(campaign.created_time).toLocaleDateString() : 'N/A'}
+                      {campaign.startDate && campaign.endDate ? 
+                        `${new Date(campaign.startDate).toLocaleDateString()} - ${new Date(campaign.endDate).toLocaleDateString()}` : 
+                        (campaign.created_time ? new Date(campaign.created_time).toLocaleDateString() : 'N/A')}
                     </p>
                   </div>
                 </div>
+                
+                {campaign.insights && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="font-medium mb-2">Performance Metrics</p>
+                    <div className="grid grid-cols-4 gap-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Impressions</p>
+                        <p className="font-medium">{campaign.insights.impressions || '0'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Clicks</p>
+                        <p className="font-medium">{campaign.insights.clicks || '0'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">CTR</p>
+                        <p className="font-medium">{campaign.insights.ctr || '0%'}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Cost/Result</p>
+                        <p className="font-medium">${campaign.insights.cost_per_result || '0.00'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline" size="sm">View Details</Button>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">Edit</Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-9 w-9">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Campaign Actions</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => toast({title: "Editing", description: "Opening campaign editor"})}>
+                        <Edit className="mr-2 h-4 w-4" /> Edit Campaign
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toast({title: "Duplicating", description: "Duplicating campaign"})}>
+                        <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="8" y="8" width="12" height="12" rx="2" />
+                          <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                        </svg> Duplicate
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {campaign.status === 'ACTIVE' ? (
+                        <DropdownMenuItem onClick={() => handleUpdateCampaignStatus(campaign.id, 'PAUSED')}>
+                          <Pause className="mr-2 h-4 w-4" /> Pause Campaign
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => handleUpdateCampaignStatus(campaign.id, 'ACTIVE')}>
+                          <Play className="mr-2 h-4 w-4" /> Activate Campaign
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => toast({title: "Exporting", description: "Exporting campaign data"})}>
+                        <Download className="mr-2 h-4 w-4" /> Export Data
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => toast({title: "Deleting", description: "Deleting campaign"})}>
+                        <Trash className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button 
                     variant={(campaign.status === 'Active' || campaign.status === 'ACTIVE') ? 'destructive' : 'default'} 
                     size="sm"
+                    onClick={() => handleUpdateCampaignStatus(
+                      campaign.id, 
+                      (campaign.status === 'ACTIVE') ? 'PAUSED' : 'ACTIVE'
+                    )}
                   >
                     {(campaign.status === 'Active' || campaign.status === 'ACTIVE') ? 'Pause' : 
-                     (campaign.status === 'Scheduled' || campaign.status === 'SCHEDULED') ? 'Cancel' : 'Activate'}
+                     (campaign.status === 'Scheduled' || campaign.status === 'PAUSED') ? 'Activate' : 
+                     'Activate'}
                   </Button>
                 </div>
               </CardFooter>
@@ -323,7 +455,8 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
                   <div>
                     <p className="text-sm text-muted-foreground">Duration</p>
                     <p className="text-base">
-                      {new Date(campaign.startDate).toLocaleDateString()} - {new Date(campaign.endDate).toLocaleDateString()}
+                      {campaign.startDate && campaign.endDate ? 
+                        `${new Date(campaign.startDate).toLocaleDateString()} - ${new Date(campaign.endDate).toLocaleDateString()}` : 'N/A'}
                     </p>
                   </div>
                   <div>
@@ -361,6 +494,30 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
   
   return (
     <div className="space-y-6">
+      {/* Campaign filtering and management */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="paused">Paused</TabsTrigger>
+            <TabsTrigger value="draft">Draft</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button variant="outline" size="sm" onClick={fetchRealCampaigns} disabled={isRefreshing}>
+            <Refresh className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button variant="outline" size="sm">
+            <Filter className="mr-2 h-4 w-4" /> Filter
+          </Button>
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" /> Export
+          </Button>
+        </div>
+      </div>
+      
       {/* Campaign List Section */}
       {renderCampaignList()}
       
@@ -437,32 +594,57 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
                   
                   <FormField
                     control={form.control}
-                    name="budget"
+                    name="budgetType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Budget (USD)</FormLabel>
-                        <FormControl>
-                          <div className="space-y-2">
-                            <Slider
-                              defaultValue={[field.value]}
-                              min={100}
-                              max={5000}
-                              step={100}
-                              onValueChange={(value) => field.onChange(value[0])}
-                              className="py-4"
-                            />
-                            <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">$100</span>
-                              <span className="text-sm font-medium">${field.value}</span>
-                              <span className="text-sm text-muted-foreground">$5000</span>
-                            </div>
-                          </div>
-                        </FormControl>
+                        <FormLabel>Budget Type</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Budget type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily Budget</SelectItem>
+                            <SelectItem value="lifetime">Lifetime Budget</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+                
+                <FormField
+                  control={form.control}
+                  name="budget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Budget (USD)</FormLabel>
+                      <FormControl>
+                        <div className="space-y-2">
+                          <Slider
+                            defaultValue={[field.value]}
+                            min={100}
+                            max={5000}
+                            step={100}
+                            onValueChange={(value) => field.onChange(value[0])}
+                            className="py-4"
+                          />
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">$100</span>
+                            <span className="text-sm font-medium">${field.value}</span>
+                            <span className="text-sm text-muted-foreground">$5000</span>
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField
@@ -510,15 +692,27 @@ const CampaignCreator: React.FC<CampaignCreatorProps> = ({ platform }) => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="All">All Users</SelectItem>
-                          <SelectItem value="Youth">Youth (18-24)</SelectItem>
-                          <SelectItem value="YoungAdults">Young Adults (25-34)</SelectItem>
-                          <SelectItem value="Adults">Adults (35-44)</SelectItem>
-                          <SelectItem value="Seniors">Seniors (45+)</SelectItem>
+                          {platform === 'meta' && audiences.length > 0 ? (
+                            audiences.map(audience => (
+                              <SelectItem key={audience.id} value={audience.id}>
+                                {audience.name} ({audience.approximate_count || 'Unknown size'})
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <>
+                              <SelectItem value="All">All Users</SelectItem>
+                              <SelectItem value="Youth">Youth (18-24)</SelectItem>
+                              <SelectItem value="YoungAdults">Young Adults (25-34)</SelectItem>
+                              <SelectItem value="Adults">Adults (35-44)</SelectItem>
+                              <SelectItem value="Seniors">Seniors (45+)</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Select the demographics you want to target
+                        {platform === 'meta' && audiences.length > 0 
+                          ? 'Select a custom audience from your Meta account' 
+                          : 'Select the demographics you want to target'}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

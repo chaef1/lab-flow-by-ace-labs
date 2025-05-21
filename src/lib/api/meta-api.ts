@@ -145,5 +145,70 @@ export const getMetaCampaigns = async (accessToken: string, accountId: string) =
   }
 };
 
+// Create a new Meta campaign
+export const createMetaCampaign = async (accessToken: string, accountId: string, campaignData: any) => {
+  try {
+    console.log('Creating Meta campaign for account:', accountId);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken,
+        accountId, 
+        campaignData,
+        action: 'create_campaign' 
+      }
+    });
+    
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (err) {
+    console.error('Error creating Meta campaign:', err);
+    throw err;
+  }
+};
+
+// Get Meta ad audiences
+export const getMetaAudiences = async (accessToken: string, accountId: string) => {
+  try {
+    console.log('Getting Meta audiences for account:', accountId);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        accountId, 
+        action: 'get_audiences' 
+      }
+    });
+    
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (err) {
+    console.error('Error getting Meta audiences:', err);
+    throw err;
+  }
+};
+
+// Upload creative asset to Meta ad account
+export const uploadMetaCreative = async (accessToken: string, accountId: string, fileData: any) => {
+  try {
+    console.log('Uploading creative to Meta for account:', accountId);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        accountId, 
+        fileData,
+        action: 'upload_creative' 
+      }
+    });
+    
+    if (error) throw new Error(error.message);
+    return data;
+  } catch (err) {
+    console.error('Error uploading creative to Meta:', err);
+    throw err;
+  }
+};
+
 // Re-export token storage functions for backward compatibility
-export { hasMetaToken, getSavedMetaToken, removeMetaToken };
+export { saveMetaToken, hasMetaToken, getSavedMetaToken, removeMetaToken };

@@ -160,8 +160,10 @@ serve(async (req) => {
         console.log('Fetching campaigns for account:', accountId);
         
         try {
-          // Campaign List Endpoint
-          const campaignsResponse = await fetch(`${META_API_URL}/${accountId}/campaigns?fields=name,status,objective,spend&access_token=${campaignToken}`);
+          // Campaign List Endpoint with expanded fields for more complete data
+          const campaignsResponse = await fetch(
+            `${META_API_URL}/${accountId}/campaigns?fields=name,status,objective,spend,created_time,start_time,stop_time,daily_budget,lifetime_budget,insights{impressions,clicks,ctr,cost_per_result,reach}&access_token=${campaignToken}`
+          );
           const campaignsResult = await campaignsResponse.json();
           
           console.log('Campaigns response status:', campaignsResponse.status);
@@ -186,6 +188,192 @@ serve(async (req) => {
           console.error('Error fetching campaigns:', error);
           return new Response(
             JSON.stringify({ error: 'Failed to fetch campaigns', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
+      case 'create_campaign':
+        // Create a new campaign
+        const createToken = requestData.accessToken;
+        const createAccountId = requestData.accountId;
+        const campaignData = requestData.campaignData;
+        
+        if (!createToken || !createAccountId || !campaignData) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, account ID, and campaign data are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Creating campaign for account:', createAccountId);
+        
+        try {
+          // Prepare the campaign creation data
+          const campaignParams = new URLSearchParams();
+          campaignParams.append('name', campaignData.name);
+          campaignParams.append('objective', campaignData.objective);
+          campaignParams.append('status', 'PAUSED'); // Start as paused for safety
+          
+          if (campaignData.dailyBudget) {
+            campaignParams.append('daily_budget', Math.floor(campaignData.dailyBudget * 100).toString());
+          } else if (campaignData.lifetimeBudget) {
+            campaignParams.append('lifetime_budget', Math.floor(campaignData.lifetimeBudget * 100).toString());
+          }
+          
+          if (campaignData.startTime) {
+            campaignParams.append('start_time', campaignData.startTime);
+          }
+          
+          if (campaignData.endTime) {
+            campaignParams.append('end_time', campaignData.endTime);
+          }
+          
+          campaignParams.append('access_token', createToken);
+          
+          // Create Campaign Endpoint
+          const createResponse = await fetch(`${META_API_URL}/${createAccountId}/campaigns`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: campaignParams.toString()
+          });
+          
+          const createResult = await createResponse.json();
+          
+          console.log('Campaign creation response status:', createResponse.status);
+          
+          if (!createResponse.ok) {
+            console.error('Campaign creation failed with status:', createResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to create campaign', 
+                details: createResult,
+                status: createResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: createResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(createResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error creating campaign:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create campaign', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
+      case 'get_audiences':
+        // Get custom audiences for a specific ad account
+        const audienceToken = requestData.accessToken;
+        const audienceAccountId = requestData.accountId;
+        
+        if (!audienceToken || !audienceAccountId) {
+          return new Response(
+            JSON.stringify({ error: 'Access token and account ID are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Fetching audiences for account:', audienceAccountId);
+        
+        try {
+          // Custom Audiences Endpoint
+          const audiencesResponse = await fetch(
+            `${META_API_URL}/${audienceAccountId}/customaudiences?fields=name,subtype,approximate_count,description,time_created&access_token=${audienceToken}`
+          );
+          const audiencesResult = await audiencesResponse.json();
+          
+          console.log('Audiences response status:', audiencesResponse.status);
+          
+          if (!audiencesResponse.ok) {
+            console.error('Audiences request failed with status:', audiencesResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to fetch audiences', 
+                details: audiencesResult,
+                status: audiencesResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: audiencesResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(audiencesResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error fetching audiences:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch audiences', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
+      case 'upload_creative':
+        // Upload a creative asset to the ad account
+        const creativeToken = requestData.accessToken;
+        const creativeAccountId = requestData.accountId;
+        const fileData = requestData.fileData;
+        
+        if (!creativeToken || !creativeAccountId || !fileData) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, account ID, and file data are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Uploading creative for account:', creativeAccountId);
+        
+        try {
+          // For simplicity in this implementation, we'll assume fileData contains a URL 
+          // to an image that's already hosted somewhere
+          const creativeParams = new URLSearchParams();
+          creativeParams.append('name', fileData.name || 'Ad Creative');
+          
+          if (fileData.url) {
+            creativeParams.append('image_url', fileData.url);
+          }
+          
+          creativeParams.append('access_token', creativeToken);
+          
+          // Ad Creative Endpoint
+          const creativeResponse = await fetch(`${META_API_URL}/${creativeAccountId}/adimages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: creativeParams.toString()
+          });
+          
+          const creativeResult = await creativeResponse.json();
+          
+          console.log('Creative upload response status:', creativeResponse.status);
+          
+          if (!creativeResponse.ok) {
+            console.error('Creative upload failed with status:', creativeResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to upload creative', 
+                details: creativeResult,
+                status: creativeResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: creativeResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(creativeResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error uploading creative:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to upload creative', message: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }

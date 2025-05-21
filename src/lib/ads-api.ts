@@ -25,7 +25,11 @@ export {
   processMetaAuthCallback,
   getMetaAdAccounts,
   getMetaCampaigns,
+  createMetaCampaign,
+  getMetaAudiences,
+  uploadMetaCreative,
   hasMetaToken,
   getSavedMetaToken,
-  removeMetaToken
+  removeMetaToken,
+  saveMetaToken
 } from './api/meta-api';

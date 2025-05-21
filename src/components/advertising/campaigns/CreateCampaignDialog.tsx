@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import CampaignForm from './CampaignForm';
 
 interface CreateCampaignDialogProps {
-  platform: 'tiktok' | 'meta';
+  platform: 'meta';
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   onCreateCampaign: (data: any) => Promise<void>;
@@ -28,9 +28,9 @@ const CreateCampaignDialog: React.FC<CreateCampaignDialogProps> = ({
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create New {platform === 'meta' ? 'Meta' : 'TikTok'} Campaign</DialogTitle>
+          <DialogTitle>Create New Meta Campaign</DialogTitle>
           <DialogDescription>
-            Set up your advertising campaign for {platform === 'meta' ? 'Facebook/Instagram' : 'TikTok'}
+            Set up your advertising campaign for Facebook/Instagram
           </DialogDescription>
         </DialogHeader>
         

@@ -7,13 +7,10 @@ import {
   createMetaCampaign,
   getMetaAudiences,
   createMetaAdSet,
-  createMetaAd,
-  getTikTokCampaigns,
-  getSavedTikTokToken,
-  createTikTokCampaign
+  createMetaAd
 } from '@/lib/ads-api';
 
-export const useCampaigns = (platform: 'meta' | 'tiktok', isConnected: boolean) => {
+export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [sampleCampaigns, setSampleCampaigns] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,32 +85,6 @@ export const useCampaigns = (platform: 'meta' | 'tiktok', isConnected: boolean) 
             setSampleCampaigns([]); // Clear sample campaigns
           }
         }
-      } else if (platform === 'tiktok') {
-        const { accessToken, advertiserId } = getSavedTikTokToken();
-        
-        if (accessToken && advertiserId) {
-          console.log('Fetching TikTok campaigns for advertiser:', advertiserId);
-          const campaignsData = await getTikTokCampaigns(accessToken, advertiserId);
-          
-          if (campaignsData && campaignsData.code === 0 && campaignsData.data && campaignsData.data.list) {
-            console.log('TikTok campaigns fetched:', campaignsData.data.list);
-            
-            // Transform TikTok campaign data
-            const transformedCampaigns = campaignsData.data.list.map((campaign: any) => ({
-              id: campaign.campaign_id,
-              name: campaign.campaign_name,
-              objective: campaign.objective_type || 'Not specified',
-              status: campaign.status,
-              budget: campaign.budget || 0,
-              startDate: campaign.start_time,
-              endDate: campaign.end_time,
-              spend: campaign.spend || '0'
-            }));
-            
-            setCampaigns(transformedCampaigns);
-            setSampleCampaigns([]); // Clear sample campaigns
-          }
-        }
       }
     } catch (error: any) {
       console.error(`Error fetching ${platform} campaigns:`, error);
@@ -130,125 +101,87 @@ export const useCampaigns = (platform: 'meta' | 'tiktok', isConnected: boolean) 
       setIsLoading(true);
       setError(null);
       
-      if (platform === 'meta') {
-        // Get Meta token and account ID
-        const { accessToken, accountId } = getSavedMetaToken();
-        
-        if (!accessToken || !accountId) {
-          throw new Error('Meta authentication required. Please connect your Meta account first.');
-        }
-        
-        // Prepare the campaign data
-        const campaignData = {
-          name: data.name,
-          objective: data.objective,
-          status: 'PAUSED', // Start as paused for safety
-          specialAdCategories: [],
-          startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
-          endTime: data.endDate ? new Date(data.endDate).toISOString() : undefined
-        };
-        
-        // Add budget based on budget type
-        if (data.budgetType === 'daily') {
-          campaignData['dailyBudget'] = data.budget;
-        } else {
-          campaignData['lifetimeBudget'] = data.budget;
-        }
-        
-        console.log('Creating Meta campaign with data:', campaignData);
-        
-        // Call the API to create the campaign
-        const campaignResult = await createMetaCampaign(accessToken, accountId, campaignData);
-        
-        if (!campaignResult || !campaignResult.id) {
-          throw new Error('Failed to create campaign. Please try again.');
-        }
-        
-        const campaignId = campaignResult.id;
-        console.log('Campaign created successfully with ID:', campaignId);
-        
-        // Create ad set with targeting
-        const adSetData = {
-          name: `${data.name} - Ad Set`,
-          campaignId: campaignId,
-          optimizationGoal: data.objective === 'AWARENESS' ? 'REACH' : 
-                          data.objective === 'TRAFFIC' ? 'LINK_CLICKS' : 
-                          'CONVERSIONS',
-          billingEvent: data.objective === 'AWARENESS' ? 'IMPRESSIONS' : 'IMPRESSIONS',
-          dailyBudget: data.budgetType === 'daily' ? data.budget : undefined,
-          lifetimeBudget: data.budgetType === 'lifetime' ? data.budget : undefined,
-          startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
-          endTime: data.endDate ? new Date(data.endDate).toISOString() : undefined,
-          targeting: {
-            age_min: 18,
-            age_max: 65,
-            genders: [1, 2], // All genders
-            geo_locations: {
-              countries: ['ZA'] // Target South Africa by default
-            }
+      // Get Meta token and account ID
+      const { accessToken, accountId } = getSavedMetaToken();
+      
+      if (!accessToken || !accountId) {
+        throw new Error('Meta authentication required. Please connect your Meta account first.');
+      }
+      
+      // Prepare the campaign data
+      const campaignData = {
+        name: data.name,
+        objective: data.objective,
+        status: 'PAUSED', // Start as paused for safety
+        specialAdCategories: [],
+        startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
+        endTime: data.endDate ? new Date(data.endDate).toISOString() : undefined
+      };
+      
+      // Add budget based on budget type
+      if (data.budgetType === 'daily') {
+        campaignData['dailyBudget'] = data.budget;
+      } else {
+        campaignData['lifetimeBudget'] = data.budget;
+      }
+      
+      console.log('Creating Meta campaign with data:', campaignData);
+      
+      // Call the API to create the campaign
+      const campaignResult = await createMetaCampaign(accessToken, accountId, campaignData);
+      
+      if (!campaignResult || !campaignResult.id) {
+        throw new Error('Failed to create campaign. Please try again.');
+      }
+      
+      const campaignId = campaignResult.id;
+      console.log('Campaign created successfully with ID:', campaignId);
+      
+      // Create ad set with targeting
+      const adSetData = {
+        name: `${data.name} - Ad Set`,
+        campaignId: campaignId,
+        optimizationGoal: data.objective === 'AWARENESS' ? 'REACH' : 
+                        data.objective === 'TRAFFIC' ? 'LINK_CLICKS' : 
+                        'CONVERSIONS',
+        billingEvent: data.objective === 'AWARENESS' ? 'IMPRESSIONS' : 'IMPRESSIONS',
+        dailyBudget: data.budgetType === 'daily' ? data.budget : undefined,
+        lifetimeBudget: data.budgetType === 'lifetime' ? data.budget : undefined,
+        startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
+        endTime: data.endDate ? new Date(data.endDate).toISOString() : undefined,
+        targeting: {
+          age_min: 18,
+          age_max: 65,
+          genders: [1, 2], // All genders
+          geo_locations: {
+            countries: ['ZA'] // Target South Africa
           }
-        };
-        
-        if (data.targetAudience && data.targetAudience !== 'All') {
-          // If custom audience selected, add it to targeting
-          adSetData.targeting['custom_audiences'] = [{id: data.targetAudience}];
         }
-        
-        console.log('Creating ad set with data:', adSetData);
-        
-        // Create the ad set
-        const adSetResult = await createMetaAdSet(accessToken, accountId, adSetData);
-        
-        if (adSetResult && adSetResult.id) {
-          console.log('Ad set created successfully with ID:', adSetResult.id);
-          
-          toast({
-            title: "Campaign Created",
-            description: `Your Meta campaign "${data.name}" has been created successfully.`,
-          });
-        }
-        
-        // Refresh campaigns
-        fetchCampaigns();
-        
-        return campaignResult;
-      } else if (platform === 'tiktok') {
-        // Get TikTok token and advertiser ID
-        const { accessToken, advertiserId } = getSavedTikTokToken();
-        
-        if (!accessToken || !advertiserId) {
-          throw new Error('TikTok authentication required. Please connect your TikTok account first.');
-        }
-        
-        // Prepare the TikTok campaign data
-        const tiktokCampaignData = {
-          advertiser_id: advertiserId,
-          campaign_name: data.name,
-          objective_type: data.objective || "TRAFFIC",
-          budget_mode: data.budgetType === 'daily' ? "DAILY" : "TOTAL",
-          budget: data.budget * 100, // Convert to cents
-          status: "CAMPAIGN_STATUS_PAUSED" // Start as paused for safety
-        };
-        
-        console.log('Creating TikTok campaign with data:', tiktokCampaignData);
-        
-        // Call the API to create the campaign
-        const campaignResult = await createTikTokCampaign(accessToken, advertiserId, tiktokCampaignData);
-        
-        if (!campaignResult || campaignResult.code !== 0) {
-          throw new Error(campaignResult?.message || 'Failed to create TikTok campaign. Please try again.');
-        }
+      };
+      
+      if (data.targetAudience && data.targetAudience !== 'All') {
+        // If custom audience selected, add it to targeting
+        adSetData.targeting['custom_audiences'] = [{id: data.targetAudience}];
+      }
+      
+      console.log('Creating ad set with data:', adSetData);
+      
+      // Create the ad set
+      const adSetResult = await createMetaAdSet(accessToken, accountId, adSetData);
+      
+      if (adSetResult && adSetResult.id) {
+        console.log('Ad set created successfully with ID:', adSetResult.id);
         
         toast({
           title: "Campaign Created",
-          description: `Your TikTok campaign "${data.name}" has been created successfully.`,
+          description: `Your Meta campaign "${data.name}" has been created successfully.`,
         });
-        
-        // Refresh campaigns
-        fetchCampaigns();
-        
-        return campaignResult.data;
       }
+      
+      // Refresh campaigns
+      fetchCampaigns();
+      
+      return campaignResult;
     } catch (error: any) {
       console.error('Error creating campaign:', error);
       setError(error.message || 'Failed to create campaign');
@@ -268,18 +201,10 @@ export const useCampaigns = (platform: 'meta' | 'tiktok', isConnected: boolean) 
   // Update campaign status
   const updateCampaignStatus = async (campaignId: string, newStatus: string) => {
     try {
-      if (platform === 'meta') {
-        const { accessToken, accountId } = getSavedMetaToken();
-        
-        if (!accessToken || !accountId) {
-          throw new Error('Meta authentication required');
-        }
-      } else if (platform === 'tiktok') {
-        const { accessToken, advertiserId } = getSavedTikTokToken();
-        
-        if (!accessToken || !advertiserId) {
-          throw new Error('TikTok authentication required');
-        }
+      const { accessToken, accountId } = getSavedMetaToken();
+      
+      if (!accessToken || !accountId) {
+        throw new Error('Meta authentication required');
       }
       
       // In real implementation, this would call an API to update the campaign status

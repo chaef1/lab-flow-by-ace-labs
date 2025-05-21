@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 
 interface CampaignFormProps {
-  platform: 'tiktok' | 'meta';
+  platform: 'meta';
   onSubmit: (data: any) => void;
   isLoading: boolean;
   onCancel: () => void;
@@ -70,23 +70,11 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {platform === 'meta' ? (
-                      <>
-                        <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
-                        <SelectItem value="REACH">Reach</SelectItem>
-                        <SelectItem value="TRAFFIC">Traffic</SelectItem>
-                        <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
-                        <SelectItem value="CONVERSIONS">Conversions</SelectItem>
-                      </>
-                    ) : (
-                      <>
-                        <SelectItem value="Conversions">Conversions</SelectItem>
-                        <SelectItem value="Reach">Reach & Awareness</SelectItem>
-                        <SelectItem value="Traffic">Traffic</SelectItem>
-                        <SelectItem value="Engagement">Engagement</SelectItem>
-                        <SelectItem value="VideoViews">Video Views</SelectItem>
-                      </>
-                    )}
+                    <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
+                    <SelectItem value="REACH">Reach</SelectItem>
+                    <SelectItem value="TRAFFIC">Traffic</SelectItem>
+                    <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
+                    <SelectItem value="CONVERSIONS">Conversions</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -125,7 +113,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
           name="budget"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Budget (USD)</FormLabel>
+              <FormLabel>Budget (ZAR)</FormLabel>
               <FormControl>
                 <div className="space-y-2">
                   <Slider
@@ -137,9 +125,9 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                     className="py-4"
                   />
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">$100</span>
-                    <span className="text-sm font-medium">${field.value}</span>
-                    <span className="text-sm text-muted-foreground">$5000</span>
+                    <span className="text-sm text-muted-foreground">R100</span>
+                    <span className="text-sm font-medium">R{field.value}</span>
+                    <span className="text-sm text-muted-foreground">R5000</span>
                   </div>
                 </div>
               </FormControl>
@@ -194,7 +182,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {platform === 'meta' && audiences.length > 0 ? (
+                  {audiences.length > 0 ? (
                     audiences.map(audience => (
                       <SelectItem key={audience.id} value={audience.id}>
                         {audience.name} ({audience.approximate_count || 'Unknown size'})
@@ -212,7 +200,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 </SelectContent>
               </Select>
               <FormDescription>
-                {platform === 'meta' && audiences.length > 0 
+                {audiences.length > 0 
                   ? 'Select a custom audience from your Meta account' 
                   : 'Select the demographics you want to target'}
               </FormDescription>

@@ -23,7 +23,7 @@ export interface Campaign {
 
 interface CampaignListProps {
   campaigns: Campaign[];
-  platform: 'meta';  // Removed 'tiktok' option as requested
+  platform: 'meta';
   isConnected?: boolean;
   isLoading?: boolean;
   isRefreshing?: boolean;
@@ -86,8 +86,8 @@ const CampaignList: React.FC<CampaignListProps> = ({
         <CardContent className="pt-6 text-center">
           <p className="text-muted-foreground mb-2">
             {isConnected ? 
-              `No ${platform === 'meta' ? 'Meta' : ''} campaigns found.` : 
-              `Connect your ${platform === 'meta' ? 'Meta' : ''} account to view campaigns.`
+              `No Meta campaigns found.` : 
+              `Connect your Meta account to view campaigns.`
             }
           </p>
           <p className="text-sm text-muted-foreground">

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -115,20 +114,11 @@ serve(async (req) => {
     // Use a switch statement to handle different API actions
     switch (action) {
       case 'get_auth_url':
-        // Generate the auth URL dynamically 
-        const currentHost = url.hostname;
-        const isLocal = currentHost.includes('localhost');
+        // Use the exact URL format provided by the user
+        // This is the same format that works with Meta
+        const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=7368672185281413136&state=your_custom_params&redirect_uri=https%3A%2F%2Fapp-sandbox.acelabs.co.za%2Fadvertising`;
         
-        // Determine the correct redirect URI based on environment
-        // For live environment, we'll use the public-facing URL
-        const redirectUri = isLocal 
-          ? encodeURIComponent(`http://localhost:3000/advertising`)
-          : encodeURIComponent(`https://app-sandbox.acelabs.co.za/advertising`);
-        
-        // Using the production auth URL for TikTok Business API
-        const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${tiktokAppId}&state=production_mode&redirect_uri=${redirectUri}`;
-        
-        console.log('Generated dynamic auth URL for production:', authUrl);
+        console.log('Using exact specified auth URL:', authUrl);
         
         return new Response(
           JSON.stringify({ authUrl }),

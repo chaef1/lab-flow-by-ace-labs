@@ -9,7 +9,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// TikTok API configuration
+// TikTok API configuration - same URL for both production and sandbox
 const TIKTOK_API_URL = "https://business-api.tiktok.com/open_api";
 
 // HTML template for auth success - this runs in the iframe inside our app
@@ -89,7 +89,7 @@ serve(async (req) => {
         appSecretExists: !!tiktokAppSecret
       });
       return new Response(
-        JSON.stringify({ error: 'TikTok API credentials not configured' }),
+        JSON.stringify({ error: 'TikTok API credentials not configured properly. Make sure both TIKTOK_APP_ID and TIKTOK_APP_SECRET are set.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
@@ -119,14 +119,16 @@ serve(async (req) => {
         const currentHost = url.hostname;
         const isLocal = currentHost.includes('localhost');
         
-        // Use app ID from environment
+        // Determine the correct redirect URI based on environment
+        // For live environment, we'll use the public-facing URL
         const redirectUri = isLocal 
           ? encodeURIComponent(`http://localhost:3000/advertising`)
           : encodeURIComponent(`https://app-sandbox.acelabs.co.za/advertising`);
         
-        const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${tiktokAppId}&state=your_custom_params&redirect_uri=${redirectUri}`;
+        // Using the production auth URL for TikTok Business API
+        const authUrl = `https://business-api.tiktok.com/portal/auth?app_id=${tiktokAppId}&state=production_mode&redirect_uri=${redirectUri}`;
         
-        console.log('Generated dynamic auth URL:', authUrl);
+        console.log('Generated dynamic auth URL for production:', authUrl);
         
         return new Response(
           JSON.stringify({ authUrl }),
@@ -143,10 +145,10 @@ serve(async (req) => {
           );
         }
 
-        console.log('Exchanging code for access token:', exchangeCode);
+        console.log('Exchanging code for access token (production mode):', exchangeCode);
         
         try {
-          // Access Token Exchange Endpoint
+          // Access Token Exchange Endpoint - same for sandbox and production
           const tokenResponse = await fetch(`${TIKTOK_API_URL}/oauth2/access_token/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -220,7 +222,7 @@ serve(async (req) => {
         console.log('Fetching ad accounts with token:', accessToken.substring(0, 5) + '...');
         
         try {
-          // Advertiser List Endpoint
+          // Advertiser List Endpoint - same for sandbox and production
           const accountsResponse = await fetch(`${TIKTOK_API_URL}/v1.3/oauth2/advertiser/get/`, {
             method: 'GET',
             headers: {
@@ -281,7 +283,7 @@ serve(async (req) => {
         console.log('Fetching campaigns for advertiser:', advertiser_id);
         
         try {
-          // Campaign List Endpoint
+          // Campaign List Endpoint - same for sandbox and production
           const campaignsResponse = await fetch(`${TIKTOK_API_URL}/v1.3/campaign/get/`, {
             method: 'POST',
             headers: {
@@ -339,7 +341,7 @@ serve(async (req) => {
         console.log('Campaign data:', campaignData);
         
         try {
-          // Campaign Create Endpoint
+          // Campaign Create Endpoint - same for sandbox and production
           const createResponse = await fetch(`${TIKTOK_API_URL}/v1.3/campaign/create/`, {
             method: 'POST',
             headers: {

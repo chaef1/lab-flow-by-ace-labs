@@ -12,6 +12,17 @@ interface UserProfile {
   role: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
 }
 
+// Define the type for the profile data structure when updating in Supabase
+// This ensures alignment with the database column types
+type ProfileUpdateData = {
+  id?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  avatar_url?: string | null;
+  role?: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
+  updated_at?: string;
+};
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -187,16 +198,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      // Type-safe update for the profiles table
-      // Need to cast data.role to a string type that Supabase will accept
+      // Create a properly typed update object
+      const updateData: ProfileUpdateData = {
+        ...data,
+        updated_at: new Date().toISOString()
+      };
+      
       const { error } = await supabase
         .from('profiles')
-        .update({
-          ...data,
-          // If role is being updated, we need to ensure it's handled correctly
-          ...(data.role && { role: data.role }),
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', user.id);
       
       if (error) throw error;

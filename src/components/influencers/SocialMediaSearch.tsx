@@ -12,6 +12,7 @@ import { SearchForm, Platform } from "./SearchForm";
 import { RateLimitError } from "./RateLimitError";
 import { ProfileDisplay } from "./ProfileDisplay";
 import { SearchHistory } from "./SearchHistory";
+import MetaCreatorSearch from "./MetaCreatorSearch";
 
 interface SocialMediaSearchProps {
   onAddInfluencer?: (profileData: any) => void;
@@ -20,7 +21,7 @@ interface SocialMediaSearchProps {
 export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearchProps) {
   const [platform, setPlatform] = useState<Platform>('instagram');
   const [username, setUsername] = useState('');
-  const [searchTab, setSearchTab] = useState<'search' | 'history'>('search');
+  const [searchTab, setSearchTab] = useState<'search' | 'history' | 'meta'>('search');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const { 
     searchProfile, 
@@ -197,9 +198,10 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="search" value={searchTab} onValueChange={(v) => setSearchTab(v as 'search' | 'history')}>
+          <Tabs defaultValue="search" value={searchTab} onValueChange={(v) => setSearchTab(v as 'search' | 'history' | 'meta')}>
             <TabsList className="mb-4">
-              <TabsTrigger value="search">Search</TabsTrigger>
+              <TabsTrigger value="search">Profile Search</TabsTrigger>
+              <TabsTrigger value="meta">Meta Creators</TabsTrigger>
               <TabsTrigger value="history">
                 <History className="mr-2 h-4 w-4" />
                 History
@@ -237,6 +239,10 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   onOAuthLogin={handleOAuthLogin}
                 />
               </Tabs>
+            </TabsContent>
+            
+            <TabsContent value="meta">
+              <MetaCreatorSearch />
             </TabsContent>
             
             <TabsContent value="history">

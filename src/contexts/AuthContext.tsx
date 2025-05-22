@@ -10,7 +10,7 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: 'admin' | 'creator' | 'brand' | 'influencer';
+  role: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
 }
 
 interface AuthContextType {
@@ -24,6 +24,7 @@ interface AuthContextType {
   isAdmin: () => boolean;
   isCreator: () => boolean;
   isBrand: () => boolean;
+  isAgency: () => boolean;
   isInfluencer: () => boolean;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
@@ -217,6 +218,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin = () => userProfile?.role === 'admin';
   const isCreator = () => userProfile?.role === 'creator';
   const isBrand = () => userProfile?.role === 'brand';
+  const isAgency = () => userProfile?.role === 'agency';
   const isInfluencer = () => userProfile?.role === 'influencer';
 
   return (
@@ -231,6 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAdmin,
       isCreator,
       isBrand,
+      isAgency,
       isInfluencer,
       updateProfile
     }}>

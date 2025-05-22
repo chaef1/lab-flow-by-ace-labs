@@ -50,9 +50,21 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   // If allowedRoles is specified, check if user has one of the allowed roles
-  if (allowedRoles && userProfile && !allowedRoles.includes(userProfile.role)) {
-    console.log(`Access denied: User role ${userProfile.role} not in allowed roles:`, allowedRoles);
-    return <Navigate to="/dashboard" replace />;
+  if (allowedRoles && userProfile) {
+    // Handle role validation, mapping 'agency' to 'brand' temporarily
+    let effectiveRole = userProfile.role;
+    
+    // If we encounter an 'agency' role, temporarily treat it like 'brand'
+    // This avoids TypeScript errors until we can update the database schema
+    if (effectiveRole === 'agency') {
+      effectiveRole = 'brand';
+    }
+    
+    // Now check if the effective role is in the allowed roles
+    if (!allowedRoles.includes(effectiveRole as any)) {
+      console.log(`Access denied: User role ${effectiveRole} not in allowed roles:`, allowedRoles);
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;

@@ -1,7 +1,9 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { hasMetaToken, getSavedMetaToken } from "@/lib/ads-api";
 
 export type SocialProfile = {
   username: string;
@@ -64,6 +66,77 @@ export function useSocialMediaSearch() {
       // Remove @ symbol if present
       const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
       
+      // Check if this is an Instagram search and we have a Meta token
+      const isMetaConnected = hasMetaToken();
+      if (platform === 'instagram' && isMetaConnected) {
+        console.log('Using Meta Graph API for Instagram search');
+        const { accessToken } = getSavedMetaToken();
+        
+        // Call the meta-creators edge function with our token
+        const { data: metaData, error: metaError } = await supabase.functions.invoke('meta-creators', {
+          body: { 
+            action: 'search_creators',
+            query: cleanUsername,
+            accessToken
+          }
+        });
+        
+        if (metaError) {
+          console.error('Meta search error:', metaError);
+          throw new Error(metaError.message || 'Error searching Instagram');
+        }
+        
+        if (metaData && metaData.success && metaData.data && metaData.data.length > 0) {
+          // Find the most relevant creator match
+          const creator = metaData.data.find((c: any) => 
+            c.username.toLowerCase() === cleanUsername.toLowerCase()
+          ) || metaData.data[0];
+          
+          const socialProfile: SocialProfile = {
+            username: creator.username,
+            fullName: creator.name,
+            followersCount: creator.follower_count || 0,
+            followingCount: 0,
+            postsCount: creator.media_count || 0,
+            profilePicture: creator.profile_picture_url,
+            bio: creator.biography || '',
+            verified: creator.is_verified || false,
+            engagementRate: 0, // We don't have this data from the Graph API
+            // Map any available data
+            website: '',
+            recentPosts: []
+          };
+          
+          setProfile(socialProfile);
+          setProfileData({
+            username: creator.username,
+            full_name: creator.name,
+            biography: creator.biography || '',
+            follower_count: creator.follower_count || 0,
+            following_count: 0,
+            post_count: creator.media_count || 0,
+            is_verified: creator.is_verified || false,
+            profile_pic_url: creator.profile_picture_url,
+            website: '',
+            category: creator.category
+          });
+          
+          // Log the search in the database if user is authenticated
+          if (user) {
+            await supabase.from('social_media_searches').insert([
+              {
+                user_id: user.id,
+                platform,
+                username: cleanUsername
+              }
+            ]);
+          }
+          
+          return socialProfile;
+        }
+      }
+      
+      // If Meta API didn't return results or we're not using it, fall back to the regular API
       // Log the search in the database if user is authenticated
       if (user) {
         await supabase.from('social_media_searches').insert([

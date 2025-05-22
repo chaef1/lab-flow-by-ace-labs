@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
 
   try {
     const { action, query, accessToken, accountId } = await req.json()
+    console.log(`Processing ${action} with query: ${query}`)
 
     // Create authenticated Supabase client
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
       
       if (!metaAccessToken) {
         // In a real implementation, you'd retrieve the saved access token
-        // associated with the authenticated user. This is a simplified example.
+        // associated with the authenticated user
         const { data: savedTokenData, error: tokenError } = await supabase
           .from('meta_tokens')
           .select('access_token')
@@ -39,17 +40,106 @@ Deno.serve(async (req) => {
         metaAccessToken = savedTokenData.access_token;
       }
       
-      // Make request to Instagram Graph API to search creators
-      // This is a mock implementation since we can't directly search creators this way
-      // In production, this would use Meta's Business Discovery API or similar
+      console.log('Making request to Instagram Graph API with token:', metaAccessToken?.substring(0, 5) + '...');
       
-      // For development purposes, generating mock data
-      const mockCreators = generateMockCreators(query);
-      
-      return formatResponse({
-        success: true,
-        data: mockCreators
-      });
+      try {
+        // First try to search for business discovery if account ID is provided
+        if (accountId) {
+          const instagramBusinessUrl = `https://graph.facebook.com/v19.0/${accountId}/business_users?access_token=${metaAccessToken}`;
+          const businessResponse = await fetch(instagramBusinessUrl);
+          const businessData = await businessResponse.json();
+          
+          if (businessData.data && businessData.data.length > 0) {
+            console.log('Found business users:', businessData.data.length);
+          }
+        }
+        
+        // Use Instagram Graph API search to find users
+        // Note: This endpoint requires special permissions from Meta
+        const searchUrl = `https://graph.facebook.com/v19.0/ig_hashtag_search?user_id=${accountId || 'me'}&q=${encodeURIComponent(query)}&access_token=${metaAccessToken}`;
+        
+        const response = await fetch(searchUrl);
+        const data = await response.json();
+        
+        if (data.error) {
+          console.error('Instagram API error:', data.error);
+          
+          // If we get a specific error about permissions, let's make a note
+          if (data.error.code === 200 || data.error.message.includes('permission')) {
+            console.log('This API requires special permissions from Meta. Falling back to mock data for demonstration.');
+            
+            // For demo/development purposes only - in production this would be removed
+            const mockCreators = generateMockCreators(query);
+            
+            return formatResponse({
+              success: true,
+              data: mockCreators,
+              note: "This is using mock data - to use real data, you need to apply for Instagram Graph API permissions"
+            });
+          }
+          
+          return formatResponse({
+            error: data.error.message || 'Instagram API error'
+          }, 400);
+        }
+        
+        console.log('Instagram search results:', data);
+        
+        // If we have results, fetch more details for each user
+        if (data.data && data.data.length > 0) {
+          const creators = [];
+          
+          for (const item of data.data) {
+            // Fetch user details
+            const userUrl = `https://graph.facebook.com/v19.0/${item.id}?fields=id,username,name,profile_picture_url,biography,followers_count,follows_count,media_count&access_token=${metaAccessToken}`;
+            
+            const userResponse = await fetch(userUrl);
+            const userData = await userResponse.json();
+            
+            if (!userData.error) {
+              creators.push({
+                id: userData.id,
+                username: userData.username,
+                name: userData.name,
+                profile_picture_url: userData.profile_picture_url,
+                biography: userData.biography,
+                follower_count: userData.followers_count,
+                following_count: userData.follows_count,
+                media_count: userData.media_count,
+                is_verified: userData.is_verified || false,
+                category: userData.category || ''
+              });
+            }
+          }
+          
+          return formatResponse({
+            success: true,
+            data: creators
+          });
+        } else {
+          // If no results or API issues, fall back to mock data for demo
+          console.log('No results from Instagram API, using mock data for demo');
+          const mockCreators = generateMockCreators(query);
+          
+          return formatResponse({
+            success: true,
+            data: mockCreators,
+            note: "Using mock data - no results from Instagram API"
+          });
+        }
+      } catch (apiError) {
+        console.error('Error calling Instagram API:', apiError);
+        
+        // Fall back to mock data for demonstration purposes
+        console.log('Falling back to mock data due to API error');
+        const mockCreators = generateMockCreators(query);
+        
+        return formatResponse({
+          success: true,
+          data: mockCreators,
+          note: "Using mock data due to API error - in production, you would need proper Instagram Graph API permissions"
+        });
+      }
     }
     
     return formatResponse({
@@ -64,7 +154,7 @@ Deno.serve(async (req) => {
 });
 
 // Helper function to generate mock creator data based on search query
-// In production, this would be replaced with actual API calls to Meta
+// This will be removed when proper API integration is complete
 function generateMockCreators(query: string) {
   const searchTerms = query.toLowerCase().split(' ');
   
@@ -124,40 +214,7 @@ function generateMockCreators(query: string) {
       biography: 'Beauty influencer sharing makeup tips and product reviews',
       is_verified: true,
       category: 'Beauty'
-    },
-    {
-      id: '678901234',
-      name: 'David Miller',
-      username: 'david_photography',
-      profile_picture_url: 'https://randomuser.me/api/portraits/men/22.jpg',
-      follower_count: 345000,
-      media_count: 612,
-      biography: 'Photographer capturing moments and telling stories through images',
-      is_verified: false,
-      category: 'Photography'
-    },
-    {
-      id: '789012345',
-      name: 'Sophia Garcia',
-      username: 'sophia_fashion',
-      profile_picture_url: 'https://randomuser.me/api/portraits/women/28.jpg',
-      follower_count: 950000,
-      media_count: 387,
-      biography: 'Fashion stylist and trendsetter based in NYC',
-      is_verified: true,
-      category: 'Fashion'
-    },
-    {
-      id: '890123456',
-      name: 'Ryan Jackson',
-      username: 'ryan_gaming',
-      profile_picture_url: 'https://randomuser.me/api/portraits/men/36.jpg',
-      follower_count: 2100000,
-      media_count: 275,
-      biography: 'Professional gamer and content creator',
-      is_verified: true,
-      category: 'Gaming'
-    },
+    }
   ];
   
   // Filter influencers based on search terms

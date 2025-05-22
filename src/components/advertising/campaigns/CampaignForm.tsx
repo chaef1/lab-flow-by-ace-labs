@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { formatCurrency } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface CampaignFormProps {
   platform: 'meta';
@@ -52,6 +53,20 @@ const provinces = [
   { value: 'limpopo', label: 'Limpopo' },
 ];
 
+// Major cities for location targeting
+const cities = [
+  { value: 'cape_town', label: 'Cape Town', region: 'western_cape' },
+  { value: 'johannesburg', label: 'Johannesburg', region: 'gauteng' },
+  { value: 'pretoria', label: 'Pretoria', region: 'gauteng' },
+  { value: 'durban', label: 'Durban', region: 'kwazulu_natal' },
+  { value: 'port_elizabeth', label: 'Port Elizabeth', region: 'eastern_cape' },
+  { value: 'bloemfontein', label: 'Bloemfontein', region: 'free_state' },
+  { value: 'east_london', label: 'East London', region: 'eastern_cape' },
+  { value: 'pietermaritzburg', label: 'Pietermaritzburg', region: 'kwazulu_natal' },
+  { value: 'nelspruit', label: 'Nelspruit', region: 'mpumalanga' },
+  { value: 'polokwane', label: 'Polokwane', region: 'limpopo' },
+];
+
 // Interests categories for Meta targeting
 const interestsCategories = [
   {
@@ -61,6 +76,8 @@ const interestsCategories = [
       { id: '6003139266161', name: 'Movies' },
       { id: '6003139266261', name: 'TV Shows' },
       { id: '6003063201861', name: 'Gaming' },
+      { id: '6003139266861', name: 'Reading' },
+      { id: '6003063106961', name: 'Theater' },
     ]
   },
   {
@@ -70,6 +87,8 @@ const interestsCategories = [
       { id: '6003139269361', name: 'Beauty' },
       { id: '6003063107661', name: 'Electronics' },
       { id: '6003063108061', name: 'Home & Garden' },
+      { id: '6003139265361', name: 'Luxury Goods' },
+      { id: '6003139269981', name: 'Health & Wellness' },
     ]
   },
   {
@@ -79,8 +98,38 @@ const interestsCategories = [
       { id: '6003063103461', name: 'Travel' },
       { id: '6003139267661', name: 'Food & Drink' },
       { id: '6003139267261', name: 'Sports' },
+      { id: '6003139266561', name: 'Outdoor Activities' },
+      { id: '6003139264961', name: 'Arts & Crafts' },
+    ]
+  },
+  {
+    name: 'Business',
+    options: [
+      { id: '6003139264161', name: 'Finance' },
+      { id: '6003063105661', name: 'Entrepreneurship' },
+      { id: '6003063105161', name: 'Marketing' },
+      { id: '6003063104561', name: 'Technology' },
+      { id: '6003139268561', name: 'Real Estate' },
     ]
   }
+];
+
+// Behaviors for Meta targeting
+const behaviors = [
+  { id: '6002714895372', name: 'Frequent Travelers' },
+  { id: '6002714898572', name: 'Technology Early Adopters' },
+  { id: '6003050247335', name: 'Engaged Shoppers' },
+  { id: '6004854404196', name: 'Digital Activities: Online Spending' },
+  { id: '6004854400996', name: 'Mobile Device Users' },
+];
+
+// Ad creative types for Meta
+const creativeTypes = [
+  { value: 'single_image', label: 'Single Image' },
+  { value: 'carousel', label: 'Carousel' },
+  { value: 'video', label: 'Video' },
+  { value: 'slideshow', label: 'Slideshow' },
+  { value: 'collection', label: 'Collection' },
 ];
 
 // Form validation schema
@@ -93,11 +142,16 @@ const formSchema = z.object({
   endDate: z.string().optional(),
   targetAudience: z.string().optional(),
   description: z.string().optional(),
+  creativeType: z.string().min(1, { message: "Please select a creative type" }).optional(),
   // Additional targeting options
   locations: z.array(z.string()).optional(),
+  cities: z.array(z.string()).optional(),
   ageRanges: z.array(z.string()).optional(),
   gender: z.string().optional(),
   interests: z.array(z.string()).optional(),
+  behaviors: z.array(z.string()).optional(),
+  createLookalike: z.boolean().optional(),
+  lookalikeSimilarity: z.number().min(1).max(10).optional(),
 });
 
 const CampaignForm: React.FC<CampaignFormProps> = ({
@@ -108,6 +162,9 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
   audiences = []
 }) => {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [selectedBehaviors, setSelectedBehaviors] = useState<string[]>([]);
+  const [targetingMethod, setTargetingMethod] = useState<string>('detailed');
+  const [audienceCreationType, setAudienceCreationType] = useState<string>('none');
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -120,10 +177,15 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
       endDate: '',
       targetAudience: '',
       description: '',
+      creativeType: 'single_image',
       locations: ['ZA'], // Default to South Africa
+      cities: [],
       ageRanges: [],
       gender: 'all',
       interests: [],
+      behaviors: [],
+      createLookalike: false,
+      lookalikeSimilarity: 5
     }
   });
 
@@ -139,6 +201,18 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
     }
   };
 
+  const handleBehaviorChange = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedBehaviors([...selectedBehaviors, id]);
+      const currentBehaviors = form.getValues('behaviors') || [];
+      form.setValue('behaviors', [...currentBehaviors, id]);
+    } else {
+      setSelectedBehaviors(selectedBehaviors.filter(item => item !== id));
+      const currentBehaviors = form.getValues('behaviors') || [];
+      form.setValue('behaviors', currentBehaviors.filter(item => item !== id));
+    }
+  };
+
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
     // Format the data for the API
     const formattedData = {
@@ -146,7 +220,8 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
       targeting: {
         geo_locations: {
           countries: ['ZA'],
-          regions: data.locations?.map(loc => ({ key: loc })) || []
+          regions: data.locations?.map(loc => ({ key: loc })) || [],
+          cities: data.cities?.map(city => ({ key: city })) || []
         },
         age_min: data.ageRanges?.length ? parseInt(data.ageRanges[0].split('-')[0]) : 18,
         age_max: data.ageRanges?.length ? 
@@ -154,8 +229,13 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                     65 : parseInt(data.ageRanges[data.ageRanges.length - 1].split('-')[1])) 
                   : 65,
         genders: data.gender === 'all' ? [1, 2] : [parseInt(data.gender)],
-        interests: data.interests?.map(id => ({ id })) || []
-      }
+        interests: data.interests?.map(id => ({ id })) || [],
+        behaviors: data.behaviors?.map(id => ({ id })) || []
+      },
+      lookalikeAudience: data.createLookalike ? {
+        origin: data.targetAudience,
+        similarity: data.lookalikeSimilarity
+      } : undefined
     };
     
     onSubmit(formattedData);
@@ -163,20 +243,24 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Campaign Name</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Summer Product Launch" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Campaign Settings</h3>
+          
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Campaign Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Summer Product Launch" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
@@ -199,7 +283,10 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                     <SelectItem value="REACH">Reach</SelectItem>
                     <SelectItem value="TRAFFIC">Traffic</SelectItem>
                     <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
+                    <SelectItem value="VIDEO_VIEWS">Video Views</SelectItem>
+                    <SelectItem value="LEAD_GENERATION">Lead Generation</SelectItem>
                     <SelectItem value="CONVERSIONS">Conversions</SelectItem>
+                    <SelectItem value="STORE_TRAFFIC">Store Traffic</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -207,6 +294,34 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             )}
           />
           
+          <FormField
+            control={form.control}
+            name="creativeType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Creative Type</FormLabel>
+                <Select 
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select creative type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {creativeTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-3">
           <FormField
             control={form.control}
             name="budgetType"
@@ -231,31 +346,45 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
               </FormItem>
             )}
           />
+          
+          <FormField
+            control={form.control}
+            name="budget"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Budget (ZAR)</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">R</div>
+                    <Input 
+                      type="number" 
+                      min={50} 
+                      step={10} 
+                      className="pl-8"
+                      placeholder="Amount" 
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                </FormControl>
+                <FormDescription>
+                  Minimum budget: R50
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="space-y-2">
+            <FormLabel>Estimated Daily Reach</FormLabel>
+            <div className="h-10 px-3 py-2 border rounded-md bg-muted/50">
+              {form.watch('budget') > 0 ? `~${Math.floor(form.watch('budget') * 100)} - ${Math.floor(form.watch('budget') * 300)} people` : '0 people'}
+            </div>
+            <FormDescription>
+              Based on your targeting & budget
+            </FormDescription>
+          </div>
         </div>
-        
-        <FormField
-          control={form.control}
-          name="budget"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Budget (ZAR)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  min={100} 
-                  step={50} 
-                  placeholder="Amount in ZAR" 
-                  {...field}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                />
-              </FormControl>
-              <FormDescription>
-                Minimum budget: {formatCurrency(100)}
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
@@ -277,7 +406,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             name="endDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>End Date</FormLabel>
+                <FormLabel>End Date (Optional)</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>
@@ -286,122 +415,198 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             )}
           />
         </div>
-
-        <Accordion type="single" collapsible className="border rounded-md">
-          <AccordionItem value="targeting">
-            <AccordionTrigger className="px-4">Advanced Targeting Options</AccordionTrigger>
-            <AccordionContent className="px-4 pb-4 space-y-4">
-              {/* Location Targeting */}
-              <div>
-                <FormLabel>Location Targeting</FormLabel>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                  {provinces.map((province) => (
-                    <div key={province.value} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`location-${province.value}`} 
-                        value={province.value}
-                        onCheckedChange={(checked) => {
-                          const currentLocations = form.getValues('locations') || [];
-                          if (checked) {
-                            form.setValue('locations', [...currentLocations, province.value]);
-                          } else {
-                            form.setValue('locations', currentLocations.filter(l => l !== province.value));
-                          }
-                        }}
-                      />
-                      <label htmlFor={`location-${province.value}`} className="text-sm">
-                        {province.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Age Range Targeting */}
-              <div>
-                <FormLabel>Age Ranges</FormLabel>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                  {ageRanges.map((ageRange) => (
-                    <div key={ageRange.value} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`age-${ageRange.value}`} 
-                        value={ageRange.value}
-                        onCheckedChange={(checked) => {
-                          const currentAges = form.getValues('ageRanges') || [];
-                          if (checked) {
-                            form.setValue('ageRanges', [...currentAges, ageRange.value]);
-                          } else {
-                            form.setValue('ageRanges', currentAges.filter(a => a !== ageRange.value));
-                          }
-                        }}
-                      />
-                      <label htmlFor={`age-${ageRange.value}`} className="text-sm">
-                        {ageRange.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Gender Targeting */}
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>Gender</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-wrap gap-4"
-                      >
-                        {genderOptions.map((option) => (
-                          <div key={option.value} className="flex items-center space-x-2">
-                            <RadioGroupItem value={option.value} id={`gender-${option.value}`} />
-                            <label htmlFor={`gender-${option.value}`}>{option.label}</label>
+        
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Audience & Targeting</h3>
+          
+          <Tabs 
+            defaultValue={targetingMethod} 
+            onValueChange={setTargetingMethod}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="detailed">Detailed Targeting</TabsTrigger>
+              <TabsTrigger value="custom">Custom Audiences</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="detailed" className="space-y-4 pt-4">
+              <Accordion type="multiple" className="w-full">
+                <AccordionItem value="locations">
+                  <AccordionTrigger>Location Targeting</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4">
+                      <div>
+                        <FormLabel className="mb-2 block">Regions</FormLabel>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {provinces.map((province) => (
+                            <div key={province.value} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`location-${province.value}`} 
+                                value={province.value}
+                                onCheckedChange={(checked) => {
+                                  const currentLocations = form.getValues('locations') || [];
+                                  if (checked) {
+                                    form.setValue('locations', [...currentLocations, province.value]);
+                                  } else {
+                                    form.setValue('locations', currentLocations.filter(l => l !== province.value));
+                                  }
+                                }}
+                              />
+                              <label htmlFor={`location-${province.value}`} className="text-sm">
+                                {province.label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <FormLabel className="mb-2 block">Cities</FormLabel>
+                        <ScrollArea className="h-40 border rounded-md p-2">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {cities.map((city) => (
+                              <div key={city.value} className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`city-${city.value}`} 
+                                  value={city.value}
+                                  onCheckedChange={(checked) => {
+                                    const currentCities = form.getValues('cities') || [];
+                                    if (checked) {
+                                      form.setValue('cities', [...currentCities, city.value]);
+                                    } else {
+                                      form.setValue('cities', currentCities.filter(c => c !== city.value));
+                                    }
+                                  }}
+                                />
+                                <label htmlFor={`city-${city.value}`} className="text-sm">
+                                  {city.label}
+                                </label>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              {/* Interests Targeting */}
-              <div>
-                <FormLabel>Interests</FormLabel>
-                {interestsCategories.map((category) => (
-                  <div key={category.name} className="mt-2">
-                    <h4 className="text-sm font-medium mb-1">{category.name}</h4>
+                        </ScrollArea>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="demographics">
+                  <AccordionTrigger>Demographics</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid gap-6">
+                      <div>
+                        <FormLabel className="mb-2 block">Age Ranges</FormLabel>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {ageRanges.map((ageRange) => (
+                            <div key={ageRange.value} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`age-${ageRange.value}`} 
+                                value={ageRange.value}
+                                onCheckedChange={(checked) => {
+                                  const currentAges = form.getValues('ageRanges') || [];
+                                  if (checked) {
+                                    form.setValue('ageRanges', [...currentAges, ageRange.value]);
+                                  } else {
+                                    form.setValue('ageRanges', currentAges.filter(a => a !== ageRange.value));
+                                  }
+                                }}
+                              />
+                              <label htmlFor={`age-${ageRange.value}`} className="text-sm">
+                                {ageRange.label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <FormField
+                        control={form.control}
+                        name="gender"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <FormLabel>Gender</FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-wrap gap-4"
+                              >
+                                {genderOptions.map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <RadioGroupItem value={option.value} id={`gender-${option.value}`} />
+                                    <label htmlFor={`gender-${option.value}`}>{option.label}</label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="interests">
+                  <AccordionTrigger>Interests</AccordionTrigger>
+                  <AccordionContent>
+                    <ScrollArea className="h-60">
+                      {interestsCategories.map((category) => (
+                        <div key={category.name} className="mb-4">
+                          <h4 className="text-sm font-medium mb-2">{category.name}</h4>
+                          <div className="grid grid-cols-2 gap-2">
+                            {category.options.map((interest) => (
+                              <div key={interest.id} className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`interest-${interest.id}`} 
+                                  checked={selectedInterests.includes(interest.id)}
+                                  onCheckedChange={(checked) => 
+                                    handleInterestChange(interest.id, checked === true)
+                                  }
+                                />
+                                <label htmlFor={`interest-${interest.id}`} className="text-sm">
+                                  {interest.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </ScrollArea>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="behaviors">
+                  <AccordionTrigger>Behaviors</AccordionTrigger>
+                  <AccordionContent>
                     <div className="grid grid-cols-2 gap-2">
-                      {category.options.map((interest) => (
-                        <div key={interest.id} className="flex items-center space-x-2">
+                      {behaviors.map((behavior) => (
+                        <div key={behavior.id} className="flex items-center space-x-2">
                           <Checkbox 
-                            id={`interest-${interest.id}`} 
-                            checked={selectedInterests.includes(interest.id)}
+                            id={`behavior-${behavior.id}`} 
+                            checked={selectedBehaviors.includes(behavior.id)}
                             onCheckedChange={(checked) => 
-                              handleInterestChange(interest.id, checked === true)
+                              handleBehaviorChange(behavior.id, checked === true)
                             }
                           />
-                          <label htmlFor={`interest-${interest.id}`} className="text-sm">
-                            {interest.name}
+                          <label htmlFor={`behavior-${behavior.id}`} className="text-sm">
+                            {behavior.name}
                           </label>
                         </div>
                       ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Custom Audiences */}
-              {audiences.length > 0 && (
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </TabsContent>
+            
+            <TabsContent value="custom" className="space-y-4 pt-4">
+              <div className="space-y-4">
                 <FormField
                   control={form.control}
                   name="targetAudience"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Custom Audience</FormLabel>
+                      <FormLabel>Select Custom Audience</FormLabel>
                       <Select 
                         onValueChange={field.onChange}
                         defaultValue={field.value}
@@ -413,7 +618,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="">None</SelectItem>
-                          {audiences.map((audience: any) => (
+                          {audiences?.map((audience: any) => (
                             <SelectItem key={audience.id} value={audience.id}>
                               {audience.name} ({audience.approximate_count || 'Unknown size'})
                             </SelectItem>
@@ -426,10 +631,84 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                     </FormItem>
                   )}
                 />
-              )}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+                
+                <div>
+                  <FormLabel className="mb-2 block">Audience Creation</FormLabel>
+                  <Select 
+                    value={audienceCreationType}
+                    onValueChange={setAudienceCreationType}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Create new audience?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Don't create new audience</SelectItem>
+                      <SelectItem value="lookalike">Create lookalike audience</SelectItem>
+                      <SelectItem value="custom">Create custom audience</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {audienceCreationType === 'lookalike' && (
+                  <div className="space-y-4 pt-2">
+                    <FormField
+                      control={form.control}
+                      name="createLookalike"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Create lookalike audience from selected custom audience
+                            </FormLabel>
+                            <FormDescription>
+                              Find new people who are similar to your existing audience
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {form.watch('createLookalike') && (
+                      <FormField
+                        control={form.control}
+                        name="lookalikeSimilarity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Lookalike Similarity</FormLabel>
+                            <FormControl>
+                              <Select 
+                                onValueChange={(value) => field.onChange(parseInt(value))}
+                                defaultValue={field.value?.toString()}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select similarity level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="1">1% (Most similar)</SelectItem>
+                                  <SelectItem value="5">5% (Balanced)</SelectItem>
+                                  <SelectItem value="10">10% (Broader reach)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormDescription>
+                              Lower percentage = more similar to source audience
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
         
         <FormField
           control={form.control}
@@ -449,7 +728,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
           )}
         />
         
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
             Cancel
           </Button>

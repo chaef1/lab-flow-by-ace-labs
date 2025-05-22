@@ -187,10 +187,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
+      // Type-safe update for the profiles table
+      // Need to cast data.role to a string type that Supabase will accept
       const { error } = await supabase
         .from('profiles')
         .update({
           ...data,
+          // If role is being updated, we need to ensure it's handled correctly
+          ...(data.role && { role: data.role }),
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);

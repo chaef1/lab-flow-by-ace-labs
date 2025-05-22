@@ -43,90 +43,59 @@ Deno.serve(async (req) => {
       console.log('Making request to Instagram Graph API with token:', metaAccessToken?.substring(0, 5) + '...');
       
       try {
-        // First try to search for business discovery if account ID is provided
+        // The Instagram Graph API has significant restrictions on searching for users
+        // Most apps don't have the necessary permissions, so we'll try a different approach
+        
+        // Instead of using the hashtag search endpoint which requires special permissions,
+        // we'll try to get business account information if we have an account ID
         if (accountId) {
-          const instagramBusinessUrl = `https://graph.facebook.com/v19.0/${accountId}/business_users?access_token=${metaAccessToken}`;
-          const businessResponse = await fetch(instagramBusinessUrl);
-          const businessData = await businessResponse.json();
-          
-          if (businessData.data && businessData.data.length > 0) {
-            console.log('Found business users:', businessData.data.length);
+          try {
+            const businessUrl = `https://graph.facebook.com/v19.0/${accountId}?fields=instagram_business_account&access_token=${metaAccessToken}`;
+            const businessResponse = await fetch(businessUrl);
+            const businessData = await businessResponse.json();
+            
+            if (businessData.instagram_business_account && businessData.instagram_business_account.id) {
+              console.log('Found Instagram business account:', businessData.instagram_business_account.id);
+              // You could do more with this business account ID
+            }
+          } catch (bizError) {
+            console.log('Error fetching business account:', bizError);
+            // Continue to fallback approach
           }
         }
         
-        // Use Instagram Graph API search to find users
-        // Note: This endpoint requires special permissions from Meta
-        const searchUrl = `https://graph.facebook.com/v19.0/ig_hashtag_search?user_id=${accountId || 'me'}&q=${encodeURIComponent(query)}&access_token=${metaAccessToken}`;
-        
-        const response = await fetch(searchUrl);
-        const data = await response.json();
-        
-        if (data.error) {
-          console.error('Instagram API error:', data.error);
+        // For demo purposes, try a direct search for the username
+        // Note: This will only work if you have advanced access permissions from Meta
+        try {
+          const searchUrl = `https://graph.facebook.com/v19.0/ig_hashtag_search?q=${encodeURIComponent(query)}&access_token=${metaAccessToken}`;
+          const response = await fetch(searchUrl);
+          const data = await response.json();
           
-          // If we get a specific error about permissions, let's make a note
-          if (data.error.code === 200 || data.error.message.includes('permission')) {
-            console.log('This API requires special permissions from Meta. Falling back to mock data for demonstration.');
-            
-            // For demo/development purposes only - in production this would be removed
-            const mockCreators = generateMockCreators(query);
-            
+          // If this works, great! But most apps won't have these permissions
+          if (!data.error && data.data && data.data.length > 0) {
+            console.log('Search success:', data);
             return formatResponse({
               success: true,
-              data: mockCreators,
-              note: "This is using mock data - to use real data, you need to apply for Instagram Graph API permissions"
+              data: data.data
             });
+          } else if (data.error) {
+            console.log('Search error (expected for most apps):', data.error.message);
           }
-          
-          return formatResponse({
-            error: data.error.message || 'Instagram API error'
-          }, 400);
+        } catch (searchError) {
+          console.log('Search error:', searchError);
+          // Continue to fallback approach
         }
         
-        console.log('Instagram search results:', data);
+        // If all API attempts fail, fall back to mock data
+        console.log('Falling back to mock data for demonstration');
+        const mockCreators = generateMockCreators(query);
         
-        // If we have results, fetch more details for each user
-        if (data.data && data.data.length > 0) {
-          const creators = [];
-          
-          for (const item of data.data) {
-            // Fetch user details
-            const userUrl = `https://graph.facebook.com/v19.0/${item.id}?fields=id,username,name,profile_picture_url,biography,followers_count,follows_count,media_count&access_token=${metaAccessToken}`;
-            
-            const userResponse = await fetch(userUrl);
-            const userData = await userResponse.json();
-            
-            if (!userData.error) {
-              creators.push({
-                id: userData.id,
-                username: userData.username,
-                name: userData.name,
-                profile_picture_url: userData.profile_picture_url,
-                biography: userData.biography,
-                follower_count: userData.followers_count,
-                following_count: userData.follows_count,
-                media_count: userData.media_count,
-                is_verified: userData.is_verified || false,
-                category: userData.category || ''
-              });
-            }
-          }
-          
-          return formatResponse({
-            success: true,
-            data: creators
-          });
-        } else {
-          // If no results or API issues, fall back to mock data for demo
-          console.log('No results from Instagram API, using mock data for demo');
-          const mockCreators = generateMockCreators(query);
-          
-          return formatResponse({
-            success: true,
-            data: mockCreators,
-            note: "Using mock data - no results from Instagram API"
-          });
-        }
+        return formatResponse({
+          success: true,
+          data: mockCreators,
+          note: "Using mock data - to use real data, you need to apply for Instagram Graph API permissions"
+        });
+        
       } catch (apiError) {
         console.error('Error calling Instagram API:', apiError);
         
@@ -216,6 +185,15 @@ function generateMockCreators(query: string) {
       category: 'Beauty'
     }
   ];
+  
+  // If query matches exact username, prioritize that match
+  const exactMatch = influencers.find(influencer => 
+    influencer.username.toLowerCase() === query.toLowerCase()
+  );
+  
+  if (exactMatch) {
+    return [exactMatch];
+  }
   
   // Filter influencers based on search terms
   return influencers.filter(influencer => {

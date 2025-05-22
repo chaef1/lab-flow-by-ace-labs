@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, Loader2, TrendingUp, AlertCircle } from "lucide-react";
+import { Search, Loader2, TrendingUp, AlertCircle, Info } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { hasMetaToken } from "@/lib/ads-api";
@@ -32,10 +32,12 @@ export default function MetaCreatorSearch() {
   
   const isMetaConnected = hasMetaToken();
   
-  const { data: creators, isLoading, error, refetch } = useQuery({
+  const { data: creators, isLoading, error, refetch, isError, isFetched } = useQuery({
     queryKey: ['metaCreators', searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 3) return [];
+      
+      console.log("Searching Meta creators with query:", searchQuery);
       
       const { data, error } = await supabase.functions.invoke('meta-creators', {
         body: { 
@@ -44,10 +46,22 @@ export default function MetaCreatorSearch() {
         }
       });
       
-      if (error) throw new Error(error.message);
-      return data?.data || [];
+      if (error) {
+        console.error("Meta creator search error:", error);
+        throw new Error(error.message);
+      }
+      
+      if (!data?.data) {
+        console.error("Invalid response format from meta-creators function:", data);
+        return [];
+      }
+      
+      console.log("Meta creators search result:", data);
+      return data.data || [];
     },
-    enabled: false // Don't run query on mount
+    enabled: false, // Don't run query on mount
+    retry: 1,
+    refetchOnWindowFocus: false
   });
   
   const handleSearch = async () => {
@@ -141,6 +155,8 @@ export default function MetaCreatorSearch() {
     );
   }
   
+  const showMockDataNotice = isFetched && creators && creators.some((c: any) => c.id.startsWith('1234'));
+  
   return (
     <Card className="w-full">
       <CardHeader>
@@ -169,7 +185,16 @@ export default function MetaCreatorSearch() {
             </Button>
           </div>
           
-          {error && (
+          {showMockDataNotice && (
+            <Alert variant="default" className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-700">
+                Showing mock data. To access real Instagram data, your Meta App needs additional permissions.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {isError && error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>

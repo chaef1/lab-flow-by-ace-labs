@@ -63,9 +63,16 @@ export default function SignUpForm() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setError(null);
-
+    
+    console.log('SignUp: Attempting to sign up with data:', { 
+      email: data.email, 
+      role: data.role,
+      firstName: data.firstName,
+      lastName: data.lastName
+    });
+    
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -77,6 +84,8 @@ export default function SignUpForm() {
         }
       });
       
+      console.log('SignUp response:', { signUpData, error });
+      
       if (error) throw error;
       
       toast({
@@ -84,7 +93,8 @@ export default function SignUpForm() {
         description: "Please check your email to confirm your account.",
       });
       
-      navigate('/auth/login');
+      // Redirect to login after successful signup
+      navigate('/auth');
     } catch (err: any) {
       console.error('Error signing up:', err);
       setError(err.message || 'An unexpected error occurred during sign up.');

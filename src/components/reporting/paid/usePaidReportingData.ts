@@ -90,45 +90,9 @@ export const usePaidReportingData = (timeRange: string, platform: 'meta' | 'tikt
               { date: 'May 30', spend: 450 },
             ],
             campaigns: [
-              {
-                id: '123456789',
-                name: 'Summer Collection Launch',
-                status: 'ACTIVE',
-                objective: 'REACH',
-                budget: 50,
-                spend: '$350.45',
-                impressions: '45,678',
-                clicks: '1,234',
-                ctr: '2.7%',
-                startDate: '2023-05-01',
-                endDate: '2023-05-31'
-              },
-              {
-                id: '987654321',
-                name: 'New Product Awareness',
-                status: 'PAUSED',
-                objective: 'AWARENESS',
-                budget: 30,
-                spend: '$125.67',
-                impressions: '23,456',
-                clicks: '876',
-                ctr: '3.7%',
-                startDate: '2023-05-10',
-                endDate: '2023-05-20'
-              },
-              {
-                id: '456789123',
-                name: 'Website Traffic Campaign',
-                status: 'ACTIVE',
-                objective: 'TRAFFIC',
-                budget: 75,
-                spend: '$540.23',
-                impressions: '65,432',
-                clicks: '2,345',
-                ctr: '3.6%',
-                startDate: '2023-05-15',
-                endDate: '2023-06-15'
-              }
+              { id: '123456789', name: 'Summer Collection Launch', status: 'ACTIVE', objective: 'REACH', budget: 50, spend: '$350.45', impressions: '45,678', clicks: '1,234', ctr: '2.7%', startDate: '2023-05-01', endDate: '2023-05-31' },
+              { id: '987654321', name: 'New Product Awareness', status: 'PAUSED', objective: 'AWARENESS', budget: 30, spend: '$125.67', impressions: '23,456', clicks: '876', ctr: '3.7%', startDate: '2023-05-10', endDate: '2023-05-20' },
+              { id: '456789123', name: 'Website Traffic Campaign', status: 'ACTIVE', objective: 'TRAFFIC', budget: 75, spend: '$540.23', impressions: '65,432', clicks: '2,345', ctr: '3.6%', startDate: '2023-05-15', endDate: '2023-06-15' }
             ],
             adSets: [],
             ads: []
@@ -137,8 +101,8 @@ export const usePaidReportingData = (timeRange: string, platform: 'meta' | 'tikt
           // Get actual token if available
           const tikTokToken = getSavedTikTokToken();
           
-          // In a real implementation, use the token to fetch data
-          console.log(`Using TikTok token: ${tikTokToken?.access_token?.substring(0, 10)}...`);
+          // Fix 3: Use correct property name (accessToken instead of access_token)
+          console.log(`Using TikTok token: ${tikTokToken?.accessToken?.substring(0, 10)}...`);
           
           setData({
             metrics: {
@@ -172,32 +136,8 @@ export const usePaidReportingData = (timeRange: string, platform: 'meta' | 'tikt
               { date: 'May 30', spend: 420 },
             ],
             campaigns: [
-              {
-                id: 'tik123456789',
-                name: 'TikTok Dance Challenge',
-                status: 'ACTIVE',
-                objective: 'VIDEO_VIEWS',
-                budget: 40,
-                spend: '$320.45',
-                impressions: '78,912',
-                clicks: '3,456',
-                ctr: '4.4%',
-                startDate: '2023-05-05',
-                endDate: '2023-05-25'
-              },
-              {
-                id: 'tik987654321',
-                name: 'UGC Campaign',
-                status: 'ACTIVE',
-                objective: 'CONVERSION',
-                budget: 60,
-                spend: '$450.78',
-                impressions: '92,345',
-                clicks: '4,123',
-                ctr: '4.5%',
-                startDate: '2023-05-12',
-                endDate: '2023-06-02'
-              }
+              { id: 'tik123456789', name: 'TikTok Dance Challenge', status: 'ACTIVE', objective: 'VIDEO_VIEWS', budget: 40, spend: '$320.45', impressions: '78,912', clicks: '3,456', ctr: '4.4%', startDate: '2023-05-05', endDate: '2023-05-25' },
+              { id: 'tik987654321', name: 'UGC Campaign', status: 'ACTIVE', objective: 'CONVERSION', budget: 60, spend: '$450.78', impressions: '92,345', clicks: '4,123', ctr: '4.5%', startDate: '2023-05-12', endDate: '2023-06-02' }
             ],
             adSets: [],
             ads: []

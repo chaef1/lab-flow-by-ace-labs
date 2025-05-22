@@ -16,7 +16,8 @@ interface PaidReportingProps {
 }
 
 const PaidReporting = ({ timeRange, platform }: PaidReportingProps) => {
-  const [selectedPlatform, setSelectedPlatform] = useState('meta');
+  // Fix 1: Ensure selectedPlatform is either 'meta' or 'tiktok'
+  const [selectedPlatform, setSelectedPlatform] = useState<'meta' | 'tiktok'>('meta');
   const [isLoading, setIsLoading] = useState(false);
   const { data, error, isConnected } = usePaidReportingData(timeRange, selectedPlatform);
 
@@ -40,8 +41,9 @@ const PaidReporting = ({ timeRange, platform }: PaidReportingProps) => {
   }
   
   if (!isConnected) {
+    // Fix 2: Change warning variant to default
     return (
-      <Alert variant="warning" className="mb-6">
+      <Alert variant="default" className="mb-6">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           You need to connect your {selectedPlatform === 'meta' ? 'Meta' : 'TikTok'} account to view paid campaign data. 
@@ -64,7 +66,7 @@ const PaidReporting = ({ timeRange, platform }: PaidReportingProps) => {
 
   return (
     <div className="space-y-6">
-      <Tabs value={selectedPlatform} onValueChange={setSelectedPlatform} className="w-full">
+      <Tabs value={selectedPlatform} onValueChange={(value) => setSelectedPlatform(value as 'meta' | 'tiktok')} className="w-full">
         <TabsList>
           <TabsTrigger value="meta">Meta Ads</TabsTrigger>
           <TabsTrigger value="tiktok">TikTok Ads</TabsTrigger>

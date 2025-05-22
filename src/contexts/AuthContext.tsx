@@ -204,9 +204,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updated_at: new Date().toISOString()
       };
       
+      // Use type assertion to work around the type mismatch
+      // This is a temporary solution until the database schema is updated to include 'agency' role
       const { error } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', user.id);
       
       if (error) throw error;

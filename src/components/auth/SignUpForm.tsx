@@ -214,6 +214,7 @@ export default function SignUpForm() {
               <li>Manage multiple client accounts</li>
               <li>Access advanced analytics and reporting</li>
               <li>Coordinate influencer campaigns at scale</li>
+              <li>Full administrative access to platform features</li>
             </ul>
           </div>
         )}

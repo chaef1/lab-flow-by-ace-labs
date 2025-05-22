@@ -263,13 +263,13 @@ const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, user
           onChange={(e) => setRole(e.target.value)}
         >
           <option value="brand">Brand</option>
+          <option value="agency">Agency</option>
           <option value="influencer">Influencer</option>
-          <option value="creator">Content Creator</option>
         </select>
         <p className="text-xs text-muted-foreground">
           {role === 'brand' && "For brand managers and marketing teams"}
+          {role === 'agency' && "For agencies with full platform access"}
           {role === 'influencer' && "For social media influencers and content creators"}
-          {role === 'creator' && "For agency content creators"}
         </p>
       </div>
       

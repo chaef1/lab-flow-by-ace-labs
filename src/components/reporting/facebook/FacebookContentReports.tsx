@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader, ExternalLink } from 'lucide-react';
+import { Loader, ExternalLink, AlertCircle } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getSavedMetaToken } from "@/lib/storage/token-storage";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type ContentType = 'post' | 'reel' | 'story';
 
@@ -33,6 +34,7 @@ interface ReportData {
   };
   raw_data: any;
   fetched_at: string;
+  note?: string;
 }
 
 const FacebookContentReports = () => {
@@ -40,6 +42,7 @@ const FacebookContentReports = () => {
   const [contentType, setContentType] = useState<ContentType>('post');
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState<ReportData | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchContentReport = async () => {
@@ -54,6 +57,7 @@ const FacebookContentReports = () => {
 
     setIsLoading(true);
     setReport(null);
+    setErrorMessage(null);
 
     try {
       // Get the Meta access token
@@ -79,8 +83,12 @@ const FacebookContentReports = () => {
         }
       });
 
-      if (error || !data.success) {
-        throw new Error(error?.message || data?.error || 'Failed to fetch content data');
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch content data');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch content data');
       }
 
       console.log('Report data:', data);
@@ -88,12 +96,18 @@ const FacebookContentReports = () => {
       // Set the report data
       setReport(data.data);
 
+      // Show note if using demo data
+      if (data.note) {
+        setErrorMessage(data.note);
+      }
+
       toast({
         title: "Report Generated",
         description: "Content report has been successfully generated and saved",
       });
     } catch (error: any) {
       console.error('Error fetching content report:', error);
+      setErrorMessage(error.message || 'Failed to fetch content data');
       toast({
         title: "Error",
         description: error.message || 'Failed to fetch content data',
@@ -101,6 +115,15 @@ const FacebookContentReports = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getUrlPlaceholder = () => {
+    switch (contentType) {
+      case 'post': return 'https://www.facebook.com/username/posts/123456789';
+      case 'reel': return 'https://www.instagram.com/reel/Abc123XYZ/';
+      case 'story': return 'https://www.facebook.com/stories/123456789';
+      default: return 'Paste Facebook or Instagram URL here';
     }
   };
 
@@ -119,12 +142,14 @@ const FacebookContentReports = () => {
               <Label htmlFor="content-url">Content URL</Label>
               <Input 
                 id="content-url"
-                placeholder="Paste Facebook or Instagram URL here" 
+                placeholder={getUrlPlaceholder()}
                 value={contentUrl}
                 onChange={(e) => setContentUrl(e.target.value)}
               />
               <p className="text-sm text-muted-foreground mt-1">
-                Example: https://www.facebook.com/username/posts/123456789
+                {contentType === 'post' && "Examples: Facebook post URL or Instagram post URL"}
+                {contentType === 'reel' && "Examples: Instagram reel URL or Facebook reel URL"}
+                {contentType === 'story' && "Examples: Facebook story URL (Note: Stories have limited API support)"}
               </p>
             </div>
             
@@ -163,11 +188,21 @@ const FacebookContentReports = () => {
         </CardFooter>
       </Card>
 
+      {errorMessage && (
+        <Alert variant="warning" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Note</AlertTitle>
+          <AlertDescription>
+            {errorMessage}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {report && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Content Report</span>
+              <span>{report.content_type.charAt(0).toUpperCase() + report.content_type.slice(1)} Report</span>
               <Button variant="outline" size="sm" asChild>
                 <a href={report.content_url} target="_blank" rel="noopener noreferrer" className="flex items-center">
                   View Original <ExternalLink className="ml-2 h-4 w-4" />
@@ -224,7 +259,7 @@ const FacebookContentReports = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Posted on</p>
-                    <p>{new Date(report.created_time).toLocaleDateString()}</p>
+                    <p>{report.created_time ? new Date(report.created_time).toLocaleDateString() : 'Unknown'}</p>
                   </div>
                 </div>
                 {report.message && (

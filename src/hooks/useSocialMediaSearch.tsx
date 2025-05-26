@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { hasMetaToken, getSavedMetaToken } from "@/lib/ads-api";
+import { hasMetaToken, getSavedMetaToken } from "@/lib/storage/token-storage";
 
 export type SocialProfile = {
   username: string;
@@ -83,10 +83,8 @@ export function useSocialMediaSearch() {
         
         if (metaError) {
           console.error('Meta search error:', metaError);
-          throw new Error(metaError.message || 'Error searching Instagram');
-        }
-        
-        if (metaData && metaData.success && metaData.data && metaData.data.length > 0) {
+          // Fall back to regular API if Meta search fails
+        } else if (metaData && metaData.data && metaData.data.length > 0) {
           // Find the most relevant creator match
           const creator = metaData.data.find((c: any) => 
             c.username.toLowerCase() === cleanUsername.toLowerCase()
@@ -102,7 +100,6 @@ export function useSocialMediaSearch() {
             bio: creator.biography || '',
             verified: creator.is_verified || false,
             engagementRate: 0, // We don't have this data from the Graph API
-            // Map any available data
             website: '',
             recentPosts: []
           };
@@ -136,7 +133,6 @@ export function useSocialMediaSearch() {
         }
       }
       
-      // If Meta API didn't return results or we're not using it, fall back to the regular API
       // Log the search in the database if user is authenticated
       if (user) {
         await supabase.from('social_media_searches').insert([
@@ -148,7 +144,8 @@ export function useSocialMediaSearch() {
         ]);
       }
       
-      // Call our Supabase Edge Function
+      // Call our Supabase Edge Function for regular search
+      console.log('Calling social-profile edge function for:', cleanUsername);
       const { data, error: functionError } = await supabase.functions.invoke('social-profile', {
         body: { platform, username: cleanUsername },
       });
@@ -187,7 +184,7 @@ export function useSocialMediaSearch() {
         return null;
       }
       
-      console.log('Profile data:', data);
+      console.log('Profile data received:', data);
       
       if (!data || !data.profile) {
         setError('No profile data returned');
@@ -239,13 +236,11 @@ export function useSocialMediaSearch() {
   const retrySearch = useCallback(async () => {
     if (!profile && error) {
       toast.info('Retrying search...');
-      // We don't have the previous search parameters here
-      // This would be improved if we stored the last search parameters
       return;
     }
     
     if (profile) {
-      const platform = profile.username.includes('@') ? 'instagram' : 'tiktok'; // Simple heuristic
+      const platform = 'instagram'; // Default retry platform
       return searchProfile(platform, profile.username);
     }
   }, [profile, error, searchProfile]);

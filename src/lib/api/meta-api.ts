@@ -342,6 +342,26 @@ export const createMetaAdCreative = async (accessToken: string, accountId: strin
   }
 };
 
+// Get user permissions and all accessible accounts/assets
+export const getMetaUserPermissions = async (accessToken: string) => {
+  try {
+    console.log('Getting Meta user permissions with token:', accessToken.substring(0, 5) + '...');
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        action: 'get_user_permissions' 
+      }
+    });
+    
+    if (error) throw new Error(error.message || 'Error getting user permissions');
+    return data;
+  } catch (err) {
+    console.error('Error getting Meta user permissions:', err);
+    throw err;
+  }
+};
+
 // Force refresh Meta token status and trigger listeners
 export const refreshMetaTokenStatus = () => {
   const { accessToken } = getSavedMetaToken();

@@ -40,6 +40,64 @@ serve(async (req) => {
 
     // Use a switch statement to handle different API actions
     switch (action) {
+      case 'get_user_permissions':
+        // Get user permissions and accessible accounts
+        const permissionToken = requestData.accessToken;
+        if (!permissionToken) {
+          return new Response(
+            JSON.stringify({ error: 'Access token is required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Fetching user permissions and accounts...');
+        
+        try {
+          // Get user's basic info and permissions
+          const userResponse = await fetch(`https://graph.facebook.com/v17.0/me?fields=id,name,email&access_token=${permissionToken}`);
+          const userData = await userResponse.json();
+          
+          // Get Business Managers
+          const businessResponse = await fetch(`https://graph.facebook.com/v17.0/me/businesses?fields=id,name,verification_status,primary_page&access_token=${permissionToken}`);
+          const businessData = await businessResponse.json();
+          
+          // Get Ad Accounts
+          const accountsResponse = await fetch(`https://graph.facebook.com/v17.0/me/adaccounts?fields=id,name,account_status,currency,timezone_name,business&access_token=${permissionToken}`);
+          const accountsData = await accountsResponse.json();
+          
+          // Get Pages
+          const pagesResponse = await fetch(`https://graph.facebook.com/v17.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username},category&access_token=${permissionToken}`);
+          const pagesData = await pagesResponse.json();
+          
+          console.log('All permissions data fetched successfully');
+          
+          if (!userResponse.ok || !businessResponse.ok || !accountsResponse.ok || !pagesResponse.ok) {
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to fetch user permissions', 
+                details: { userData, businessData, accountsData, pagesData }
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify({
+              user: userData,
+              businesses: businessData,
+              adAccounts: accountsData,
+              pages: pagesData
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error fetching user permissions:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch user permissions', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
       case 'get_ad_accounts':
         // Get ad accounts for the authenticated user
         const accessToken = requestData.accessToken;

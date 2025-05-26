@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +13,7 @@ import { Calendar, Target, Image, DollarSign } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import PageSelector from './PageSelector';
 import CreativeUpload from './CreativeUpload';
+import AccountSelector from './AccountSelector';
 
 const campaignSchema = z.object({
   name: z.string().min(1, 'Campaign name is required'),
@@ -40,6 +40,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
   audiences = []
 }) => {
   const [selectedPage, setSelectedPage] = useState<any>(null);
+  const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [uploadedCreatives, setUploadedCreatives] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('basics');
 
@@ -64,6 +65,11 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
   };
 
   const handleSubmit = (values: z.infer<typeof campaignSchema>) => {
+    if (!selectedAccount) {
+      alert('Please select an ad account');
+      return;
+    }
+
     if (!selectedPage) {
       alert('Please select a Facebook page');
       return;
@@ -76,6 +82,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
 
     const formData = {
       ...values,
+      selectedAccount,
       selectedPage,
       creatives: uploadedCreatives,
       targeting: {
@@ -100,21 +107,25 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
   ];
 
   const canProceedToTargeting = form.watch('name') && form.watch('objective') && form.watch('budget');
-  const canProceedToCreatives = canProceedToTargeting && selectedPage;
+  const canProceedToCreatives = canProceedToTargeting && selectedAccount && selectedPage;
   const canSubmit = canProceedToCreatives && uploadedCreatives.length > 0;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="basics" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
               Basics
             </TabsTrigger>
-            <TabsTrigger value="targeting" disabled={!canProceedToTargeting} className="flex items-center gap-2">
+            <TabsTrigger value="account" disabled={!canProceedToTargeting} className="flex items-center gap-2">
               <Target className="h-4 w-4" />
-              Page Selection
+              Account
+            </TabsTrigger>
+            <TabsTrigger value="targeting" disabled={!selectedAccount} className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Page
             </TabsTrigger>
             <TabsTrigger value="creatives" disabled={!canProceedToCreatives} className="flex items-center gap-2">
               <Image className="h-4 w-4" />
@@ -248,6 +259,13 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
             </Card>
           </TabsContent>
 
+          <TabsContent value="account" className="space-y-4">
+            <AccountSelector
+              onAccountSelected={setSelectedAccount}
+              selectedAccountId={selectedAccount?.id}
+            />
+          </TabsContent>
+
           <TabsContent value="targeting" className="space-y-4">
             <PageSelector
               onPageSelected={setSelectedPage}
@@ -288,6 +306,10 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                     </p>
                   </div>
                   <div>
+                    <Label className="text-sm font-medium">Ad Account</Label>
+                    <p className="text-sm text-muted-foreground">{selectedAccount?.name}</p>
+                  </div>
+                  <div>
                     <Label className="text-sm font-medium">Selected Page</Label>
                     <p className="text-sm text-muted-foreground">{selectedPage?.name}</p>
                   </div>
@@ -320,7 +342,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  const tabs = ['basics', 'targeting', 'creatives', 'review'];
+                  const tabs = ['basics', 'account', 'targeting', 'creatives', 'review'];
                   const currentIndex = tabs.indexOf(activeTab);
                   if (currentIndex > 0) {
                     setActiveTab(tabs[currentIndex - 1]);
@@ -335,7 +357,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
               <Button
                 type="button"
                 onClick={() => {
-                  const tabs = ['basics', 'targeting', 'creatives', 'review'];
+                  const tabs = ['basics', 'account', 'targeting', 'creatives', 'review'];
                   const currentIndex = tabs.indexOf(activeTab);
                   if (currentIndex < tabs.length - 1) {
                     setActiveTab(tabs[currentIndex + 1]);
@@ -343,6 +365,7 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
                 }}
                 disabled={
                   (activeTab === 'basics' && !canProceedToTargeting) ||
+                  (activeTab === 'account' && !selectedAccount) ||
                   (activeTab === 'targeting' && !canProceedToCreatives) ||
                   (activeTab === 'creatives' && !canSubmit)
                 }

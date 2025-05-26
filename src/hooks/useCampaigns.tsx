@@ -107,14 +107,21 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
       setIsLoading(true);
       setError(null);
       
-      // Get Meta token and account ID
-      const { accessToken, accountId } = getSavedMetaToken();
+      // Get Meta token from storage
+      const { accessToken } = getSavedMetaToken();
       
-      if (!accessToken || !accountId) {
+      if (!accessToken) {
         throw new Error('Meta authentication required. Please connect your Meta account first.');
       }
 
-      console.log('Creating complete Meta advertising campaign...');
+      // Use the selected account ID from the form data
+      const accountId = data.selectedAccount?.id;
+      
+      if (!accountId) {
+        throw new Error('Ad account selection required. Please select an ad account first.');
+      }
+
+      console.log('Creating complete Meta advertising campaign for account:', accountId);
       
       // Prepare the campaign data
       const campaignData = {
@@ -276,8 +283,16 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
       
       const { accessToken, accountId } = getSavedMetaToken();
       
-      if (!accessToken || !accountId) {
+      if (!accessToken) {
         throw new Error('Meta authentication required');
+      }
+      
+      // For status updates, we still need to get the account ID from stored token
+      // This is for existing campaigns where we already know the account
+      const { accountId } = getSavedMetaToken();
+      
+      if (!accountId) {
+        throw new Error('Ad account information not found');
       }
       
       // Call the API to update the campaign status

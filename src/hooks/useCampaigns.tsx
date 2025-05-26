@@ -7,7 +7,9 @@ import {
   getMetaAudiences,
   createMetaAdSet,
   createMetaAd,
-  updateMetaCampaignStatus
+  updateMetaCampaignStatus,
+  uploadMetaCreative,
+  createMetaAdCreative
 } from '@/lib/ads-api';
 
 export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
@@ -99,7 +101,7 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
     }
   };
 
-  // Create campaign function
+  // Create campaign function with full advertising workflow
   const createCampaign = async (data: any) => {
     try {
       setIsLoading(true);
@@ -111,6 +113,8 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
       if (!accessToken || !accountId) {
         throw new Error('Meta authentication required. Please connect your Meta account first.');
       }
+
+      console.log('Creating complete Meta advertising campaign...');
       
       // Prepare the campaign data
       const campaignData = {
@@ -131,7 +135,7 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
       
       console.log('Creating Meta campaign with data:', campaignData);
       
-      // Call the API to create the campaign
+      // Step 1: Create the campaign
       const campaignResult = await createMetaCampaign(accessToken, accountId, campaignData);
       
       if (!campaignResult || !campaignResult.id) {
@@ -141,14 +145,14 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
       const campaignId = campaignResult.id;
       console.log('Campaign created successfully with ID:', campaignId);
       
-      // Create ad set with targeting
+      // Step 2: Create ad set with targeting
       const adSetData = {
         name: `${data.name} - Ad Set`,
         campaignId: campaignId,
-        optimizationGoal: data.objective === 'AWARENESS' ? 'REACH' : 
-                        data.objective === 'TRAFFIC' ? 'LINK_CLICKS' : 
+        optimizationGoal: data.objective === 'OUTCOME_AWARENESS' ? 'REACH' : 
+                        data.objective === 'OUTCOME_TRAFFIC' ? 'LINK_CLICKS' : 
                         'CONVERSIONS',
-        billingEvent: data.objective === 'AWARENESS' ? 'IMPRESSIONS' : 'IMPRESSIONS',
+        billingEvent: 'IMPRESSIONS',
         dailyBudget: data.budgetType === 'daily' ? data.budget : undefined,
         lifetimeBudget: data.budgetType === 'lifetime' ? data.budget : undefined,
         startTime: data.startDate ? new Date(data.startDate).toISOString() : undefined,
@@ -163,30 +167,87 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
         }
       };
       
-      // Handle custom audience if selected
-      if (data.targetAudience && data.targetAudience !== 'All' && data.targetAudience !== '') {
-        // If custom audience selected, add it to targeting
-        adSetData.targeting['custom_audiences'] = [{id: data.targetAudience}];
-      }
-      
-      // Add interests if provided
-      if (data.interests && data.interests.length > 0) {
-        adSetData.targeting['interests'] = data.interests.map((id: string) => ({ id }));
-      }
-      
       console.log('Creating ad set with data:', adSetData);
       
       // Create the ad set
       const adSetResult = await createMetaAdSet(accessToken, accountId, adSetData);
       
-      if (adSetResult && adSetResult.id) {
-        console.log('Ad set created successfully with ID:', adSetResult.id);
-        
-        toast({
-          title: "Campaign Created",
-          description: `Your Meta campaign "${data.name}" has been created successfully.`,
-        });
+      if (!adSetResult || !adSetResult.id) {
+        throw new Error('Failed to create ad set. Campaign created but incomplete.');
       }
+      
+      const adSetId = adSetResult.id;
+      console.log('Ad set created successfully with ID:', adSetId);
+
+      // Step 3: Process and upload creatives, then create ads
+      if (data.creatives && data.creatives.length > 0) {
+        console.log('Processing creatives:', data.creatives.length);
+        
+        for (const creative of data.creatives) {
+          try {
+            console.log('Processing creative:', creative.name);
+            
+            // Upload creative asset
+            const uploadData = {
+              type: creative.type,
+              filename: creative.filename,
+              bytes: creative.base64,
+              fileSize: creative.size
+            };
+            
+            const uploadResult = await uploadMetaCreative(accessToken, accountId, uploadData);
+            console.log('Creative uploaded:', uploadResult);
+            
+            let imageHash = '';
+            let videoId = '';
+            
+            if (creative.type === 'image' && uploadResult.images) {
+              const imageKey = Object.keys(uploadResult.images)[0];
+              imageHash = uploadResult.images[imageKey].hash;
+            } else if (creative.type === 'video' && uploadResult.id) {
+              videoId = uploadResult.id;
+            }
+            
+            // Create ad creative
+            const adCreativeData = {
+              name: creative.name,
+              pageId: data.selectedPage.id,
+              imageHash: imageHash,
+              videoId: videoId,
+              link: creative.destinationUrl,
+              message: creative.description,
+              headline: creative.headline,
+              description: creative.description,
+              callToAction: creative.callToAction
+            };
+            
+            console.log('Creating ad creative with data:', adCreativeData);
+            
+            const adCreativeResult = await createMetaAdCreative(accessToken, accountId, adCreativeData);
+            console.log('Ad creative created:', adCreativeResult);
+            
+            if (adCreativeResult && adCreativeResult.id) {
+              // Create the ad
+              const adData = {
+                name: `${data.name} - ${creative.name}`,
+                adSetId: adSetId,
+                creativeId: adCreativeResult.id
+              };
+              
+              const adResult = await createMetaAd(accessToken, accountId, adData);
+              console.log('Ad created:', adResult);
+            }
+          } catch (creativeError) {
+            console.error('Error processing creative:', creative.name, creativeError);
+            // Continue with other creatives
+          }
+        }
+      }
+      
+      toast({
+        title: "Campaign Created Successfully",
+        description: `Your Meta campaign "${data.name}" has been created with all creatives and targeting.`,
+      });
       
       // Refresh campaigns
       fetchCampaigns();

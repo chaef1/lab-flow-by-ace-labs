@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -13,6 +12,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import PageSelector from './PageSelector';
+import CreativeUpload from './CreativeUpload';
 
 interface CampaignFormProps {
   platform: 'meta';
@@ -165,6 +166,9 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
   const [selectedBehaviors, setSelectedBehaviors] = useState<string[]>([]);
   const [targetingMethod, setTargetingMethod] = useState<string>('detailed');
   const [audienceCreationType, setAudienceCreationType] = useState<string>('none');
+  const [selectedPage, setSelectedPage] = useState<any>(null);
+  const [uploadedCreatives, setUploadedCreatives] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('campaign');
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -213,10 +217,37 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
     }
   };
 
+  const handlePageSelected = (page: any) => {
+    console.log('Page selected:', page);
+    setSelectedPage(page);
+  };
+
+  const handleCreativeUploaded = (creative: any) => {
+    console.log('Creative uploaded:', creative);
+    setUploadedCreatives(prev => [...prev, creative]);
+  };
+
+  const handleCreativeRemoved = (creativeId: string) => {
+    setUploadedCreatives(prev => prev.filter(c => c.id !== creativeId));
+  };
+
   const handleSubmit = (data: z.infer<typeof formSchema>) => {
+    // Validate required elements
+    if (!selectedPage) {
+      form.setError('root', { message: 'Please select a Facebook page or Instagram account' });
+      return;
+    }
+
+    if (uploadedCreatives.length === 0) {
+      form.setError('root', { message: 'Please upload at least one creative asset' });
+      return;
+    }
+
     // Format the data for the API
     const formattedData = {
       ...data,
+      selectedPage,
+      creatives: uploadedCreatives,
       targeting: {
         geo_locations: {
           countries: ['ZA'],
@@ -244,489 +275,434 @@ const CampaignForm: React.FC<CampaignFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Campaign Settings</h3>
-          
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Campaign Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Summer Product Launch" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="objective"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Campaign Objective</FormLabel>
-                <Select 
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select objective" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="AWARENESS">Brand Awareness</SelectItem>
-                    <SelectItem value="REACH">Reach</SelectItem>
-                    <SelectItem value="TRAFFIC">Traffic</SelectItem>
-                    <SelectItem value="ENGAGEMENT">Engagement</SelectItem>
-                    <SelectItem value="VIDEO_VIEWS">Video Views</SelectItem>
-                    <SelectItem value="LEAD_GENERATION">Lead Generation</SelectItem>
-                    <SelectItem value="CONVERSIONS">Conversions</SelectItem>
-                    <SelectItem value="STORE_TRAFFIC">Store Traffic</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="creativeType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Creative Type</FormLabel>
-                <Select 
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select creative type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {creativeTypes.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-3">
-          <FormField
-            control={form.control}
-            name="budgetType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Budget Type</FormLabel>
-                <Select 
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Budget type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily Budget</SelectItem>
-                    <SelectItem value="lifetime">Lifetime Budget</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="budget"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Budget (ZAR)</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">R</div>
-                    <Input 
-                      type="number" 
-                      min={50} 
-                      step={10} 
-                      className="pl-8"
-                      placeholder="Amount" 
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                </FormControl>
-                <FormDescription>
-                  Minimum budget: R50
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <div className="space-y-2">
-            <FormLabel>Estimated Daily Reach</FormLabel>
-            <div className="h-10 px-3 py-2 border rounded-md bg-muted/50">
-              {form.watch('budget') > 0 ? `~${Math.floor(form.watch('budget') * 100)} - ${Math.floor(form.watch('budget') * 300)} people` : '0 people'}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="campaign">Campaign</TabsTrigger>
+            <TabsTrigger value="page">Page/Account</TabsTrigger>
+            <TabsTrigger value="creatives">Creatives</TabsTrigger>
+            <TabsTrigger value="targeting">Targeting</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="campaign" className="space-y-4 pt-4">
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Campaign Settings</h3>
+              
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Summer Product Launch" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-            <FormDescription>
-              Based on your targeting & budget
-            </FormDescription>
-          </div>
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="startDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Start Date</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="endDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>End Date (Optional)</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Audience & Targeting</h3>
-          
-          <Tabs 
-            defaultValue={targetingMethod} 
-            onValueChange={setTargetingMethod}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="detailed">Detailed Targeting</TabsTrigger>
-              <TabsTrigger value="custom">Custom Audiences</TabsTrigger>
-            </TabsList>
             
-            <TabsContent value="detailed" className="space-y-4 pt-4">
-              <Accordion type="multiple" className="w-full">
-                <AccordionItem value="locations">
-                  <AccordionTrigger>Location Targeting</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4">
-                      <div>
-                        <FormLabel className="mb-2 block">Regions</FormLabel>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {provinces.map((province) => (
-                            <div key={province.value} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={`location-${province.value}`} 
-                                value={province.value}
-                                onCheckedChange={(checked) => {
-                                  const currentLocations = form.getValues('locations') || [];
-                                  if (checked) {
-                                    form.setValue('locations', [...currentLocations, province.value]);
-                                  } else {
-                                    form.setValue('locations', currentLocations.filter(l => l !== province.value));
-                                  }
-                                }}
-                              />
-                              <label htmlFor={`location-${province.value}`} className="text-sm">
-                                {province.label}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="objective"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Objective</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select objective" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="OUTCOME_AWARENESS">Brand Awareness</SelectItem>
+                        <SelectItem value="REACH">Reach</SelectItem>
+                        <SelectItem value="OUTCOME_TRAFFIC">Traffic</SelectItem>
+                        <SelectItem value="OUTCOME_ENGAGEMENT">Engagement</SelectItem>
+                        <SelectItem value="VIDEO_VIEWS">Video Views</SelectItem>
+                        <SelectItem value="OUTCOME_LEADS">Lead Generation</SelectItem>
+                        <SelectItem value="OUTCOME_SALES">Conversions</SelectItem>
+                        <SelectItem value="STORE_VISITS">Store Traffic</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="creativeType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Creative Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select creative type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="single_image">Single Image</SelectItem>
+                        <SelectItem value="carousel">Carousel</SelectItem>
+                        <SelectItem value="video">Video</SelectItem>
+                        <SelectItem value="slideshow">Slideshow</SelectItem>
+                        <SelectItem value="collection">Collection</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Budget and dates section */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="budgetType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Budget Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Budget type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily Budget</SelectItem>
+                        <SelectItem value="lifetime">Lifetime Budget</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="budget"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Budget (ZAR)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">R</div>
+                        <Input 
+                          type="number" 
+                          min={50} 
+                          step={10} 
+                          className="pl-8"
+                          placeholder="Amount" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
                       </div>
-                      
-                      <div>
-                        <FormLabel className="mb-2 block">Cities</FormLabel>
-                        <ScrollArea className="h-40 border rounded-md p-2">
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                            {cities.map((city) => (
-                              <div key={city.value} className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id={`city-${city.value}`} 
-                                  value={city.value}
-                                  onCheckedChange={(checked) => {
-                                    const currentCities = form.getValues('cities') || [];
-                                    if (checked) {
-                                      form.setValue('cities', [...currentCities, city.value]);
-                                    } else {
-                                      form.setValue('cities', currentCities.filter(c => c !== city.value));
-                                    }
-                                  }}
-                                />
-                                <label htmlFor={`city-${city.value}`} className="text-sm">
-                                  {city.label}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
+                    </FormControl>
+                    <FormDescription>
+                      Minimum budget: R50
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="space-y-2">
+                <FormLabel>Estimated Daily Reach</FormLabel>
+                <div className="h-10 px-3 py-2 border rounded-md bg-muted/50">
+                  {form.watch('budget') > 0 ? `~${Math.floor(form.watch('budget') * 100)} - ${Math.floor(form.watch('budget') * 300)} people` : '0 people'}
+                </div>
+                <FormDescription>
+                  Based on your targeting & budget
+                </FormDescription>
+              </div>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Campaign Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Describe the goals and strategy for this campaign" 
+                      {...field}
+                      rows={3}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TabsContent>
+
+          <TabsContent value="page" className="space-y-4 pt-4">
+            <PageSelector
+              onPageSelected={handlePageSelected}
+              selectedPageId={selectedPage?.id}
+            />
+          </TabsContent>
+
+          <TabsContent value="creatives" className="space-y-4 pt-4">
+            <CreativeUpload
+              onCreativeUploaded={handleCreativeUploaded}
+              selectedPage={selectedPage}
+              onCreativeRemoved={handleCreativeRemoved}
+              uploadedCreatives={uploadedCreatives}
+            />
+          </TabsContent>
+
+          <TabsContent value="targeting" className="space-y-4 pt-4">
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Audience & Targeting</h3>
+              
+              <Tabs 
+                defaultValue={targetingMethod} 
+                onValueChange={setTargetingMethod}
+                className="w-full"
+              >
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="detailed">Detailed Targeting</TabsTrigger>
+                  <TabsTrigger value="custom">Custom Audiences</TabsTrigger>
+                </TabsList>
                 
-                <AccordionItem value="demographics">
-                  <AccordionTrigger>Demographics</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid gap-6">
-                      <div>
-                        <FormLabel className="mb-2 block">Age Ranges</FormLabel>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {ageRanges.map((ageRange) => (
-                            <div key={ageRange.value} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={`age-${ageRange.value}`} 
-                                value={ageRange.value}
-                                onCheckedChange={(checked) => {
-                                  const currentAges = form.getValues('ageRanges') || [];
-                                  if (checked) {
-                                    form.setValue('ageRanges', [...currentAges, ageRange.value]);
-                                  } else {
-                                    form.setValue('ageRanges', currentAges.filter(a => a !== ageRange.value));
-                                  }
-                                }}
-                              />
-                              <label htmlFor={`age-${ageRange.value}`} className="text-sm">
-                                {ageRange.label}
-                              </label>
+                <TabsContent value="detailed" className="space-y-4 pt-4">
+                  <Accordion type="multiple" className="w-full">
+                    <AccordionItem value="locations">
+                      <AccordionTrigger>Location Targeting</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-4">
+                          <div>
+                            <FormLabel className="mb-2 block">Regions</FormLabel>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {provinces.map((province) => (
+                                <div key={province.value} className="flex items-center space-x-2">
+                                  <Checkbox 
+                                    id={`location-${province.value}`} 
+                                    value={province.value}
+                                    onCheckedChange={(checked) => {
+                                      const currentLocations = form.getValues('locations') || [];
+                                      if (checked) {
+                                        form.setValue('locations', [...currentLocations, province.value]);
+                                      } else {
+                                        form.setValue('locations', currentLocations.filter(l => l !== province.value));
+                                      }
+                                    }}
+                                  />
+                                  <label htmlFor={`location-${province.value}`} className="text-sm">
+                                    {province.label}
+                                  </label>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <FormField
-                        control={form.control}
-                        name="gender"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormLabel>Gender</FormLabel>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex flex-wrap gap-4"
-                              >
-                                {genderOptions.map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <RadioGroupItem value={option.value} id={`gender-${option.value}`} />
-                                    <label htmlFor={`gender-${option.value}`}>{option.label}</label>
+                          </div>
+                          
+                          <div>
+                            <FormLabel className="mb-2 block">Cities</FormLabel>
+                            <ScrollArea className="h-40 border rounded-md p-2">
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {cities.map((city) => (
+                                  <div key={city.value} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                      id={`city-${city.value}`} 
+                                      value={city.value}
+                                      onCheckedChange={(checked) => {
+                                        const currentCities = form.getValues('cities') || [];
+                                        if (checked) {
+                                          form.setValue('cities', [...currentCities, city.value]);
+                                        } else {
+                                          form.setValue('cities', currentCities.filter(c => c !== city.value));
+                                        }
+                                      }}
+                                    />
+                                    <label htmlFor={`city-${city.value}`} className="text-sm">
+                                      {city.label}
+                                    </label>
                                   </div>
                                 ))}
-                              </RadioGroup>
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="interests">
-                  <AccordionTrigger>Interests</AccordionTrigger>
-                  <AccordionContent>
-                    <ScrollArea className="h-60">
-                      {interestsCategories.map((category) => (
-                        <div key={category.name} className="mb-4">
-                          <h4 className="text-sm font-medium mb-2">{category.name}</h4>
-                          <div className="grid grid-cols-2 gap-2">
-                            {category.options.map((interest) => (
-                              <div key={interest.id} className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id={`interest-${interest.id}`} 
-                                  checked={selectedInterests.includes(interest.id)}
-                                  onCheckedChange={(checked) => 
-                                    handleInterestChange(interest.id, checked === true)
-                                  }
-                                />
-                                <label htmlFor={`interest-${interest.id}`} className="text-sm">
-                                  {interest.name}
-                                </label>
                               </div>
-                            ))}
+                            </ScrollArea>
                           </div>
                         </div>
-                      ))}
-                    </ScrollArea>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="behaviors">
-                  <AccordionTrigger>Behaviors</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid grid-cols-2 gap-2">
-                      {behaviors.map((behavior) => (
-                        <div key={behavior.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`behavior-${behavior.id}`} 
-                            checked={selectedBehaviors.includes(behavior.id)}
-                            onCheckedChange={(checked) => 
-                              handleBehaviorChange(behavior.id, checked === true)
-                            }
+                      </AccordionContent>
+                    </AccordionItem>
+                    
+                    <AccordionItem value="demographics">
+                      <AccordionTrigger>Demographics</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid gap-6">
+                          <FormField
+                            control={form.control}
+                            name="gender"
+                            render={({ field }) => (
+                              <FormItem className="space-y-1">
+                                <FormLabel>Gender</FormLabel>
+                                <FormControl>
+                                  <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex flex-wrap gap-4"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="all" id="gender-all" />
+                                      <label htmlFor="gender-all">All Genders</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="1" id="gender-1" />
+                                      <label htmlFor="gender-1">Men</label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="2" id="gender-2" />
+                                      <label htmlFor="gender-2">Women</label>
+                                    </div>
+                                  </RadioGroup>
+                                </FormControl>
+                              </FormItem>
+                            )}
                           />
-                          <label htmlFor={`behavior-${behavior.id}`} className="text-sm">
-                            {behavior.name}
-                          </label>
                         </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </TabsContent>
-            
-            <TabsContent value="custom" className="space-y-4 pt-4">
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="targetAudience"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Select Custom Audience</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select custom audience" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="">None</SelectItem>
-                          {audiences?.map((audience: any) => (
-                            <SelectItem key={audience.id} value={audience.id}>
-                              {audience.name} ({audience.approximate_count || 'Unknown size'})
-                            </SelectItem>
+                      </AccordionContent>
+                    </AccordionItem>
+                    
+                    <AccordionItem value="interests">
+                      <AccordionTrigger>Interests</AccordionTrigger>
+                      <AccordionContent>
+                        <ScrollArea className="h-60">
+                          {interestsCategories.map((category) => (
+                            <div key={category.name} className="mb-4">
+                              <h4 className="text-sm font-medium mb-2">{category.name}</h4>
+                              <div className="grid grid-cols-2 gap-2">
+                                {category.options.map((interest) => (
+                                  <div key={interest.id} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                      id={`interest-${interest.id}`} 
+                                      checked={selectedInterests.includes(interest.id)}
+                                      onCheckedChange={(checked) => 
+                                        handleInterestChange(interest.id, checked === true)
+                                      }
+                                    />
+                                    <label htmlFor={`interest-${interest.id}`} className="text-sm">
+                                      {interest.name}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           ))}
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Custom audiences from your Meta account
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
+                        </ScrollArea>
+                      </AccordionContent>
+                    </AccordionItem>
+                    
+                    <AccordionItem value="behaviors">
+                      <AccordionTrigger>Behaviors</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="grid grid-cols-2 gap-2">
+                          {behaviors.map((behavior) => (
+                            <div key={behavior.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`behavior-${behavior.id}`} 
+                                checked={selectedBehaviors.includes(behavior.id)}
+                                onCheckedChange={(checked) => 
+                                  handleBehaviorChange(behavior.id, checked === true)
+                                }
+                              />
+                              <label htmlFor={`behavior-${behavior.id}`} className="text-sm">
+                                {behavior.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </TabsContent>
                 
-                <div>
-                  <FormLabel className="mb-2 block">Audience Creation</FormLabel>
-                  <Select 
-                    value={audienceCreationType}
-                    onValueChange={setAudienceCreationType}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Create new audience?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Don't create new audience</SelectItem>
-                      <SelectItem value="lookalike">Create lookalike audience</SelectItem>
-                      <SelectItem value="custom">Create custom audience</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {audienceCreationType === 'lookalike' && (
-                  <div className="space-y-4 pt-2">
+                <TabsContent value="custom" className="space-y-4 pt-4">
+                  <div className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="createLookalike"
+                      name="targetAudience"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>
-                              Create lookalike audience from selected custom audience
-                            </FormLabel>
-                            <FormDescription>
-                              Find new people who are similar to your existing audience
-                            </FormDescription>
-                          </div>
+                        <FormItem>
+                          <FormLabel>Select Custom Audience</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select custom audience" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="">None</SelectItem>
+                              {audiences?.map((audience: any) => (
+                                <SelectItem key={audience.id} value={audience.id}>
+                                  {audience.name} ({audience.approximate_count || 'Unknown size'})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Custom audiences from your Meta account
+                          </FormDescription>
                         </FormItem>
                       )}
                     />
-                    
-                    {form.watch('createLookalike') && (
-                      <FormField
-                        control={form.control}
-                        name="lookalikeSimilarity"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Lookalike Similarity</FormLabel>
-                            <FormControl>
-                              <Select 
-                                onValueChange={(value) => field.onChange(parseInt(value))}
-                                defaultValue={field.value?.toString()}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select similarity level" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="1">1% (Most similar)</SelectItem>
-                                  <SelectItem value="5">5% (Balanced)</SelectItem>
-                                  <SelectItem value="10">10% (Broader reach)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormDescription>
-                              Lower percentage = more similar to source audience
-                            </FormDescription>
-                          </FormItem>
-                        )}
-                      />
-                    )}
                   </div>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-        
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Campaign Description</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Describe the goals and strategy for this campaign" 
-                  {...field}
-                  rows={3}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                </TabsContent>
+              </Tabs>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {form.formState.errors.root && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-800">{form.formState.errors.root.message}</p>
+          </div>
+        )}
         
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>

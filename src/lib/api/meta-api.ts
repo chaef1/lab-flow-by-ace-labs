@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { saveMetaToken, hasMetaToken, getSavedMetaToken, removeMetaToken } from "@/lib/storage/token-storage";
 
@@ -21,7 +20,7 @@ export const getMetaOAuthUrl = () => {
   
   const encodedRedirectUri = encodeURIComponent(redirectUri);
   const state = encodeURIComponent(JSON.stringify({ platform: 'meta', timestamp: Date.now() }));
-  const scope = encodeURIComponent("ads_management,ads_read,business_management");
+  const scope = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_manage_posts");
   
   console.log('Generating Meta OAuth URL with redirect URI:', redirectUri);
   
@@ -123,6 +122,26 @@ export const processMetaAuthCallback = async (url: string) => {
   } catch (error) {
     console.error('Error processing Meta auth callback:', error);
     return { success: false, error: error.message || 'Authentication failed' };
+  }
+};
+
+// Get Meta pages (Facebook Pages and Instagram accounts)
+export const getMetaPages = async (accessToken: string) => {
+  try {
+    console.log('Getting Meta pages with token:', accessToken.substring(0, 5) + '...');
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        action: 'get_pages' 
+      }
+    });
+    
+    if (error) throw new Error(error.message || 'Error getting pages');
+    return data;
+  } catch (err) {
+    console.error('Error getting Meta pages:', err);
+    throw err;
   }
 };
 
@@ -280,7 +299,7 @@ export const createMetaAd = async (accessToken: string, accountId: string, adDat
 };
 
 // Upload creative asset to Meta ad account
-export const uploadMetaCreative = async (accessToken: string, accountId: string, fileData: any) => {
+export const uploadMetaCreative = async (accessToken: string, accountId: string, creativeData: any) => {
   try {
     console.log('Uploading creative to Meta for account:', accountId);
     
@@ -288,7 +307,7 @@ export const uploadMetaCreative = async (accessToken: string, accountId: string,
       body: { 
         accessToken, 
         accountId, 
-        fileData,
+        creativeData,
         action: 'upload_creative' 
       }
     });
@@ -297,6 +316,28 @@ export const uploadMetaCreative = async (accessToken: string, accountId: string,
     return data;
   } catch (err) {
     console.error('Error uploading creative to Meta:', err);
+    throw err;
+  }
+};
+
+// Create ad creative with uploaded assets
+export const createMetaAdCreative = async (accessToken: string, accountId: string, adCreativeData: any) => {
+  try {
+    console.log('Creating Meta ad creative for account:', accountId);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        accessToken, 
+        accountId, 
+        adCreativeData,
+        action: 'create_ad_creative' 
+      }
+    });
+    
+    if (error) throw new Error(error.message || 'Error creating ad creative');
+    return data;
+  } catch (err) {
+    console.error('Error creating Meta ad creative:', err);
     throw err;
   }
 };

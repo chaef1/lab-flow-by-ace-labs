@@ -82,6 +82,269 @@ serve(async (req) => {
           );
         }
 
+      case 'get_pages':
+        // Get Facebook Pages for the authenticated user
+        const pageToken = requestData.accessToken;
+        if (!pageToken) {
+          return new Response(
+            JSON.stringify({ error: 'Access token is required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Fetching pages with token:', pageToken.substring(0, 5) + '...');
+        
+        try {
+          const pagesResponse = await fetch(`https://graph.facebook.com/v17.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username}&access_token=${pageToken}`);
+          const pagesResult = await pagesResponse.json();
+          
+          console.log('Pages response status:', pagesResponse.status);
+          
+          if (!pagesResponse.ok) {
+            console.error('Pages request failed with status:', pagesResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to fetch pages', 
+                details: pagesResult,
+                status: pagesResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: pagesResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(pagesResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error fetching pages:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch pages', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
+      case 'upload_creative':
+        // Upload creative asset to Meta ad account
+        const uploadToken = requestData.accessToken;
+        const uploadAccountId = requestData.accountId;
+        const creativeData = requestData.creativeData;
+        
+        if (!uploadToken || !uploadAccountId || !creativeData) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, account ID, and creative data are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Uploading creative for account:', uploadAccountId);
+        
+        try {
+          // For images, upload to ad images endpoint
+          if (creativeData.type === 'image') {
+            const formData = new FormData();
+            formData.append('filename', creativeData.filename);
+            formData.append('bytes', creativeData.bytes);
+            formData.append('access_token', uploadToken);
+
+            const uploadResponse = await fetch(`https://graph.facebook.com/v17.0/${uploadAccountId}/adimages`, {
+              method: 'POST',
+              body: formData,
+            });
+
+            const uploadResult = await uploadResponse.json();
+            console.log('Creative upload response status:', uploadResponse.status);
+            
+            if (!uploadResponse.ok) {
+              console.error('Creative upload failed with status:', uploadResponse.status);
+              return new Response(
+                JSON.stringify({ 
+                  error: 'Failed to upload creative', 
+                  details: uploadResult,
+                  status: uploadResponse.status
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: uploadResponse.status }
+              );
+            }
+            
+            return new Response(
+              JSON.stringify(uploadResult),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          
+          // For videos, upload to ad videos endpoint
+          if (creativeData.type === 'video') {
+            const formData = new FormData();
+            formData.append('filename', creativeData.filename);
+            formData.append('file_size', creativeData.fileSize);
+            formData.append('access_token', uploadToken);
+
+            const uploadResponse = await fetch(`https://graph.facebook.com/v17.0/${uploadAccountId}/advideos`, {
+              method: 'POST',
+              body: formData,
+            });
+
+            const uploadResult = await uploadResponse.json();
+            console.log('Video upload response status:', uploadResponse.status);
+            
+            if (!uploadResponse.ok) {
+              console.error('Video upload failed with status:', uploadResponse.status);
+              return new Response(
+                JSON.stringify({ 
+                  error: 'Failed to upload video', 
+                  details: uploadResult,
+                  status: uploadResponse.status
+                }),
+                { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: uploadResponse.status }
+              );
+            }
+            
+            return new Response(
+              JSON.stringify(uploadResult),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          
+          throw new Error('Unsupported creative type');
+        } catch (error) {
+          console.error('Error uploading creative:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to upload creative', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
+      case 'create_ad_creative':
+        // Create ad creative with uploaded assets
+        const creativeToken = requestData.accessToken;
+        const creativeAccountId = requestData.accountId;
+        const adCreativeData = requestData.adCreativeData;
+        
+        if (!creativeToken || !creativeAccountId || !adCreativeData) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, account ID, and ad creative data are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Creating ad creative for account:', creativeAccountId);
+        
+        try {
+          const creativePayload = {
+            name: adCreativeData.name,
+            object_story_spec: {
+              page_id: adCreativeData.pageId,
+              link_data: {
+                image_hash: adCreativeData.imageHash,
+                link: adCreativeData.link,
+                message: adCreativeData.message,
+                name: adCreativeData.headline,
+                description: adCreativeData.description,
+                call_to_action: {
+                  type: adCreativeData.callToAction || 'LEARN_MORE'
+                }
+              }
+            },
+            access_token: creativeToken
+          };
+
+          const creativeResponse = await fetch(`https://graph.facebook.com/v17.0/${creativeAccountId}/adcreatives`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(creativePayload),
+          });
+
+          const creativeResult = await creativeResponse.json();
+          console.log('Ad creative creation response status:', creativeResponse.status);
+          
+          if (!creativeResponse.ok) {
+            console.error('Ad creative creation failed with status:', creativeResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to create ad creative', 
+                details: creativeResult,
+                status: creativeResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: creativeResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(creativeResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error creating ad creative:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create ad creative', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
+      case 'create_ad':
+        // Create ad with creative
+        const adToken = requestData.accessToken;
+        const adAccountId = requestData.accountId;
+        const adData = requestData.adData;
+        
+        if (!adToken || !adAccountId || !adData) {
+          return new Response(
+            JSON.stringify({ error: 'Access token, account ID, and ad data are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Creating ad for account:', adAccountId);
+        
+        try {
+          const adPayload = {
+            name: adData.name,
+            adset_id: adData.adSetId,
+            creative: {
+              creative_id: adData.creativeId
+            },
+            status: 'PAUSED',
+            access_token: adToken
+          };
+
+          const adResponse = await fetch(`https://graph.facebook.com/v17.0/${adAccountId}/ads`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(adPayload),
+          });
+
+          const adResult = await adResponse.json();
+          console.log('Ad creation response status:', adResponse.status);
+          
+          if (!adResponse.ok) {
+            console.error('Ad creation failed with status:', adResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to create ad', 
+                details: adResult,
+                status: adResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: adResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(adResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error creating ad:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create ad', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
       case 'get_campaigns':
         // Get campaigns for a specific ad account
         const campaignToken = requestData.accessToken;

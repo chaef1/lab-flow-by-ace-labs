@@ -16,6 +16,8 @@ export {
   createMetaAdSet,
   createMetaAd,
   uploadMetaCreative,
+  createMetaAdCreative,
+  getMetaPages,
   hasMetaToken,
   getSavedMetaToken,
   removeMetaToken,

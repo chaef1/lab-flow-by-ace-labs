@@ -287,10 +287,6 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
         throw new Error('Meta authentication required');
       }
       
-      // For status updates, we still need to get the account ID from stored token
-      // This is for existing campaigns where we already know the account
-      const { accountId } = getSavedMetaToken();
-      
       if (!accountId) {
         throw new Error('Ad account information not found');
       }

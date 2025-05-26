@@ -1,12 +1,13 @@
+
 import { Suspense, useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { Loader } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdPerformance from '@/components/advertising/AdPerformance';
-import CampaignList from '@/components/advertising/CampaignList';
+import CampaignList from '@/components/advertising/campaigns/CampaignList';
 import MediaUploader from '@/components/advertising/MediaUploader';
-import AdWallet from '@/components/advertising/AdWallet';
+import AdWallet from '@/components/wallet/AdWallet';
 import MetaTokenManager from '@/components/advertising/MetaTokenManager';
 
 const AdvertisingManager = () => {
@@ -46,11 +47,16 @@ const AdvertisingManager = () => {
             </TabsList>
             
             <TabsContent value="overview">
-              <AdPerformance />
+              <AdPerformance platform="meta" />
             </TabsContent>
             
             <TabsContent value="campaigns">
-              <CampaignList />
+              <CampaignList 
+                campaigns={[]}
+                platform="meta"
+                isConnected={false}
+                isLoading={false}
+              />
             </TabsContent>
 
             <TabsContent value="tokens">
@@ -58,7 +64,7 @@ const AdvertisingManager = () => {
             </TabsContent>
             
             <TabsContent value="creatives">
-              <MediaUploader />
+              <MediaUploader platform="meta" />
             </TabsContent>
             
             <TabsContent value="wallet">

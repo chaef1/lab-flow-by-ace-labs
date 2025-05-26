@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -7,10 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
-
-// Meta API configuration
-const META_API_URL = "https://graph.facebook.com/v17.0";
-const META_APP_ID = "1749800232620671";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -27,82 +24,24 @@ serve(async (req) => {
     // Get Meta app credentials from environment variables
     const metaAppSecret = Deno.env.get('META_APP_SECRET');
 
-    if (!META_APP_ID || !metaAppSecret) {
-      console.error('Meta API credentials not found', {
-        appIdExists: !!META_APP_ID,
-        appSecretExists: !!metaAppSecret
-      });
+    if (!metaAppSecret) {
+      console.error('Meta API credentials not found');
       return new Response(
         JSON.stringify({ error: 'Meta API credentials not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    // Parse the request body for API requests
-    const requestData = req.method === 'POST' ? await req.json() : {};
+    // Parse the request body
+    const requestData = await req.json();
     const action = requestData.action || '';
     
     console.log(`Processing request with action: ${action}`, { requestData });
 
     // Use a switch statement to handle different API actions
     switch (action) {
-      case 'exchange_code':
-        // Exchange authorization code for access token
-        const code = requestData.code;
-        const redirectUri = requestData.redirectUri;
-
-        if (!code || !redirectUri) {
-          return new Response(
-            JSON.stringify({ error: 'Authorization code and redirect URI are required' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-
-        console.log('Exchanging code for access token:', code.substring(0, 5) + '...');
-        
-        try {
-          // Access Token Exchange Endpoint
-          const tokenUrl = `${META_API_URL}/oauth/access_token?client_id=${META_APP_ID}&client_secret=${metaAppSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`;
-          
-          const tokenResponse = await fetch(tokenUrl);
-          const tokenResult = await tokenResponse.json();
-          
-          console.log('Token exchange response status:', tokenResponse.status);
-          
-          if (!tokenResponse.ok) {
-            console.error('Token exchange failed with status:', tokenResponse.status);
-            return new Response(
-              JSON.stringify({ 
-                error: 'Failed to exchange token', 
-                details: tokenResult,
-                status: tokenResponse.status
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: tokenResponse.status }
-            );
-          }
-          
-          // Log the token data structure to help with debugging (hiding sensitive data)
-          console.log('Token exchange successful, data structure:', 
-            JSON.stringify(tokenResult, (key, value) => {
-              if (key === 'access_token') return '[REDACTED]';
-              return value;
-            }, 2)
-          );
-          
-          return new Response(
-            JSON.stringify(tokenResult),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        } catch (error) {
-          console.error('Error exchanging code for token:', error);
-          return new Response(
-            JSON.stringify({ error: 'Failed to exchange code for token', message: error.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-          );
-        }
-
       case 'get_ad_accounts':
-        // Get advertising accounts for the authenticated user
+        // Get ad accounts for the authenticated user
         const accessToken = requestData.accessToken;
         if (!accessToken) {
           return new Response(
@@ -114,8 +53,7 @@ serve(async (req) => {
         console.log('Fetching ad accounts with token:', accessToken.substring(0, 5) + '...');
         
         try {
-          // Ad Accounts Endpoint
-          const accountsResponse = await fetch(`${META_API_URL}/me/adaccounts?fields=name,account_id,account_status,amount_spent&access_token=${accessToken}`);
+          const accountsResponse = await fetch(`https://graph.facebook.com/v17.0/me/adaccounts?fields=id,name,account_status,currency,timezone_name&access_token=${accessToken}`);
           const accountsResult = await accountsResponse.json();
           
           console.log('Ad accounts response status:', accountsResponse.status);
@@ -159,10 +97,7 @@ serve(async (req) => {
         console.log('Fetching campaigns for account:', accountId);
         
         try {
-          // Campaign List Endpoint with expanded fields for more complete data
-          const campaignsResponse = await fetch(
-            `${META_API_URL}/${accountId}/campaigns?fields=name,status,objective,spend,created_time,start_time,stop_time,daily_budget,lifetime_budget,insights{impressions,clicks,ctr,cost_per_result,reach}&access_token=${campaignToken}`
-          );
+          const campaignsResponse = await fetch(`https://graph.facebook.com/v17.0/${accountId}/campaigns?fields=id,name,status,objective,created_time,start_time,stop_time,daily_budget,lifetime_budget,spend&access_token=${campaignToken}`);
           const campaignsResult = await campaignsResponse.json();
           
           console.log('Campaigns response status:', campaignsResponse.status);
@@ -190,68 +125,9 @@ serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }
-
-      case 'update_campaign_status':
-        // Update campaign status
-        const statusToken = requestData.accessToken;
-        const statusAccountId = requestData.accountId;
-        const campaignId = requestData.campaignId;
-        const status = requestData.status;
         
-        if (!statusToken || !statusAccountId || !campaignId || !status) {
-          return new Response(
-            JSON.stringify({ error: 'Access token, account ID, campaign ID, and status are required' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-
-        console.log(`Updating campaign ${campaignId} status to ${status}`);
-        
-        try {
-          // Prepare the status update data
-          const statusParams = new URLSearchParams();
-          statusParams.append('status', status);
-          statusParams.append('access_token', statusToken);
-          
-          // Update Campaign Status Endpoint
-          const statusResponse = await fetch(`${META_API_URL}/${campaignId}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: statusParams.toString()
-          });
-          
-          const statusResult = await statusResponse.json();
-          
-          console.log('Campaign status update response status:', statusResponse.status);
-          
-          if (!statusResponse.ok) {
-            console.error('Campaign status update failed with status:', statusResponse.status);
-            return new Response(
-              JSON.stringify({ 
-                error: 'Failed to update campaign status', 
-                details: statusResult,
-                status: statusResponse.status
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: statusResponse.status }
-            );
-          }
-          
-          return new Response(
-            JSON.stringify(statusResult),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        } catch (error) {
-          console.error('Error updating campaign status:', error);
-          return new Response(
-            JSON.stringify({ error: 'Failed to update campaign status', message: error.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-          );
-        }
-
       case 'create_campaign':
-        // Create a new campaign
+        // Create a new campaign for a specific ad account
         const createToken = requestData.accessToken;
         const createAccountId = requestData.accountId;
         const campaignData = requestData.campaignData;
@@ -264,49 +140,55 @@ serve(async (req) => {
         }
 
         console.log('Creating campaign for account:', createAccountId);
+        console.log('Campaign data:', campaignData);
         
         try {
-          // Prepare the campaign creation data
-          const campaignParams = new URLSearchParams();
-          campaignParams.append('name', campaignData.name);
-          campaignParams.append('objective', campaignData.objective);
-          campaignParams.append('status', campaignData.status || 'PAUSED'); // Start as paused for safety
-          
+          // Prepare the campaign creation payload for Meta API
+          const metaCampaignData = {
+            name: campaignData.name,
+            objective: campaignData.objective,
+            status: campaignData.status || 'PAUSED',
+            access_token: createToken
+          };
+
+          // Add budget - Meta requires budget in cents
           if (campaignData.dailyBudget) {
-            campaignParams.append('daily_budget', Math.floor(campaignData.dailyBudget * 100).toString());
+            metaCampaignData.daily_budget = Math.round(campaignData.dailyBudget * 100); // Convert to cents
           } else if (campaignData.lifetimeBudget) {
-            campaignParams.append('lifetime_budget', Math.floor(campaignData.lifetimeBudget * 100).toString());
+            metaCampaignData.lifetime_budget = Math.round(campaignData.lifetimeBudget * 100); // Convert to cents
           }
-          
+
+          // Add start and end times if provided
           if (campaignData.startTime) {
-            campaignParams.append('start_time', campaignData.startTime);
+            metaCampaignData.start_time = campaignData.startTime;
           }
-          
           if (campaignData.endTime) {
-            campaignParams.append('end_time', campaignData.endTime);
+            metaCampaignData.stop_time = campaignData.endTime;
           }
-          
-          if (campaignData.specialAdCategories) {
-            campaignParams.append('special_ad_categories', JSON.stringify(campaignData.specialAdCategories));
+
+          // Add special ad categories if provided
+          if (campaignData.specialAdCategories && campaignData.specialAdCategories.length > 0) {
+            metaCampaignData.special_ad_categories = campaignData.specialAdCategories;
           }
-          
-          campaignParams.append('access_token', createToken);
-          
-          // Create Campaign Endpoint
-          const createResponse = await fetch(`${META_API_URL}/${createAccountId}/campaigns`, {
+
+          console.log('Meta API payload:', metaCampaignData);
+
+          // Create campaign using Meta Graph API
+          const createResponse = await fetch(`https://graph.facebook.com/v17.0/${createAccountId}/campaigns`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Type': 'application/json',
             },
-            body: campaignParams.toString()
+            body: JSON.stringify(metaCampaignData),
           });
-          
+
           const createResult = await createResponse.json();
-          
           console.log('Campaign creation response status:', createResponse.status);
+          console.log('Campaign creation response:', createResult);
           
           if (!createResponse.ok) {
             console.error('Campaign creation failed with status:', createResponse.status);
+            console.error('Error details:', createResult);
             return new Response(
               JSON.stringify({ 
                 error: 'Failed to create campaign', 
@@ -328,165 +210,64 @@ serve(async (req) => {
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }
+
+      case 'update_campaign_status':
+        // Update campaign status
+        const updateToken = requestData.accessToken;
+        const updateAccountId = requestData.accountId;
+        const campaignId = requestData.campaignId;
+        const newStatus = requestData.status;
         
-      case 'create_ad_set':
-        // Create a new ad set
-        const adSetToken = requestData.accessToken;
-        const adSetAccountId = requestData.accountId;
-        const adSetData = requestData.adSetData;
-        
-        if (!adSetToken || !adSetAccountId || !adSetData) {
+        if (!updateToken || !updateAccountId || !campaignId || !newStatus) {
           return new Response(
-            JSON.stringify({ error: 'Access token, account ID, and ad set data are required' }),
+            JSON.stringify({ error: 'Access token, account ID, campaign ID, and status are required' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
 
-        console.log('Creating ad set for account:', adSetAccountId);
+        console.log(`Updating campaign ${campaignId} status to ${newStatus}`);
         
         try {
-          // Prepare the ad set creation data
-          const adSetParams = new URLSearchParams();
-          adSetParams.append('name', adSetData.name);
-          adSetParams.append('campaign_id', adSetData.campaignId);
-          adSetParams.append('optimization_goal', adSetData.optimizationGoal || 'REACH');
-          adSetParams.append('billing_event', adSetData.billingEvent || 'IMPRESSIONS');
-          adSetParams.append('status', 'PAUSED'); // Start as paused for safety
-          
-          // Budget settings
-          if (adSetData.dailyBudget) {
-            adSetParams.append('daily_budget', Math.floor(adSetData.dailyBudget * 100).toString());
-          } else if (adSetData.lifetimeBudget) {
-            adSetParams.append('lifetime_budget', Math.floor(adSetData.lifetimeBudget * 100).toString());
-          }
-          
-          // Schedule
-          if (adSetData.startTime) {
-            adSetParams.append('start_time', adSetData.startTime);
-          }
-          if (adSetData.endTime) {
-            adSetParams.append('end_time', adSetData.endTime);
-          }
-          
-          // Targeting - stringify the targeting spec
-          if (adSetData.targeting) {
-            adSetParams.append('targeting', JSON.stringify(adSetData.targeting));
-          }
-          
-          // Bid amount
-          if (adSetData.bidAmount) {
-            adSetParams.append('bid_amount', Math.floor(adSetData.bidAmount * 100).toString());
-          }
-          
-          adSetParams.append('access_token', adSetToken);
-          
-          // Create Ad Set Endpoint
-          const adSetResponse = await fetch(`${META_API_URL}/${adSetAccountId}/adsets`, {
+          const updateResponse = await fetch(`https://graph.facebook.com/v17.0/${campaignId}`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Type': 'application/json',
             },
-            body: adSetParams.toString()
+            body: JSON.stringify({
+              status: newStatus,
+              access_token: updateToken
+            }),
           });
+
+          const updateResult = await updateResponse.json();
+          console.log('Campaign update response status:', updateResponse.status);
           
-          const adSetResult = await adSetResponse.json();
-          
-          console.log('Ad set creation response status:', adSetResponse.status);
-          
-          if (!adSetResponse.ok) {
-            console.error('Ad set creation failed with status:', adSetResponse.status);
+          if (!updateResponse.ok) {
+            console.error('Campaign update failed with status:', updateResponse.status);
             return new Response(
               JSON.stringify({ 
-                error: 'Failed to create ad set', 
-                details: adSetResult,
-                status: adSetResponse.status
+                error: 'Failed to update campaign status', 
+                details: updateResult,
+                status: updateResponse.status
               }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: adSetResponse.status }
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: updateResponse.status }
             );
           }
           
           return new Response(
-            JSON.stringify(adSetResult),
+            JSON.stringify(updateResult),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } catch (error) {
-          console.error('Error creating ad set:', error);
+          console.error('Error updating campaign status:', error);
           return new Response(
-            JSON.stringify({ error: 'Failed to create ad set', message: error.message }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-          );
-        }
-
-      case 'create_ad':
-        // Create a new ad
-        const adToken = requestData.accessToken;
-        const adAccountId = requestData.accountId;
-        const adData = requestData.adData;
-        
-        if (!adToken || !adAccountId || !adData) {
-          return new Response(
-            JSON.stringify({ error: 'Access token, account ID, and ad data are required' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-
-        console.log('Creating ad for account:', adAccountId);
-        
-        try {
-          // Prepare the ad creation data
-          const adParams = new URLSearchParams();
-          adParams.append('name', adData.name);
-          adParams.append('adset_id', adData.adsetId);
-          adParams.append('status', 'PAUSED'); // Start as paused for safety
-          
-          // Creative
-          if (adData.creativeId) {
-            adParams.append('creative', JSON.stringify({ creative_id: adData.creativeId }));
-          } else if (adData.creative) {
-            adParams.append('creative', JSON.stringify(adData.creative));
-          }
-          
-          adParams.append('access_token', adToken);
-          
-          // Create Ad Endpoint
-          const adResponse = await fetch(`${META_API_URL}/${adAccountId}/ads`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: adParams.toString()
-          });
-          
-          const adResult = await adResponse.json();
-          
-          console.log('Ad creation response status:', adResponse.status);
-          
-          if (!adResponse.ok) {
-            console.error('Ad creation failed with status:', adResponse.status);
-            return new Response(
-              JSON.stringify({ 
-                error: 'Failed to create ad', 
-                details: adResult,
-                status: adResponse.status
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: adResponse.status }
-            );
-          }
-          
-          return new Response(
-            JSON.stringify(adResult),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        } catch (error) {
-          console.error('Error creating ad:', error);
-          return new Response(
-            JSON.stringify({ error: 'Failed to create ad', message: error.message }),
+            JSON.stringify({ error: 'Failed to update campaign status', message: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }
 
       case 'get_audiences':
-        // Get custom audiences for a specific ad account
+        // Get custom audiences for the account
         const audienceToken = requestData.accessToken;
         const audienceAccountId = requestData.accountId;
         
@@ -500,10 +281,7 @@ serve(async (req) => {
         console.log('Fetching audiences for account:', audienceAccountId);
         
         try {
-          // Custom Audiences Endpoint
-          const audiencesResponse = await fetch(
-            `${META_API_URL}/${audienceAccountId}/customaudiences?fields=name,subtype,approximate_count,description,time_created&access_token=${audienceToken}`
-          );
+          const audiencesResponse = await fetch(`https://graph.facebook.com/v17.0/${audienceAccountId}/customaudiences?fields=id,name,approximate_count,description&access_token=${audienceToken}`);
           const audiencesResult = await audiencesResponse.json();
           
           console.log('Audiences response status:', audiencesResponse.status);
@@ -532,66 +310,83 @@ serve(async (req) => {
           );
         }
 
-      case 'upload_creative':
-        // Upload a creative asset to the ad account
-        const creativeToken = requestData.accessToken;
-        const creativeAccountId = requestData.accountId;
-        const fileData = requestData.fileData;
+      case 'create_ad_set':
+        // Create ad set for campaign
+        const adSetToken = requestData.accessToken;
+        const adSetAccountId = requestData.accountId;
+        const adSetData = requestData.adSetData;
         
-        if (!creativeToken || !creativeAccountId || !fileData) {
+        if (!adSetToken || !adSetAccountId || !adSetData) {
           return new Response(
-            JSON.stringify({ error: 'Access token, account ID, and file data are required' }),
+            JSON.stringify({ error: 'Access token, account ID, and ad set data are required' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
           );
         }
 
-        console.log('Uploading creative for account:', creativeAccountId);
+        console.log('Creating ad set for account:', adSetAccountId);
         
         try {
-          // For simplicity in this implementation, we'll assume fileData contains a URL 
-          // to an image that's already hosted somewhere
-          const creativeParams = new URLSearchParams();
-          creativeParams.append('name', fileData.name || 'Ad Creative');
-          
-          if (fileData.url) {
-            creativeParams.append('image_url', fileData.url);
+          // Prepare ad set data for Meta API
+          const metaAdSetData = {
+            name: adSetData.name,
+            campaign_id: adSetData.campaignId,
+            optimization_goal: adSetData.optimizationGoal || 'LINK_CLICKS',
+            billing_event: adSetData.billingEvent || 'LINK_CLICKS',
+            targeting: adSetData.targeting || {
+              geo_locations: { countries: ['ZA'] },
+              age_min: 18,
+              age_max: 65
+            },
+            status: 'PAUSED',
+            access_token: adSetToken
+          };
+
+          // Add budget
+          if (adSetData.dailyBudget) {
+            metaAdSetData.daily_budget = Math.round(adSetData.dailyBudget * 100); // Convert to cents
+          } else if (adSetData.lifetimeBudget) {
+            metaAdSetData.lifetime_budget = Math.round(adSetData.lifetimeBudget * 100); // Convert to cents
           }
-          
-          creativeParams.append('access_token', creativeToken);
-          
-          // Ad Creative Endpoint
-          const creativeResponse = await fetch(`${META_API_URL}/${creativeAccountId}/adimages`, {
+
+          // Add start and end times
+          if (adSetData.startTime) {
+            metaAdSetData.start_time = adSetData.startTime;
+          }
+          if (adSetData.endTime) {
+            metaAdSetData.end_time = adSetData.endTime;
+          }
+
+          const adSetResponse = await fetch(`https://graph.facebook.com/v17.0/${adSetAccountId}/adsets`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Type': 'application/json',
             },
-            body: creativeParams.toString()
+            body: JSON.stringify(metaAdSetData),
           });
+
+          const adSetResult = await adSetResponse.json();
+          console.log('Ad set creation response status:', adSetResponse.status);
           
-          const creativeResult = await creativeResponse.json();
-          
-          console.log('Creative upload response status:', creativeResponse.status);
-          
-          if (!creativeResponse.ok) {
-            console.error('Creative upload failed with status:', creativeResponse.status);
+          if (!adSetResponse.ok) {
+            console.error('Ad set creation failed with status:', adSetResponse.status);
             return new Response(
               JSON.stringify({ 
-                error: 'Failed to upload creative', 
-                details: creativeResult,
-                status: creativeResponse.status
+                error: 'Failed to create ad set', 
+                details: adSetResult,
+                status: adSetResponse.status
               }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: creativeResponse.status }
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: adSetResponse.status }
             );
           }
           
           return new Response(
-            JSON.stringify(creativeResult),
+            JSON.stringify(adSetResult),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } catch (error) {
-          console.error('Error uploading creative:', error);
+          console.error('Error creating ad set:', error);
           return new Response(
-            JSON.stringify({ error: 'Failed to upload creative', message: error.message }),
+            JSON.stringify({ error: 'Failed to create ad set', message: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
           );
         }

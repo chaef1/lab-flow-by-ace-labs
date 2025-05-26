@@ -5,7 +5,7 @@ import { Loader } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdPerformance from '@/components/advertising/AdPerformance';
-import CampaignList from '@/components/advertising/campaigns/CampaignList';
+import CampaignCreator from '@/components/advertising/CampaignCreator';
 import MediaUploader from '@/components/advertising/MediaUploader';
 import AdWallet from '@/components/wallet/AdWallet';
 import MetaTokenManager from '@/components/advertising/MetaTokenManager';
@@ -98,11 +98,9 @@ const AdvertisingManager = () => {
                   </AlertDescription>
                 </Alert>
               )}
-              <CampaignList 
-                campaigns={[]}
-                platform="meta"
+              <CampaignCreator 
                 isConnected={isMetaConnected}
-                isLoading={false}
+                platform="meta"
               />
             </TabsContent>
 

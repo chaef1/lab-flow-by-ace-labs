@@ -9,9 +9,11 @@ import CampaignList from '@/components/advertising/campaigns/CampaignList';
 import MediaUploader from '@/components/advertising/MediaUploader';
 import AdWallet from '@/components/wallet/AdWallet';
 import MetaTokenManager from '@/components/advertising/MetaTokenManager';
+import { hasMetaToken } from '@/lib/storage/token-storage';
 
 const AdvertisingManager = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isMetaConnected, setIsMetaConnected] = useState(false);
 
   useEffect(() => {
     // Persist tab selection in localStorage
@@ -25,6 +27,29 @@ const AdvertisingManager = () => {
     // Update localStorage when activeTab changes
     localStorage.setItem('advertising_active_tab', activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    // Check Meta token status on component mount
+    const checkMetaConnection = () => {
+      const connected = hasMetaToken();
+      console.log('Checking Meta connection status:', connected);
+      setIsMetaConnected(connected);
+    };
+
+    checkMetaConnection();
+
+    // Listen for Meta auth changes
+    const handleMetaAuthChange = () => {
+      console.log('Meta auth changed, rechecking connection');
+      checkMetaConnection();
+    };
+
+    window.addEventListener('meta_auth_changed', handleMetaAuthChange);
+
+    return () => {
+      window.removeEventListener('meta_auth_changed', handleMetaAuthChange);
+    };
+  }, []);
 
   return (
     <DashboardLayout title="Advertising Manager" subtitle="Manage your advertising campaigns across platforms">
@@ -54,7 +79,7 @@ const AdvertisingManager = () => {
               <CampaignList 
                 campaigns={[]}
                 platform="meta"
-                isConnected={false}
+                isConnected={isMetaConnected}
                 isLoading={false}
               />
             </TabsContent>

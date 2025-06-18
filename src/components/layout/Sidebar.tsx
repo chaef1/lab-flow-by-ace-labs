@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,8 @@ import {
   MessageSquare,
   Star,
   UserCircle,
-  BarChart3
+  BarChart3,
+  Settings
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,6 +54,9 @@ const Sidebar = ({ className }: SidebarProps) => {
     
     // Content Approval - admins, creators, agencies, and brands
     { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
+    
+    // Client Workflows - agencies and brands
+    { name: 'Client Workflows', path: '/workflows', icon: Settings, roles: ['brand', 'agency'] },
     
     // Influencers directory - admins, agencies, and brands
     { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand', 'agency'] },

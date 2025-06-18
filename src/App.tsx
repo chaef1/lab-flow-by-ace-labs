@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,8 +22,6 @@ import InfluencerProfile from "./pages/InfluencerProfile";
 import Campaigns from "./pages/Campaigns";
 import SubmitContent from "./pages/SubmitContent";
 import AdvertisingManager from "./pages/AdvertisingManager";
-import Workflows from "./pages/Workflows";
-import CampaignProjects from "./pages/CampaignProjects";
 
 // Set up React Query with default error handling
 const queryClient = new QueryClient({
@@ -59,15 +58,11 @@ const App = () => (
             <Route path="/content" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Content /></ProtectedRoute>} />
             <Route path="/content/:id" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><ContentDetails /></ProtectedRoute>} />
             
-            {/* Campaign Projects - Brand, Agency routes */}
-            <Route path="/campaign-projects" element={<ProtectedRoute allowedRoles={['brand', 'agency']}><CampaignProjects /></ProtectedRoute>} />
-            
-            {/* Brand, Agency routes */}
-            <Route path="/workflows" element={<ProtectedRoute allowedRoles={['brand', 'agency']}><Workflows /></ProtectedRoute>} />
-            <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Influencers /></ProtectedRoute>} />
-            <Route path="/influencers/:id" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><InfluencerProfile /></ProtectedRoute>} />
-            <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Reporting /></ProtectedRoute>} />
-            <Route path="/advertising" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><AdvertisingManager /></ProtectedRoute>} />
+            {/* Admin, Brand routes */}
+            <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Influencers /></ProtectedRoute>} />
+            <Route path="/influencers/:id" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><InfluencerProfile /></ProtectedRoute>} />
+            <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Reporting /></ProtectedRoute>} />
+            <Route path="/advertising" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><AdvertisingManager /></ProtectedRoute>} />
             
             {/* Admin only routes */}
             <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />

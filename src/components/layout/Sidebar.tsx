@@ -52,6 +52,9 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Projects menu - admins, creators, agencies, and brands
     { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
     
+    // Campaign Projects - agencies and brands
+    { name: 'Campaign Projects', path: '/campaign-projects', icon: Settings, roles: ['brand', 'agency'] },
+    
     // Content Approval - admins, creators, agencies, and brands
     { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
     

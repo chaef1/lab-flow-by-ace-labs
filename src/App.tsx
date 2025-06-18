@@ -59,6 +59,9 @@ const App = () => (
             <Route path="/content" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Content /></ProtectedRoute>} />
             <Route path="/content/:id" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><ContentDetails /></ProtectedRoute>} />
             
+            {/* Campaign Projects - Brand, Agency routes */}
+            <Route path="/campaign-projects" element={<ProtectedRoute allowedRoles={['brand', 'agency']}><CampaignProjects /></ProtectedRoute>} />
+            
             {/* Brand, Agency routes */}
             <Route path="/workflows" element={<ProtectedRoute allowedRoles={['brand', 'agency']}><Workflows /></ProtectedRoute>} />
             <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Influencers /></ProtectedRoute>} />

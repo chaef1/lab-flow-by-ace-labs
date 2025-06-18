@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +22,7 @@ import Campaigns from "./pages/Campaigns";
 import SubmitContent from "./pages/SubmitContent";
 import AdvertisingManager from "./pages/AdvertisingManager";
 import Workflows from "./pages/Workflows";
+import CampaignProjects from "./pages/CampaignProjects";
 
 // Set up React Query with default error handling
 const queryClient = new QueryClient({

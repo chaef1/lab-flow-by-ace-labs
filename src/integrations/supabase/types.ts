@@ -726,6 +726,45 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          module: Database["public"]["Enums"]["user_module"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["user_module"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["user_module"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       video_content_specs: {
         Row: {
           aspect_ratio: string | null
@@ -785,6 +824,17 @@ export type Database = {
         | "post-production"
         | "submission"
         | "completed"
+      user_module:
+        | "dashboard"
+        | "projects"
+        | "content"
+        | "influencers"
+        | "reporting"
+        | "advertising"
+        | "wallet"
+        | "user_management"
+        | "campaigns"
+        | "submit_content"
       user_role: "admin" | "creator" | "brand" | "agency" | "influencer"
     }
     CompositeTypes: {
@@ -908,6 +958,18 @@ export const Constants = {
         "post-production",
         "submission",
         "completed",
+      ],
+      user_module: [
+        "dashboard",
+        "projects",
+        "content",
+        "influencers",
+        "reporting",
+        "advertising",
+        "wallet",
+        "user_management",
+        "campaigns",
+        "submit_content",
       ],
       user_role: ["admin", "creator", "brand", "agency", "influencer"],
     },

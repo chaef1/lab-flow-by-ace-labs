@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,6 +13,27 @@ import { toast } from 'sonner';
 interface CreateUserDialogProps {
   onUserCreated?: () => void;
 }
+
+const AVAILABLE_MODULES = [
+  { id: 'dashboard', label: 'Dashboard', description: 'Access to main dashboard' },
+  { id: 'projects', label: 'Projects', description: 'Manage projects and campaigns' },
+  { id: 'content', label: 'Content', description: 'Content management and approval' },
+  { id: 'influencers', label: 'Influencers', description: 'Influencer search and management' },
+  { id: 'reporting', label: 'Reporting', description: 'Analytics and reports' },
+  { id: 'advertising', label: 'Advertising', description: 'Ad campaign management' },
+  { id: 'wallet', label: 'Wallet', description: 'Financial management' },
+  { id: 'user_management', label: 'User Management', description: 'Manage users and permissions' },
+  { id: 'campaigns', label: 'Campaigns', description: 'Campaign participation' },
+  { id: 'submit_content', label: 'Submit Content', description: 'Content submission' }
+];
+
+const DEFAULT_PERMISSIONS = {
+  admin: ['dashboard', 'projects', 'content', 'influencers', 'reporting', 'advertising', 'wallet', 'user_management'],
+  brand: ['dashboard', 'projects', 'content', 'influencers', 'reporting', 'advertising', 'wallet'],
+  creator: ['dashboard', 'projects', 'content', 'wallet'],
+  agency: ['dashboard', 'projects', 'content', 'influencers', 'reporting', 'advertising', 'wallet'],
+  influencer: ['dashboard', 'campaigns', 'submit_content', 'wallet']
+};
 
 const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
   const [open, setOpen] = useState(false);
@@ -23,13 +45,42 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
     lastName: '',
     role: 'brand' as 'admin' | 'creator' | 'brand' | 'agency' | 'influencer'
   });
+  const [selectedModules, setSelectedModules] = useState<string[]>(['dashboard']);
+
+  const handleRoleChange = (role: string) => {
+    const newRole = role as 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
+    setFormData(prev => ({ ...prev, role: newRole }));
+    // Update selected modules based on role defaults
+    setSelectedModules(DEFAULT_PERMISSIONS[newRole]);
+  };
+
+  const handleModuleToggle = (moduleId: string, checked: boolean) => {
+    setSelectedModules(prev => {
+      if (checked) {
+        return [...prev, moduleId];
+      } else {
+        // Don't allow unchecking dashboard as it's required
+        if (moduleId === 'dashboard') {
+          toast.error('Dashboard access is required for all users');
+          return prev;
+        }
+        return prev.filter(id => id !== moduleId);
+      }
+    });
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      console.log('Creating user with data:', { 
+        email: formData.email, 
+        role: formData.role, 
+        modules: selectedModules 
+      });
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -41,7 +92,55 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
         }
       });
 
-      if (error) throw error;
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
+      }
+
+      console.log('User created successfully:', authData.user?.id);
+
+      // If user was created and we have their ID, set up custom permissions
+      if (authData.user?.id && selectedModules.length > 0) {
+        // First, get the user's profile to ensure it exists
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Profile error:', profileError);
+          // Profile might not exist yet due to trigger timing, that's okay
+        }
+
+        // Delete existing permissions for this user (in case of role change)
+        const { error: deleteError } = await supabase
+          .from('user_permissions')
+          .delete()
+          .eq('user_id', authData.user.id);
+
+        if (deleteError) {
+          console.error('Delete permissions error:', deleteError);
+        }
+
+        // Add selected permissions
+        const permissionsToInsert = selectedModules.map(module => ({
+          user_id: authData.user.id,
+          module: module,
+          granted_by: (await supabase.auth.getUser()).data.user?.id
+        }));
+
+        console.log('Inserting permissions:', permissionsToInsert);
+
+        const { error: permissionsError } = await supabase
+          .from('user_permissions')
+          .insert(permissionsToInsert);
+
+        if (permissionsError) {
+          console.error('Permissions error:', permissionsError);
+          toast.error(`User created but failed to set permissions: ${permissionsError.message}`);
+        }
+      }
 
       toast.success('User created successfully!');
       setOpen(false);
@@ -52,8 +151,10 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
         lastName: '',
         role: 'brand'
       });
+      setSelectedModules(['dashboard']);
       onUserCreated?.();
     } catch (error: any) {
+      console.error('Create user error:', error);
       toast.error(`Failed to create user: ${error.message}`);
     } finally {
       setLoading(false);
@@ -68,7 +169,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
           Add New User
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
         </DialogHeader>
@@ -119,7 +220,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
           
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={formData.role} onValueChange={(value: any) => setFormData(prev => ({ ...prev, role: value }))}>
+            <Select value={formData.role} onValueChange={handleRoleChange}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -131,6 +232,33 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
                 <SelectItem value="influencer">Influencer</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-3">
+            <Label>Module Permissions</Label>
+            <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto border rounded-md p-3">
+              {AVAILABLE_MODULES.map((module) => (
+                <div key={module.id} className="flex items-start space-x-3">
+                  <Checkbox
+                    id={module.id}
+                    checked={selectedModules.includes(module.id)}
+                    onCheckedChange={(checked) => handleModuleToggle(module.id, checked as boolean)}
+                    disabled={module.id === 'dashboard'} // Dashboard is always required
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label
+                      htmlFor={module.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {module.label}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {module.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
           
           <Button type="submit" className="w-full" disabled={loading}>

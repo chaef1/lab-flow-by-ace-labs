@@ -15,23 +15,23 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
   // Enhanced debugging
   useEffect(() => {
-    if (!isLoading) {
-      console.log('ProtectedRoute - Path:', location.pathname);
-      console.log('ProtectedRoute - User:', user ? 'Authenticated' : 'Not authenticated');
-      console.log('ProtectedRoute - UserProfile:', userProfile);
-      console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
-      
-      // Reset redirect attempt if we have a user
-      if (user) {
-        redirectAttempted.current = false;
-      }
+    console.log('ProtectedRoute - Path:', location.pathname);
+    console.log('ProtectedRoute - User:', user ? 'Authenticated' : 'Not authenticated');
+    console.log('ProtectedRoute - UserProfile:', userProfile);
+    console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
+    console.log('ProtectedRoute - IsLoading:', isLoading);
+    
+    // Reset redirect attempt if we have a user
+    if (user) {
+      redirectAttempted.current = false;
     }
   }, [user, userProfile, allowedRoles, isLoading, location.pathname]);
 
+  // Show loading state while authentication is being checked
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -41,19 +41,18 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <>{children}</>;
   }
 
+  // If no user and we haven't attempted redirect, go to auth
   if (!user && !redirectAttempted.current) {
-    // Mark that we've attempted a redirect to prevent loops
     redirectAttempted.current = true;
     console.log(`Redirecting to auth from ${location.pathname}`);
-    // Use replace to avoid building up history
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
-  // Wait for user profile to load before checking roles
-  if (user && !userProfile && !isLoading) {
+  // If we have a user but no profile yet, show loading
+  if (user && !userProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }

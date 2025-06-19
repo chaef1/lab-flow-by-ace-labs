@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch user profile data from the profiles table
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
       console.log('Fetching user profile for:', userId);
       const { data, error } = await supabase
@@ -59,29 +59,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error('Error fetching user profile:', error);
-        // If profile doesn't exist, create it for acelabs.co.za users
+        // If profile doesn't exist, create it
         if (error.code === 'PGRST116') {
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData.user?.email?.endsWith('@acelabs.co.za')) {
-            console.log('Creating admin profile for acelabs.co.za user');
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .insert({
-                id: userId,
-                first_name: userData.user.user_metadata?.first_name || '',
-                last_name: userData.user.user_metadata?.last_name || '',
-                avatar_url: userData.user.user_metadata?.avatar_url,
-                role: 'admin'
-              })
-              .select()
-              .single();
-            
-            if (createError) {
-              console.error('Error creating profile:', createError);
-              return null;
-            }
-            return newProfile as UserProfile;
-          }
+          console.log('Profile not found, creating new profile');
+          return await createUserProfile(userId);
         }
         return null;
       }
@@ -90,6 +71,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return data as UserProfile;
     } catch (error) {
       console.error('Unexpected error fetching user profile:', error);
+      return null;
+    }
+  };
+
+  // Create user profile
+  const createUserProfile = async (userId: string): Promise<UserProfile | null> => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      
+      if (!user) return null;
+
+      // Determine role based on email
+      const role = user.email?.endsWith('@acelabs.co.za') ? 'admin' : 'brand';
+      
+      console.log('Creating profile for user:', userId, 'with role:', role);
+      
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          first_name: user.user_metadata?.first_name || '',
+          last_name: user.user_metadata?.last_name || '',
+          avatar_url: user.user_metadata?.avatar_url,
+          role: role
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('Error creating profile:', createError);
+        return null;
+      }
+      
+      console.log('Profile created successfully:', newProfile);
+      return newProfile as UserProfile;
+    } catch (error) {
+      console.error('Error in createUserProfile:', error);
       return null;
     }
   };
@@ -111,15 +130,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // If session exists, fetch profile asynchronously
         if (newSession?.user) {
-          // Use setTimeout to avoid potential deadlock with Supabase client
+          // Use a small delay to prevent potential deadlock
           setTimeout(async () => {
             if (!mounted) return;
-            const profile = await fetchUserProfile(newSession.user.id);
-            if (mounted) {
-              setUserProfile(profile);
-              setIsLoading(false);
+            try {
+              const profile = await fetchUserProfile(newSession.user.id);
+              if (mounted) {
+                setUserProfile(profile);
+                setIsLoading(false);
+              }
+            } catch (error) {
+              console.error('Error fetching profile after auth change:', error);
+              if (mounted) {
+                setIsLoading(false);
+              }
             }
-          }, 0);
+          }, 100);
         } else {
           setUserProfile(null);
           setIsLoading(false);
@@ -138,14 +164,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        const profile = await fetchUserProfile(currentSession.user.id);
-        if (mounted) {
-          setUserProfile(profile);
+        try {
+          const profile = await fetchUserProfile(currentSession.user.id);
+          if (mounted) {
+            setUserProfile(profile);
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error('Error fetching profile on init:', error);
+          if (mounted) {
+            setIsLoading(false);
+          }
         }
-      }
-      
-      if (mounted) {
-        setIsLoading(false);
+      } else {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     });
 

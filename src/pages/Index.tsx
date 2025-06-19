@@ -7,19 +7,7 @@ import { ArrowRight, Globe, Code, Layers, Beaker, FlaskConical, Microscope } fro
 
 const Index = () => {
   const navigate = useNavigate();
-  
-  // Use a try-catch to safely access useAuth and handle the case where AuthProvider might not be ready
-  let user = null;
-  let isLoading = true;
-  
-  try {
-    const authContext = useAuth();
-    user = authContext.user;
-    isLoading = authContext.isLoading;
-  } catch (error) {
-    console.log('AuthProvider not ready yet, showing landing page');
-    isLoading = false;
-  }
+  const { user, isLoading } = useAuth();
   
   useEffect(() => {
     if (user && !isLoading) {

@@ -1,285 +1,219 @@
 
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Dashboard from '@/components/layout/Dashboard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Search, Plus, Star, Instagram, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import Dashboard from "@/components/layout/Dashboard";
-import { Card } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Instagram, Search, Star, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import SocialMediaSearch from '@/components/influencers/SocialMediaSearch';
-import { InfluencerCardModal } from '@/components/influencers/InfluencerCardModal';
 
-// Interface for influencer data
-interface Influencer {
+interface InfluencerProfile {
   id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  categories: string[] | null;
-  follower_count: number | null;
-  engagement_rate: number | null;
   instagram_handle: string | null;
   tiktok_handle: string | null;
   youtube_handle: string | null;
+  follower_count: number;
+  engagement_rate: number;
+  rate_per_post: number | null;
+  bio: string | null;
+  categories: string[] | null;
+  profiles: {
+    first_name: string;
+    last_name: string;
+    avatar_url: string | null;
+  } | null;
 }
 
 const Influencers = () => {
   const navigate = useNavigate();
+  const [influencers, setInfluencers] = useState<InfluencerProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [followerCountFilter, setFollowerCountFilter] = useState<string>('all');
-  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
-  const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
-  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch influencers
-  const { data: influencers, isLoading, error, refetch } = useQuery({
-    queryKey: ['influencers'],
-    queryFn: async () => {
-      // Join influencers table with profiles to get names and avatar
+  useEffect(() => {
+    fetchInfluencers();
+  }, []);
+
+  const fetchInfluencers = async () => {
+    try {
       const { data, error } = await supabase
         .from('influencers')
         .select(`
           id,
-          bio,
-          categories,
-          follower_count,
-          engagement_rate,
           instagram_handle,
           tiktok_handle,
           youtube_handle,
-          profiles:id (
+          follower_count,
+          engagement_rate,
+          rate_per_post,
+          bio,
+          categories,
+          profiles (
             first_name,
             last_name,
             avatar_url
           )
-        `);
-      
+        `)
+        .order('follower_count', { ascending: false });
+
       if (error) {
-        throw error;
+        console.error('Error fetching influencers:', error);
+        toast.error('Failed to fetch influencers');
+        return;
       }
-      
-      // Format the data to match the Influencer interface
-      return data?.map(item => ({
-        id: item.id,
-        first_name: item.profiles?.first_name,
-        last_name: item.profiles?.last_name,
-        avatar_url: item.profiles?.avatar_url,
-        bio: item.bio,
-        categories: item.categories,
-        follower_count: item.follower_count,
-        engagement_rate: item.engagement_rate,
-        instagram_handle: item.instagram_handle,
-        tiktok_handle: item.tiktok_handle,
-        youtube_handle: item.youtube_handle,
-      })) as Influencer[];
+
+      console.log('Fetched influencers:', data);
+      setInfluencers(data || []);
+    } catch (error) {
+      console.error('Error fetching influencers:', error);
+      toast.error('Failed to fetch influencers');
+    } finally {
+      setIsLoading(false);
     }
-  });
-
-  // Extract all unique categories
-  const allCategories = Array.from(new Set(
-    influencers?.flatMap(inf => inf.categories || []) || []
-  ));
-
-  // Filter influencers based on search and filters
-  const filteredInfluencers = influencers?.filter(inf => {
-    // Search filter
-    const searchMatch = 
-      !searchTerm || 
-      `${inf.first_name} ${inf.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (inf.bio && inf.bio.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (inf.instagram_handle && inf.instagram_handle.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    // Category filter
-    const categoryMatch = 
-      categoryFilter === 'all' || 
-      (inf.categories && inf.categories.includes(categoryFilter));
-    
-    // Follower count filter
-    let followerMatch = true;
-    if (followerCountFilter !== 'all' && inf.follower_count) {
-      if (followerCountFilter === 'micro' && (inf.follower_count < 10000 || inf.follower_count > 50000)) {
-        followerMatch = false;
-      } else if (followerCountFilter === 'mid' && (inf.follower_count < 50000 || inf.follower_count > 500000)) {
-        followerMatch = false;
-      } else if (followerCountFilter === 'macro' && inf.follower_count < 500000) {
-        followerMatch = false;
-      }
-    }
-    
-    return searchMatch && categoryMatch && followerMatch;
-  });
-
-  const handleAddInfluencer = () => {
-    refetch();
-    setIsSearchDialogOpen(false);
   };
 
-  const handleCardClick = (influencer: Influencer) => {
-    setSelectedInfluencer(influencer);
-    setIsCardModalOpen(true);
+  const filteredInfluencers = influencers.filter((influencer) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      influencer.profiles?.first_name?.toLowerCase().includes(searchLower) ||
+      influencer.profiles?.last_name?.toLowerCase().includes(searchLower) ||
+      influencer.instagram_handle?.toLowerCase().includes(searchLower) ||
+      influencer.tiktok_handle?.toLowerCase().includes(searchLower) ||
+      influencer.youtube_handle?.toLowerCase().includes(searchLower) ||
+      influencer.categories?.some(cat => cat.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const formatFollowerCount = (count: number) => {
+    if (count >= 1000000) {
+      return `${(count / 1000000).toFixed(1)}M`;
+    } else if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
   };
+
+  if (isLoading) {
+    return (
+      <Dashboard title="Influencers" subtitle="Discover and manage influencer partnerships">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ace-500"></div>
+        </div>
+      </Dashboard>
+    );
+  }
 
   return (
-    <>
-      <Dashboard title="Influencer Directory" subtitle="Find and connect with influencers" showSearch={true}>
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, bio, or social handle"
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {allCategories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={followerCountFilter} onValueChange={setFollowerCountFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Followers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Followers</SelectItem>
-                  <SelectItem value="micro">Micro (10K-50K)</SelectItem>
-                  <SelectItem value="mid">Mid-tier (50K-500K)</SelectItem>
-                  <SelectItem value="macro">Macro (500K+)</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Influencer
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Add New Influencer</DialogTitle>
-                    <DialogDescription>
-                      Search for influencers on social media and add them to your database.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <SocialMediaSearch onAddInfluencer={handleAddInfluencer} />
-                </DialogContent>
-              </Dialog>
-            </div>
+    <Dashboard title="Influencers" subtitle="Discover and manage influencer partnerships">
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search influencers..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
+        </div>
 
-          {isLoading && (
-            <div className="flex items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
-            </div>
-          )}
+        <SocialMediaSearch onInfluencerFound={fetchInfluencers} />
 
-          {error && (
-            <div className="text-center py-10 text-destructive">
-              Error loading influencers. Please try again.
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredInfluencers?.map((influencer) => (
-              <Card 
-                key={influencer.id}
-                className="p-6 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleCardClick(influencer)}
-              >
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-14 w-14">
-                    <AvatarImage src={influencer.avatar_url || undefined} />
-                    <AvatarFallback>
-                      {influencer.first_name && influencer.last_name 
-                        ? `${influencer.first_name[0]}${influencer.last_name[0]}` 
-                        : 'IN'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-medium">
-                      {influencer.first_name} {influencer.last_name}
-                    </h3>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      {influencer.instagram_handle && (
-                        <div className="flex items-center">
-                          <Instagram size={14} className="mr-1" />
-                          {influencer.instagram_handle}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredInfluencers.map((influencer) => (
+            <Card 
+              key={influencer.id} 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => navigate(`/influencers/${influencer.id}`)}
+            >
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                  {influencer.profiles?.avatar_url ? (
+                    <img 
+                      src={influencer.profiles.avatar_url} 
+                      alt="Profile" 
+                      className="w-16 h-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <Users className="h-8 w-8 text-gray-400" />
+                  )}
+                </div>
+                <CardTitle className="text-lg">
+                  {influencer.profiles?.first_name} {influencer.profiles?.last_name}
+                </CardTitle>
+                <CardDescription className="flex items-center justify-center gap-1">
+                  <Users className="h-4 w-4" />
+                  {formatFollowerCount(influencer.follower_count)} followers
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-center gap-2">
+                  {influencer.instagram_handle && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Instagram className="h-3 w-3 mr-1" />
+                      Instagram
+                    </Badge>
+                  )}
+                  {influencer.tiktok_handle && (
+                    <Badge variant="secondary" className="text-xs">
+                      TikTok
+                    </Badge>
+                  )}
+                  {influencer.youtube_handle && (
+                    <Badge variant="secondary" className="text-xs">
+                      YouTube
+                    </Badge>
+                  )}
                 </div>
                 
-                <div className="mt-4">
-                  <div className="flex items-center gap-2 text-sm mb-2">
-                    <span className="flex items-center">
-                      <Star size={14} className="mr-1 text-amber-500" />
-                      {influencer.engagement_rate || '0'}% Engagement
-                    </span>
-                    <span className="text-muted-foreground">
-                      {influencer.follower_count?.toLocaleString() || '0'} Followers
-                    </span>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {influencer.categories?.slice(0, 3).map((category, i) => (
-                      <Badge key={i} variant="secondary">
+                {influencer.categories && influencer.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {influencer.categories.slice(0, 2).map((category, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
                         {category}
                       </Badge>
                     ))}
-                    {(influencer.categories?.length || 0) > 3 && (
-                      <Badge variant="outline">+{(influencer.categories?.length || 0) - 3} more</Badge>
+                    {influencer.categories.length > 2 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{influencer.categories.length - 2}
+                      </Badge>
                     )}
                   </div>
-                  
-                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                    {influencer.bio || 'No bio available'}
-                  </p>
-                </div>
-                
-                <Button className="w-full mt-4">View Profile</Button>
-              </Card>
-            ))}
-          </div>
-          
-          {filteredInfluencers?.length === 0 && !isLoading && (
-            <div className="text-center py-10 text-muted-foreground">
-              No influencers found matching your criteria.
-            </div>
-          )}
-        </div>
-      </Dashboard>
+                )}
 
-      {/* Tinder Card Modal for influencer details */}
-      <InfluencerCardModal 
-        open={isCardModalOpen}
-        onOpenChange={setIsCardModalOpen}
-        influencerData={selectedInfluencer}
-        onAddToPool={() => refetch()}
-        onAddToCampaign={() => refetch()}
-      />
-    </>
+                <div className="grid grid-cols-2 gap-2 text-sm text-center">
+                  <div>
+                    <div className="font-medium">{(influencer.engagement_rate * 100).toFixed(1)}%</div>
+                    <div className="text-muted-foreground text-xs">Engagement</div>
+                  </div>
+                  <div>
+                    <div className="font-medium">
+                      {influencer.rate_per_post ? `$${influencer.rate_per_post}` : 'N/A'}
+                    </div>
+                    <div className="text-muted-foreground text-xs">Per Post</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredInfluencers.length === 0 && !isLoading && (
+          <div className="text-center py-12">
+            <Star className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No influencers found</h3>
+            <p className="text-gray-500">
+              {searchTerm ? 'Try adjusting your search terms.' : 'Start by searching for influencers on social media platforms.'}
+            </p>
+          </div>
+        )}
+      </div>
+    </Dashboard>
   );
 };
 

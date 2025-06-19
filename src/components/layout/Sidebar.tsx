@@ -15,10 +15,18 @@ import {
   MessageSquare,
   Star,
   UserCircle,
-  BarChart3
+  BarChart3,
+  Settings
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type SidebarProps = {
   className?: string;
@@ -37,27 +45,25 @@ const Sidebar = ({ className }: SidebarProps) => {
   const isAdmin = userProfile?.role === 'admin';
   const isCreator = userProfile?.role === 'creator';
   const isBrand = userProfile?.role === 'brand';
+  const isAgency = userProfile?.role === 'agency';
   const isInfluencer = userProfile?.role === 'influencer';
 
   // Define menu items based on user role
   const menuItems = [
     // Everyone sees Dashboard
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'influencer'] },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
-    // Profile - all users
-    { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'influencer'] },
+    // Projects menu - admins, creators, agencies, and brands
+    { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
     
-    // Projects menu - admins, creators and brands
-    { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand'] },
+    // Content Approval - admins, creators, agencies, and brands
+    { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
     
-    // Content Approval - admins, creators and brands
-    { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand'] },
+    // Influencers directory - admins, agencies, and brands
+    { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand', 'agency'] },
     
-    // Influencers directory - admins and brands
-    { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand'] },
-    
-    // Advertising - admins and brands
-    { name: 'Advertising', path: '/advertising', icon: BarChart3, roles: ['admin', 'brand'] },
+    // Advertising - admins, agencies, and brands
+    { name: 'Advertising', path: '/advertising', icon: BarChart3, roles: ['admin', 'brand', 'agency'] },
     
     // Campaigns - influencers only
     { name: 'My Campaigns', path: '/campaigns', icon: FileText, roles: ['influencer'] },
@@ -65,14 +71,14 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Content submission - influencers only
     { name: 'Submit Content', path: '/submit-content', icon: MessageSquare, roles: ['influencer'] },
     
-    // Reporting - admins and brands
-    { name: 'Reporting', path: '/reporting', icon: ChartBar, roles: ['admin', 'brand'] },
-    
-    // Wallet - all users
-    { name: 'Wallet', path: '/wallet', icon: Wallet, roles: ['admin', 'creator', 'brand', 'influencer'] },
+    // Reporting - admins, agencies, and brands
+    { name: 'Reporting', path: '/reporting', icon: ChartBar, roles: ['admin', 'brand', 'agency'] },
     
     // Users - admin only
     { name: 'Users', path: '/users', icon: Users, roles: ['admin'] },
+    
+    // Wallet - all users
+    { name: 'Wallet', path: '/wallet', icon: Wallet, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
   ].filter(item => {
     // Filter items based on user role
     if (!userProfile) return false;
@@ -130,6 +136,41 @@ const Sidebar = ({ className }: SidebarProps) => {
             </Button>
           </Link>
         ))}
+
+        {/* Profile with dropdown for admins */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant={isActive('/profile') ? "secondary" : "ghost"}
+              className={cn(
+                "w-full justify-start font-medium",
+                isActive('/profile') ? "bg-ace-100 text-ace-700" : "text-muted-foreground"
+              )}
+            >
+              <UserCircle className={cn("w-5 h-5 mr-3", isActive('/profile') ? "text-ace-500" : "")} />
+              My Profile
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuItem asChild>
+              <Link to="/profile" onClick={() => isMobile && setIsOpen(false)}>
+                <UserCircle className="w-4 h-4 mr-2" />
+                Profile Settings
+              </Link>
+            </DropdownMenuItem>
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/user-management" onClick={() => isMobile && setIsOpen(false)}>
+                    <Users className="w-4 h-4 mr-2" />
+                    User Management
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       
       <div className="mt-auto pt-4 px-2">

@@ -10,8 +10,18 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: 'admin' | 'creator' | 'brand' | 'influencer';
+  role: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
 }
+
+// Define the type for the profile data structure when updating in Supabase
+type ProfileUpdateData = {
+  id?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  avatar_url?: string | null;
+  role?: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
+  updated_at?: string;
+};
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +34,7 @@ interface AuthContextType {
   isAdmin: () => boolean;
   isCreator: () => boolean;
   isBrand: () => boolean;
+  isAgency: () => boolean;
   isInfluencer: () => boolean;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
@@ -35,7 +46,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authChangeComplete, setAuthChangeComplete] = useState(false);
 
   // Fetch user profile data from the profiles table
   const fetchUserProfile = async (userId: string) => {
@@ -83,12 +93,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const profile = await fetchUserProfile(newSession.user.id);
             setUserProfile(profile);
             setIsLoading(false);
-            setAuthChangeComplete(true);
           }, 0);
         } else {
           setUserProfile(null);
           setIsLoading(false);
-          setAuthChangeComplete(true);
         }
       }
     );
@@ -112,7 +120,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (mounted) {
         setIsLoading(false);
-        setAuthChangeComplete(true);
       }
     });
 
@@ -187,12 +194,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
+      // Create a properly typed update object
+      const updateData: ProfileUpdateData = {
+        ...data,
+        updated_at: new Date().toISOString()
+      };
+      
       const { error } = await supabase
         .from('profiles')
-        .update({
-          ...data,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', user.id);
       
       if (error) throw error;
@@ -217,6 +227,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin = () => userProfile?.role === 'admin';
   const isCreator = () => userProfile?.role === 'creator';
   const isBrand = () => userProfile?.role === 'brand';
+  const isAgency = () => userProfile?.role === 'agency';
   const isInfluencer = () => userProfile?.role === 'influencer';
 
   return (
@@ -231,6 +242,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAdmin,
       isCreator,
       isBrand,
+      isAgency,
       isInfluencer,
       updateProfile
     }}>

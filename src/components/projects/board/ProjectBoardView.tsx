@@ -1,6 +1,6 @@
 
 import { useState, useRef } from "react";
-import { BoardProject, projectStatuses } from "@/lib/project-utils";
+import { projectStatuses } from "@/lib/project-utils";
 import ProjectColumn from "./ProjectColumn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,18 +13,49 @@ import {
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
+import { useProjects } from "@/hooks/useProjects";
+import { useUpdateProjectStatus } from "@/hooks/useProjectStatus";
+import CreateProjectDialog from "../CreateProjectDialog";
+import { Database } from "@/integrations/supabase/types";
 
-// Import sample board data
-import { boardProjects } from "@/data/board-projects";
+type Project = Database['public']['Tables']['projects']['Row'] & {
+  clients?: {
+    name: string;
+  } | null;
+};
+type ProjectStatus = Database['public']['Enums']['project_status'];
+
+// Convert database project to board project format
+const convertToProjectBoardFormat = (project: Project) => {
+  // Use client relationship name if available, fallback to client field, or use placeholder
+  const clientName = project.clients?.name || project.client || 'Client';
+  
+  return {
+    id: project.id,
+    name: project.title,
+    client: clientName,
+    clientAvatar: `https://api.dicebear.com/7.x/initials/svg?seed=${clientName}`,
+    description: project.description || '',
+    dueDate: project.due_date || new Date().toISOString(),
+    status: project.status,
+    progress: Math.floor(Math.random() * 100), // TODO: Calculate real progress
+    team: [], // TODO: Get real team members from project.members
+    primaryChannels: ['Instagram', 'TikTok'], // TODO: Get from project data
+  };
+};
 
 const ProjectBoardView = () => {
-  const [projects, setProjects] = useState<BoardProject[]>(boardProjects);
+  const { data: projects = [], isLoading, refetch } = useProjects();
+  const updateProjectStatus = useUpdateProjectStatus();
   const [searchQuery, setSearchQuery] = useState("");
   const [showMembers, setShowMembers] = useState(true);
   const [showDueDates, setShowDueDates] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const filteredProjects = projects.filter((project) =>
+  // Convert database projects to board format
+  const boardProjects = projects.map(convertToProjectBoardFormat);
+
+  const filteredProjects = boardProjects.filter((project) =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -39,11 +70,17 @@ const ProjectBoardView = () => {
   });
 
   // Handle drag and drop of a project card
-  const handleProjectMove = (projectId: string, newStatus: string) => {
-    setProjects(prev => prev.map(project => 
-      project.id === projectId ? { ...project, status: newStatus } : project
-    ));
+  const handleProjectMove = (projectId: string, newStatus: ProjectStatus) => {
+    updateProjectStatus.mutate({ projectId, status: newStatus });
   };
+
+  const handleProjectCreated = () => {
+    refetch();
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64">Loading projects...</div>;
+  }
 
   return (
     <div className="flex flex-col h-full space-y-4">
@@ -84,9 +121,7 @@ const ProjectBoardView = () => {
           </DropdownMenu>
         </div>
 
-        <Button className="sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> New Project
-        </Button>
+        <CreateProjectDialog onProjectCreated={handleProjectCreated} />
       </div>
 
       <div

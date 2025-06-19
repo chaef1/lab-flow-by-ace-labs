@@ -9,6 +9,56 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      additional_assets: {
+        Row: {
+          asset_type: string
+          assigned_to: string | null
+          created_at: string
+          dimensions: string | null
+          due_date: string | null
+          id: string
+          platform: string
+          project_id: string
+          specifications: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          assigned_to?: string | null
+          created_at?: string
+          dimensions?: string | null
+          due_date?: string | null
+          id?: string
+          platform: string
+          project_id: string
+          specifications?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          assigned_to?: string | null
+          created_at?: string
+          dimensions?: string | null
+          due_date?: string | null
+          id?: string
+          platform?: string
+          project_id?: string
+          specifications?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "additional_assets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           created_at: string
@@ -40,6 +90,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "attachments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_allocations: {
+        Row: {
+          allocated_amount: number
+          created_at: string
+          department: string
+          id: string
+          platform: string | null
+          project_id: string
+          spent_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          allocated_amount: number
+          created_at?: string
+          department: string
+          id?: string
+          platform?: string | null
+          project_id: string
+          spent_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          allocated_amount?: number
+          created_at?: string
+          department?: string
+          id?: string
+          platform?: string | null
+          project_id?: string
+          spent_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_allocations_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -91,6 +182,235 @@ export type Database = {
           },
           {
             foreignKeyName: "campaign_content_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string | null
+          status: string
+          total_budget: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          status?: string
+          total_budget?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          status?: string
+          total_budget?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_access: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_comments: {
+        Row: {
+          client_id: string | null
+          comment: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          comment: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          comment?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_comments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_comments_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          address: string | null
+          brief: string | null
+          company_name: string | null
+          contact_person: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          brief?: string | null
+          company_name?: string | null
+          contact_person?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          brief?: string | null
+          company_name?: string | null
+          contact_person?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      deliverables: {
+        Row: {
+          assigned_to: string | null
+          budget: number | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          name: string
+          project_id: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          budget?: number | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          project_id: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          budget?: number | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverables_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -185,7 +505,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "influencers_id_fkey"
+            foreignKeyName: "fk_influencers_profile"
             columns: ["id"]
             isOneToOne: true
             referencedRelation: "profiles"
@@ -196,37 +516,88 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          created_at: string
+          created_at: string | null
           first_name: string | null
           id: string
           last_name: string | null
           role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
-          created_at?: string
+          created_at?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
-          created_at?: string
+          created_at?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: []
+      }
+      project_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          department: string | null
+          id: string
+          project_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          department?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          department?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_project_assignments_assigned_by"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_project_assignments_assigned_to"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
           brand_id: string | null
+          campaign_id: string | null
           client: string | null
+          client_id: string | null
           created_at: string
           description: string | null
           due_date: string | null
@@ -240,7 +611,9 @@ export type Database = {
         }
         Insert: {
           brand_id?: string | null
+          campaign_id?: string | null
           client?: string | null
+          client_id?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -254,7 +627,9 @@ export type Database = {
         }
         Update: {
           brand_id?: string | null
+          campaign_id?: string | null
           client?: string | null
+          client_id?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -268,10 +643,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "projects_brand_id_fkey"
-            columns: ["brand_id"]
+            foreignKeyName: "projects_campaign_id_fkey"
+            columns: ["campaign_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -344,6 +726,50 @@ export type Database = {
           },
         ]
       }
+      video_content_specs: {
+        Row: {
+          aspect_ratio: string | null
+          content_type: string | null
+          created_at: string
+          deliverable_id: string
+          duration_seconds: number | null
+          id: string
+          platforms: string[]
+          specifications: Json | null
+          style: string | null
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          content_type?: string | null
+          created_at?: string
+          deliverable_id: string
+          duration_seconds?: number | null
+          id?: string
+          platforms?: string[]
+          specifications?: Json | null
+          style?: string | null
+        }
+        Update: {
+          aspect_ratio?: string | null
+          content_type?: string | null
+          created_at?: string
+          deliverable_id?: string
+          duration_seconds?: number | null
+          id?: string
+          platforms?: string[]
+          specifications?: Json | null
+          style?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_content_specs_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "deliverables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -359,7 +785,7 @@ export type Database = {
         | "post-production"
         | "submission"
         | "completed"
-      user_role: "admin" | "creator" | "brand" | "influencer"
+      user_role: "admin" | "creator" | "brand" | "agency" | "influencer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -483,7 +909,7 @@ export const Constants = {
         "submission",
         "completed",
       ],
-      user_role: ["admin", "creator", "brand", "influencer"],
+      user_role: ["admin", "creator", "brand", "agency", "influencer"],
     },
   },
 } as const

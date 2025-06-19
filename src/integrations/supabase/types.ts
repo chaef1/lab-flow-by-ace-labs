@@ -738,7 +738,7 @@ export type Database = {
           created_at?: string
           granted_by?: string | null
           id?: string
-          module: Database["public"]["Enums"]["user_module"]
+          module?: Database["public"]["Enums"]["user_module"]
           user_id: string
         }
         Update: {

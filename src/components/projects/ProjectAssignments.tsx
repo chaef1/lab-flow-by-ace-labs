@@ -57,7 +57,7 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
           assigned_to,
           department,
           assigned_at,
-          profiles:assigned_to (
+          profiles!project_assignments_assigned_to_fkey (
             first_name,
             last_name
           )

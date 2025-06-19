@@ -54,24 +54,24 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
-            {/* Admin, Creator, Brand routes */}
+            {/* Admin has access to all pages, others have role-based access */}
             <Route path="/projects" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Projects /></ProtectedRoute>} />
             <Route path="/content" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Content /></ProtectedRoute>} />
             <Route path="/content/:id" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><ContentDetails /></ProtectedRoute>} />
             
-            {/* Admin, Brand routes */}
+            {/* Admin has access to influencer pages along with brands */}
             <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Influencers /></ProtectedRoute>} />
             <Route path="/influencers/:id" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><InfluencerProfile /></ProtectedRoute>} />
             <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Reporting /></ProtectedRoute>} />
             <Route path="/advertising" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><AdvertisingManager /></ProtectedRoute>} />
             
-            {/* Admin only routes */}
+            {/* Admin-only routes */}
             <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
             <Route path="/user-management" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
             
-            {/* Influencer only routes */}
-            <Route path="/campaigns" element={<ProtectedRoute allowedRoles={['influencer']}><Campaigns /></ProtectedRoute>} />
-            <Route path="/submit-content" element={<ProtectedRoute allowedRoles={['influencer']}><SubmitContent /></ProtectedRoute>} />
+            {/* Admin can access influencer routes too */}
+            <Route path="/campaigns" element={<ProtectedRoute allowedRoles={['admin', 'influencer']}><Campaigns /></ProtectedRoute>} />
+            <Route path="/submit-content" element={<ProtectedRoute allowedRoles={['admin', 'influencer']}><SubmitContent /></ProtectedRoute>} />
             
             {/* All authenticated users */}
             <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />

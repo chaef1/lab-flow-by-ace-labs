@@ -5,16 +5,30 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Users, Calendar, DollarSign } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
-import { useCampaigns } from "@/hooks/useCampaigns";
 import { useClients } from "@/hooks/useClients";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const ProjectOverview = () => {
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   
   const { data: projects = [] } = useProjects();
-  const { data: campaigns = [] } = useCampaigns();
   const { data: clients = [] } = useClients();
+
+  // Fetch campaigns using useQuery
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
 
   const handleClientSelect = (clientId: string) => {
     setSelectedClient(clientId);

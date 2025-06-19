@@ -53,7 +53,7 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
       .from('project_assignments')
       .select(`
         *,
-        profiles (
+        assigned_to_profile:profiles!assigned_to (
           first_name,
           last_name
         )
@@ -63,7 +63,15 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
     if (error) {
       console.error('Error fetching assignments:', error);
     } else {
-      setAssignments(data || []);
+      // Transform the data to match our interface
+      const transformedData = data?.map(item => ({
+        id: item.id,
+        assigned_to: item.assigned_to,
+        department: item.department,
+        assigned_at: item.assigned_at,
+        profiles: item.assigned_to_profile
+      })) || [];
+      setAssignments(transformedData);
     }
   };
 
@@ -189,7 +197,7 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
                 <div key={assignment.id} className="flex items-center justify-between p-2 border rounded">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">
-                      {assignment.profiles.first_name} {assignment.profiles.last_name}
+                      {assignment.profiles?.first_name} {assignment.profiles?.last_name}
                     </span>
                     <Badge variant="secondary">{assignment.department}</Badge>
                   </div>

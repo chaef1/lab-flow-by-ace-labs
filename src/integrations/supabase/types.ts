@@ -51,13 +51,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "additional_assets_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "additional_assets_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -244,13 +237,6 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "campaigns_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       client_access: {
@@ -284,13 +270,6 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "client_access_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -329,13 +308,6 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "client_comments_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -431,13 +403,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "deliverables_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "deliverables_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -531,43 +496,35 @@ export type Database = {
           updated_at?: string | null
           youtube_handle?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "influencers_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
           avatar_url: string | null
-          created_at: string
+          created_at: string | null
           first_name: string | null
           id: string
           last_name: string | null
           role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
-          created_at?: string
+          created_at?: string | null
           first_name?: string | null
           id: string
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
-          created_at?: string
+          created_at?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -597,20 +554,6 @@ export type Database = {
           project_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "project_assignments_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_assignments_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "project_assignments_project_id_fkey"
             columns: ["project_id"]
@@ -670,13 +613,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "projects_brand_id_fkey"
-            columns: ["brand_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "projects_campaign_id_fkey"
             columns: ["campaign_id"]
@@ -820,7 +756,7 @@ export type Database = {
         | "post-production"
         | "submission"
         | "completed"
-      user_role: "admin" | "creator" | "brand" | "influencer"
+      user_role: "admin" | "creator" | "brand" | "agency" | "influencer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -944,7 +880,7 @@ export const Constants = {
         "submission",
         "completed",
       ],
-      user_role: ["admin", "creator", "brand", "influencer"],
+      user_role: ["admin", "creator", "brand", "agency", "influencer"],
     },
   },
 } as const

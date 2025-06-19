@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +14,6 @@ interface UserProfile {
 }
 
 // Define the type for the profile data structure when updating in Supabase
-// This ensures alignment with the database column types
 type ProfileUpdateData = {
   id?: string;
   first_name?: string | null;
@@ -46,7 +46,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authChangeComplete, setAuthChangeComplete] = useState(false);
 
   // Fetch user profile data from the profiles table
   const fetchUserProfile = async (userId: string) => {
@@ -94,12 +93,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const profile = await fetchUserProfile(newSession.user.id);
             setUserProfile(profile);
             setIsLoading(false);
-            setAuthChangeComplete(true);
           }, 0);
         } else {
           setUserProfile(null);
           setIsLoading(false);
-          setAuthChangeComplete(true);
         }
       }
     );
@@ -123,7 +120,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (mounted) {
         setIsLoading(false);
-        setAuthChangeComplete(true);
       }
     });
 
@@ -204,11 +200,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updated_at: new Date().toISOString()
       };
       
-      // Use type assertion to work around the type mismatch
-      // This is a temporary solution until the database schema is updated to include 'agency' role
       const { error } = await supabase
         .from('profiles')
-        .update(updateData as any)
+        .update(updateData)
         .eq('id', user.id);
       
       if (error) throw error;

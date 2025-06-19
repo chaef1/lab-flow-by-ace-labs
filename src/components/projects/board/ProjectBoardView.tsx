@@ -19,6 +19,7 @@ import CreateProjectDialog from "../CreateProjectDialog";
 import { Database } from "@/integrations/supabase/types";
 
 type Project = Database['public']['Tables']['projects']['Row'];
+type ProjectStatus = Database['public']['Enums']['project_status'];
 
 // Convert database project to board project format
 const convertToProjectBoardFormat = (project: Project) => {
@@ -62,7 +63,7 @@ const ProjectBoardView = () => {
   });
 
   // Handle drag and drop of a project card
-  const handleProjectMove = (projectId: string, newStatus: string) => {
+  const handleProjectMove = (projectId: string, newStatus: ProjectStatus) => {
     updateProjectStatus.mutate({ projectId, status: newStatus });
   };
 

@@ -18,16 +18,23 @@ import { useUpdateProjectStatus } from "@/hooks/useProjectStatus";
 import CreateProjectDialog from "../CreateProjectDialog";
 import { Database } from "@/integrations/supabase/types";
 
-type Project = Database['public']['Tables']['projects']['Row'];
+type Project = Database['public']['Tables']['projects']['Row'] & {
+  clients?: {
+    name: string;
+  } | null;
+};
 type ProjectStatus = Database['public']['Enums']['project_status'];
 
 // Convert database project to board project format
 const convertToProjectBoardFormat = (project: Project) => {
+  // Use client relationship name if available, fallback to client field, or use placeholder
+  const clientName = project.clients?.name || project.client || 'Client';
+  
   return {
     id: project.id,
     name: project.title,
-    client: project.client || 'No Client',
-    clientAvatar: `https://api.dicebear.com/7.x/initials/svg?seed=${project.client || 'NC'}`,
+    client: clientName,
+    clientAvatar: `https://api.dicebear.com/7.x/initials/svg?seed=${clientName}`,
     description: project.description || '',
     dueDate: project.due_date || new Date().toISOString(),
     status: project.status,

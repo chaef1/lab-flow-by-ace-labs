@@ -37,28 +37,27 @@ const Sidebar = ({ className }: SidebarProps) => {
   const isAdmin = userProfile?.role === 'admin';
   const isCreator = userProfile?.role === 'creator';
   const isBrand = userProfile?.role === 'brand';
-  const isAgency = userProfile?.role === 'agency';
   const isInfluencer = userProfile?.role === 'influencer';
 
   // Define menu items based on user role
   const menuItems = [
     // Everyone sees Dashboard
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'influencer'] },
     
     // Profile - all users
-    { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'influencer'] },
     
-    // Projects menu - admins, creators, agencies, and brands
-    { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
+    // Projects menu - admins, creators and brands
+    { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand'] },
     
-    // Content Approval - admins, creators, agencies, and brands
-    { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
+    // Content Approval - admins, creators and brands
+    { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand'] },
     
-    // Influencers directory - admins, agencies, and brands
-    { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand', 'agency'] },
+    // Influencers directory - admins and brands
+    { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand'] },
     
-    // Advertising - admins, agencies, and brands
-    { name: 'Advertising', path: '/advertising', icon: BarChart3, roles: ['admin', 'brand', 'agency'] },
+    // Advertising - admins and brands
+    { name: 'Advertising', path: '/advertising', icon: BarChart3, roles: ['admin', 'brand'] },
     
     // Campaigns - influencers only
     { name: 'My Campaigns', path: '/campaigns', icon: FileText, roles: ['influencer'] },
@@ -66,14 +65,14 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Content submission - influencers only
     { name: 'Submit Content', path: '/submit-content', icon: MessageSquare, roles: ['influencer'] },
     
-    // Reporting - admins, agencies, and brands
-    { name: 'Reporting', path: '/reporting', icon: ChartBar, roles: ['admin', 'brand', 'agency'] },
+    // Reporting - admins and brands
+    { name: 'Reporting', path: '/reporting', icon: ChartBar, roles: ['admin', 'brand'] },
     
     // Wallet - all users
-    { name: 'Wallet', path: '/wallet', icon: Wallet, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    { name: 'Wallet', path: '/wallet', icon: Wallet, roles: ['admin', 'creator', 'brand', 'influencer'] },
     
-    // Users - admin and agency only
-    { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'agency'] },
+    // Users - admin only
+    { name: 'Users', path: '/users', icon: Users, roles: ['admin'] },
   ].filter(item => {
     // Filter items based on user role
     if (!userProfile) return false;
@@ -112,7 +111,7 @@ const Sidebar = ({ className }: SidebarProps) => {
         )}
       </div>
       
-      <div className="mt-2 space-y-1 px-2 flex-1">
+      <div className="mt-2 space-y-1 px-2">
         {menuItems.map((item) => (
           <Link 
             key={item.path} 
@@ -152,27 +151,27 @@ const Sidebar = ({ className }: SidebarProps) => {
         <Button 
           variant="outline" 
           size="icon" 
-          className="fixed top-4 left-4 z-50 md:hidden"
+          className="fixed top-4 left-4 z-40 md:hidden"
           onClick={toggleSidebar}
         >
           <Menu size={20} />
         </Button>
       )}
       
-      {isMobile && (
-        <div 
-          className={cn(
-            "fixed inset-0 z-40 bg-black/50 md:hidden transition-opacity",
-            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          )}
-          onClick={toggleSidebar}
-        />
-      )}
+      <div 
+        className={cn(
+          "fixed inset-0 z-30 bg-black/50 md:hidden",
+          isOpen ? "block" : "hidden"
+        )}
+        onClick={toggleSidebar}
+      />
 
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-50 w-64 border-r border-border bg-sidebar flex flex-col transition-transform duration-300",
-          isMobile ? (isOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0",
+          "fixed top-0 bottom-0 left-0 z-40 w-64 border-r border-border bg-sidebar flex flex-col transition-transform",
+          isMobile && !isOpen && "-translate-x-full",
+          isMobile && isOpen && "translate-x-0",
+          !isMobile && "translate-x-0",
           className
         )}
       >

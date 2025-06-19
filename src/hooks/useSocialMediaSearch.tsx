@@ -1,9 +1,7 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { hasMetaToken, getSavedMetaToken } from "@/lib/storage/token-storage";
 
 export type SocialProfile = {
   username: string;
@@ -66,73 +64,6 @@ export function useSocialMediaSearch() {
       // Remove @ symbol if present
       const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
       
-      // Check if this is an Instagram search and we have a Meta token
-      const isMetaConnected = hasMetaToken();
-      if (platform === 'instagram' && isMetaConnected) {
-        console.log('Using Meta Graph API for Instagram search');
-        const { accessToken } = getSavedMetaToken();
-        
-        // Call the meta-creators edge function with our token
-        const { data: metaData, error: metaError } = await supabase.functions.invoke('meta-creators', {
-          body: { 
-            action: 'search_creators',
-            query: cleanUsername,
-            accessToken
-          }
-        });
-        
-        if (metaError) {
-          console.error('Meta search error:', metaError);
-          // Fall back to regular API if Meta search fails
-        } else if (metaData && metaData.data && metaData.data.length > 0) {
-          // Find the most relevant creator match
-          const creator = metaData.data.find((c: any) => 
-            c.username.toLowerCase() === cleanUsername.toLowerCase()
-          ) || metaData.data[0];
-          
-          const socialProfile: SocialProfile = {
-            username: creator.username,
-            fullName: creator.name,
-            followersCount: creator.follower_count || 0,
-            followingCount: 0,
-            postsCount: creator.media_count || 0,
-            profilePicture: creator.profile_picture_url,
-            bio: creator.biography || '',
-            verified: creator.is_verified || false,
-            engagementRate: 0, // We don't have this data from the Graph API
-            website: '',
-            recentPosts: []
-          };
-          
-          setProfile(socialProfile);
-          setProfileData({
-            username: creator.username,
-            full_name: creator.name,
-            biography: creator.biography || '',
-            follower_count: creator.follower_count || 0,
-            following_count: 0,
-            post_count: creator.media_count || 0,
-            is_verified: creator.is_verified || false,
-            profile_pic_url: creator.profile_picture_url,
-            website: '',
-            category: creator.category
-          });
-          
-          // Log the search in the database if user is authenticated
-          if (user) {
-            await supabase.from('social_media_searches').insert([
-              {
-                user_id: user.id,
-                platform,
-                username: cleanUsername
-              }
-            ]);
-          }
-          
-          return socialProfile;
-        }
-      }
-      
       // Log the search in the database if user is authenticated
       if (user) {
         await supabase.from('social_media_searches').insert([
@@ -144,8 +75,7 @@ export function useSocialMediaSearch() {
         ]);
       }
       
-      // Call our Supabase Edge Function for regular search
-      console.log('Calling social-profile edge function for:', cleanUsername);
+      // Call our Supabase Edge Function
       const { data, error: functionError } = await supabase.functions.invoke('social-profile', {
         body: { platform, username: cleanUsername },
       });
@@ -184,7 +114,7 @@ export function useSocialMediaSearch() {
         return null;
       }
       
-      console.log('Profile data received:', data);
+      console.log('Profile data:', data);
       
       if (!data || !data.profile) {
         setError('No profile data returned');
@@ -236,11 +166,13 @@ export function useSocialMediaSearch() {
   const retrySearch = useCallback(async () => {
     if (!profile && error) {
       toast.info('Retrying search...');
+      // We don't have the previous search parameters here
+      // This would be improved if we stored the last search parameters
       return;
     }
     
     if (profile) {
-      const platform = 'instagram'; // Default retry platform
+      const platform = profile.username.includes('@') ? 'instagram' : 'tiktok'; // Simple heuristic
       return searchProfile(platform, profile.username);
     }
   }, [profile, error, searchProfile]);

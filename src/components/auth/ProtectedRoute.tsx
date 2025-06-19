@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles?: ('admin' | 'creator' | 'brand' | 'agency' | 'influencer')[];
+  allowedRoles?: ('admin' | 'creator' | 'brand' | 'influencer')[];
 }
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
@@ -50,11 +50,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   // If allowedRoles is specified, check if user has one of the allowed roles
-  if (allowedRoles && userProfile) {
-    if (!allowedRoles.includes(userProfile.role)) {
-      console.log(`Access denied: User role ${userProfile.role} not in allowed roles:`, allowedRoles);
-      return <Navigate to="/dashboard" replace />;
-    }
+  if (allowedRoles && userProfile && !allowedRoles.includes(userProfile.role)) {
+    console.log(`Access denied: User role ${userProfile.role} not in allowed roles:`, allowedRoles);
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

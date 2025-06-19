@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
-import { TrendingUp, History, Instagram } from "lucide-react";
+import { TrendingUp, History } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";
@@ -12,9 +12,6 @@ import { SearchForm, Platform } from "./SearchForm";
 import { RateLimitError } from "./RateLimitError";
 import { ProfileDisplay } from "./ProfileDisplay";
 import { SearchHistory } from "./SearchHistory";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { hasMetaToken } from "@/lib/ads-api";
 
 interface SocialMediaSearchProps {
   onAddInfluencer?: (profileData: any) => void;
@@ -39,7 +36,6 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   const { toast } = useToast();
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [savedProfileData, setSavedProfileData] = useState<any>(null);
-  const isMetaConnected = hasMetaToken();
 
   const handleSearch = () => {
     searchProfile(platform, username);
@@ -163,7 +159,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         avatar_url: profileData.profile_pic_url || '',
         instagram_handle: platform === 'instagram' ? profileData.username : null,
         tiktok_handle: platform === 'tiktok' ? profileData.username : null,
-        is_mock_data: false
+        is_mock_data: profileData.is_mock_data || false
       };
       
       setSavedProfileData(savedData);
@@ -203,7 +199,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         <CardContent>
           <Tabs defaultValue="search" value={searchTab} onValueChange={(v) => setSearchTab(v as 'search' | 'history')}>
             <TabsList className="mb-4">
-              <TabsTrigger value="search">Profile Search</TabsTrigger>
+              <TabsTrigger value="search">Search</TabsTrigger>
               <TabsTrigger value="history">
                 <History className="mr-2 h-4 w-4" />
                 History
@@ -216,16 +212,6 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   <TabsTrigger value="instagram">Instagram</TabsTrigger>
                   <TabsTrigger value="tiktok">TikTok</TabsTrigger>
                 </TabsList>
-                
-                {platform === 'instagram' && !isMetaConnected && (
-                  <Alert variant="warning" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Connect your Meta account to enhance Instagram search capabilities.
-                      Visit the Advertising page to connect your account.
-                    </AlertDescription>
-                  </Alert>
-                )}
                 
                 <SearchForm
                   platform={platform}
@@ -250,20 +236,6 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   isAuthenticating={isAuthenticating}
                   onOAuthLogin={handleOAuthLogin}
                 />
-                
-                {/* Instagram Graph API info if connected */}
-                {platform === 'instagram' && isMetaConnected && !profileData && (
-                  <div className="mt-4 p-4 bg-background border rounded-md">
-                    <div className="flex items-center gap-2">
-                      <Instagram className="h-5 w-5 text-blue-500" />
-                      <p className="font-medium">Instagram Graph API Connected</p>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Search for Instagram profiles using your connected Meta account.
-                      This enhances search capabilities and provides more detailed results.
-                    </p>
-                  </div>
-                )}
               </Tabs>
             </TabsContent>
             

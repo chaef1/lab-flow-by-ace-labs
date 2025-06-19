@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,19 +10,8 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
+  role: 'admin' | 'creator' | 'brand' | 'influencer';
 }
-
-// Define the type for the profile data structure when updating in Supabase
-// This ensures alignment with the database column types
-type ProfileUpdateData = {
-  id?: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  avatar_url?: string | null;
-  role?: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
-  updated_at?: string;
-};
 
 interface AuthContextType {
   user: User | null;
@@ -34,7 +24,6 @@ interface AuthContextType {
   isAdmin: () => boolean;
   isCreator: () => boolean;
   isBrand: () => boolean;
-  isAgency: () => boolean;
   isInfluencer: () => boolean;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
@@ -198,17 +187,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      // Create a properly typed update object
-      const updateData: ProfileUpdateData = {
-        ...data,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Use type assertion to work around the type mismatch
-      // This is a temporary solution until the database schema is updated to include 'agency' role
       const { error } = await supabase
         .from('profiles')
-        .update(updateData as any)
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id);
       
       if (error) throw error;
@@ -233,7 +217,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin = () => userProfile?.role === 'admin';
   const isCreator = () => userProfile?.role === 'creator';
   const isBrand = () => userProfile?.role === 'brand';
-  const isAgency = () => userProfile?.role === 'agency';
   const isInfluencer = () => userProfile?.role === 'influencer';
 
   return (
@@ -248,7 +231,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAdmin,
       isCreator,
       isBrand,
-      isAgency,
       isInfluencer,
       updateProfile
     }}>

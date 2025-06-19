@@ -43,44 +43,37 @@ file_size_limit = "50MiB"
 # in emails.
 site_url = "http://localhost:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://localhost:3000"]
-# How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 seconds (one
-# week).
+additional_redirect_urls = ["https://localhost:3000", "https://app-sandbox.acelabs.co.za", "https://app-sandbox.acelabs.co.za/advertising"]
+# How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # Allow/disallow new user signups to your project.
 enable_signup = true
-
-[auth.email]
-# Allow/disallow new user signups via email to your project.
-enable_signup = true
-# If enabled, a user will be required to confirm any email change on both the old, and new email
-# addresses. If disabled, only the new email is required to confirm.
-double_confirm_changes = true
-# If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
-
-# Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
-# `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin`, `notion`, `twitch`,
-# `twitter`, `slack`, `spotify`, `workos`, `zoom`.
-[auth.external.apple]
-enabled = false
-client_id = ""
-secret = ""
-# Overrides the default auth redirectUrl.
-redirect_uri = ""
-# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
-# or any other third-party OIDC providers.
-url = ""
+# If disabled, the user will be logged out once a password reset is complete.
+# Reset token lives for one time use, or 24 hours.
+jwt_autorefresh = true
+# Defaults to true. If set to false, JWT tokens will use normal secured cookies instead of `HttpOnly`
+# cookies. This affects the web app and the behavior of the PKCE flow, that is used to share the
+# cookies with trusted site components built with the supabase-js package.
+secure_cookie = false
+# If enabled, the SameSite attribute will be set to 'None'. This enables OAuth signin popup to work
+# correctly on different domains.
+cookie_options.same_site = "lax"
+# The domain to set cookies to. By default this is empty which means the cookie will be set to the
+# current domain, including all subdomains. So `app.example.com` will have its cookies set to
+# `.example.com`.
+# cookie_options.domain = ""
 
 [functions]
-# Port to use for Functions server.
-port = 54321
+[functions.tiktok-ads]
+verify_jwt = true
+[functions.meta-auth]
+verify_jwt = true
+[functions.social-profile]
+verify_jwt = true
+[functions.send-contract]
+verify_jwt = true
 
 [analytics]
 enabled = false
 port = 54327
 vector_port = 54328
-
-# Enable telemetry for your local development environment. Disabled by default.
-[telemetry]
-enabled = false

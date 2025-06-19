@@ -31,7 +31,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
       </div>
     );
   }
@@ -47,6 +47,15 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     console.log(`Redirecting to auth from ${location.pathname}`);
     // Use replace to avoid building up history
     return <Navigate to="/auth" replace state={{ from: location }} />;
+  }
+
+  // Wait for user profile to load before checking roles
+  if (user && !userProfile && !isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
+      </div>
+    );
   }
 
   // If allowedRoles is specified, check if user has one of the allowed roles

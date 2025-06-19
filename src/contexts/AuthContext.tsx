@@ -59,6 +59,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) {
         console.error('Error fetching user profile:', error);
+        // If profile doesn't exist, create it for acelabs.co.za users
+        if (error.code === 'PGRST116') {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user?.email?.endsWith('@acelabs.co.za')) {
+            console.log('Creating admin profile for acelabs.co.za user');
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                first_name: userData.user.user_metadata?.first_name || '',
+                last_name: userData.user.user_metadata?.last_name || '',
+                avatar_url: userData.user.user_metadata?.avatar_url,
+                role: 'admin'
+              })
+              .select()
+              .single();
+            
+            if (createError) {
+              console.error('Error creating profile:', createError);
+              return null;
+            }
+            return newProfile as UserProfile;
+          }
+        }
         return null;
       }
       
@@ -77,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log('Auth state changed:', event, newSession?.user?.id);
+        console.log('Auth state changed:', event, newSession?.user?.email);
         
         if (!mounted) return;
         
@@ -91,8 +115,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setTimeout(async () => {
             if (!mounted) return;
             const profile = await fetchUserProfile(newSession.user.id);
-            setUserProfile(profile);
-            setIsLoading(false);
+            if (mounted) {
+              setUserProfile(profile);
+              setIsLoading(false);
+            }
           }, 0);
         } else {
           setUserProfile(null);
@@ -103,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Then check for existing session
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      console.log('Initial session check:', currentSession?.user?.id);
+      console.log('Initial session check:', currentSession?.user?.email);
       
       if (!mounted) return;
       
@@ -158,7 +184,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
-          data: userData
+          data: userData,
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
       

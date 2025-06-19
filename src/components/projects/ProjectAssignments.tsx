@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,6 +49,7 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
 
   const fetchAssignments = async () => {
     try {
+      console.log('Fetching assignments for project:', projectId);
       const { data, error } = await supabase
         .from('project_assignments')
         .select(`
@@ -70,6 +70,7 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
         return;
       }
 
+      console.log('Assignments fetched:', data);
       setAssignments(data || []);
     } catch (error: any) {
       console.error('Error fetching assignments:', error);
@@ -78,16 +79,23 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
   };
 
   const fetchProfiles = async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .in('role', ['admin', 'creator'])
-      .order('first_name');
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('role', ['admin', 'creator'])
+        .order('first_name');
 
-    if (error) {
+      if (error) {
+        console.error('Error fetching profiles:', error);
+        toast.error('Failed to fetch team members');
+      } else {
+        console.log('Profiles fetched:', data);
+        setProfiles(data || []);
+      }
+    } catch (error: any) {
       console.error('Error fetching profiles:', error);
-    } else {
-      setProfiles(data || []);
+      toast.error('Failed to fetch team members');
     }
   };
 
@@ -186,7 +194,7 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
           disabled={!selectedProfile || !department || isLoading}
           className="w-full"
         >
-          Assign Team Member
+          {isLoading ? 'Assigning...' : 'Assign Team Member'}
         </Button>
 
         <div className="space-y-2">

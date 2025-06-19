@@ -50,27 +50,42 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
 
   const fetchAssignments = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the assignments
+      const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('project_assignments')
-        .select(`
-          id,
-          assigned_to,
-          department,
-          assigned_at,
-          profiles!project_assignments_assigned_to_fkey (
-            first_name,
-            last_name
-          )
-        `)
+        .select('id, assigned_to, department, assigned_at')
         .eq('project_id', projectId);
 
-      if (error) {
-        console.error('Error fetching assignments:', error);
+      if (assignmentsError) {
+        console.error('Error fetching assignments:', assignmentsError);
         toast.error('Failed to fetch assignments');
         return;
       }
 
-      setAssignments(data || []);
+      // Then get the profile data for each assignment
+      if (assignmentsData && assignmentsData.length > 0) {
+        const userIds = assignmentsData.map(assignment => assignment.assigned_to);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          toast.error('Failed to fetch profile data');
+          return;
+        }
+
+        // Combine the data
+        const assignmentsWithProfiles = assignmentsData.map(assignment => ({
+          ...assignment,
+          profiles: profilesData?.find(profile => profile.id === assignment.assigned_to) || null
+        }));
+
+        setAssignments(assignmentsWithProfiles);
+      } else {
+        setAssignments([]);
+      }
     } catch (error: any) {
       console.error('Error fetching assignments:', error);
       toast.error('Failed to fetch assignments');

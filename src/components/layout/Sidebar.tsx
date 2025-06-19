@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -15,18 +14,10 @@ import {
   MessageSquare,
   Star,
   UserCircle,
-  BarChart3,
-  Settings
+  BarChart3
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 type SidebarProps = {
   className?: string;
@@ -53,6 +44,9 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Everyone sees Dashboard
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
+    // Profile - all users
+    { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    
     // Projects menu - admins, creators, agencies, and brands
     { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
     
@@ -74,11 +68,11 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Reporting - admins, agencies, and brands
     { name: 'Reporting', path: '/reporting', icon: ChartBar, roles: ['admin', 'brand', 'agency'] },
     
-    // Users - admin only
-    { name: 'Users', path: '/users', icon: Users, roles: ['admin'] },
-    
     // Wallet - all users
     { name: 'Wallet', path: '/wallet', icon: Wallet, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    
+    // Users - admin and agency only
+    { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'agency'] },
   ].filter(item => {
     // Filter items based on user role
     if (!userProfile) return false;
@@ -136,41 +130,6 @@ const Sidebar = ({ className }: SidebarProps) => {
             </Button>
           </Link>
         ))}
-
-        {/* Profile with dropdown for admins */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant={isActive('/profile') ? "secondary" : "ghost"}
-              className={cn(
-                "w-full justify-start font-medium",
-                isActive('/profile') ? "bg-ace-100 text-ace-700" : "text-muted-foreground"
-              )}
-            >
-              <UserCircle className={cn("w-5 h-5 mr-3", isActive('/profile') ? "text-ace-500" : "")} />
-              My Profile
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem asChild>
-              <Link to="/profile" onClick={() => isMobile && setIsOpen(false)}>
-                <UserCircle className="w-4 h-4 mr-2" />
-                Profile Settings
-              </Link>
-            </DropdownMenuItem>
-            {isAdmin && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/user-management" onClick={() => isMobile && setIsOpen(false)}>
-                    <Users className="w-4 h-4 mr-2" />
-                    User Management
-                  </Link>
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       
       <div className="mt-auto pt-4 px-2">

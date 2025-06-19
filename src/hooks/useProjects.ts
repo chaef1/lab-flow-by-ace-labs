@@ -4,11 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 
-type Project = Database['public']['Tables']['projects']['Row'] & {
-  clients?: {
-    name: string;
-  } | null;
-};
+type Project = Database['public']['Tables']['projects']['Row'];
 
 export const useProjects = () => {
   const fetchProjects = async (): Promise<Project[]> => {
@@ -26,12 +22,7 @@ export const useProjects = () => {
         updated_at,
         shoot_date,
         user_id,
-        brand_id,
-        campaign_id,
-        client_id,
-        clients (
-          name
-        )
+        brand_id
       `)
       .order('created_at', { ascending: false });
     
@@ -74,12 +65,7 @@ export const useProjectById = (id: string | undefined) => {
           updated_at,
           shoot_date,
           user_id,
-          brand_id,
-          campaign_id,
-          client_id,
-          clients (
-            name
-          )
+          brand_id
         `)
         .eq('id', id)
         .single();

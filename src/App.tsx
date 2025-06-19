@@ -13,7 +13,6 @@ import Wallet from "./pages/Wallet";
 import Content from "./pages/Content";
 import ContentDetails from "./pages/ContentDetails";
 import Users from "./pages/Users";
-import UserManagement from "./pages/UserManagement";
 import Reporting from "./pages/Reporting";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
@@ -67,7 +66,6 @@ const App = () => (
             
             {/* Admin only routes */}
             <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
-            <Route path="/user-management" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
             
             {/* Influencer only routes */}
             <Route path="/campaigns" element={<ProtectedRoute allowedRoles={['influencer']}><Campaigns /></ProtectedRoute>} />

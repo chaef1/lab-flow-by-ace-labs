@@ -7,43 +7,36 @@ import WalletCard from "@/components/wallet/WalletCard";
 import ApprovalCard from "@/components/content/ApprovalCard";
 import { Activity, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { Database } from "@/integrations/supabase/types";
 
-type Project = Database['public']['Tables']['projects']['Row'];
-
-// Sample projects data that matches the database schema
-const recentProjects: Project[] = [
+// Sample projects data
+const recentProjects = [
   {
     id: "1",
-    title: "Summer Campaign",
+    name: "Summer Campaign",
     description: "Social media campaign for summer products",
     client: "Beachside Co.",
-    due_date: "2025-06-15",
-    shoot_date: null,
-    status: "production",
-    created_at: "2025-01-01T00:00:00Z",
-    updated_at: "2025-01-01T00:00:00Z",
-    user_id: null,
-    brand_id: null,
-    campaign_id: null,
-    client_id: null,
-    members: null
+    clientAvatar: "https://api.dicebear.com/7.x/initials/svg?seed=Beachside",
+    dueDate: "2025-06-15",
+    status: "in-progress" as const,
+    progress: 45,
+    team: [
+      { id: "u1", name: "Alex Smith", avatar: "https://api.dicebear.com/7.x/initials/svg?seed=AS" },
+      { id: "u2", name: "Jamie Lee", avatar: "https://api.dicebear.com/7.x/initials/svg?seed=JL" },
+    ],
   },
   {
     id: "2",
-    title: "Product Launch Video",
+    name: "Product Launch Video",
     description: "Promotional video for new tech gadget",
     client: "TechGadgets Inc.",
-    due_date: "2025-07-01",
-    shoot_date: null,
-    status: "conceptualisation",
-    created_at: "2025-01-01T00:00:00Z",
-    updated_at: "2025-01-01T00:00:00Z",
-    user_id: null,
-    brand_id: null,
-    campaign_id: null,
-    client_id: null,
-    members: null
+    clientAvatar: "https://api.dicebear.com/7.x/initials/svg?seed=TechGadgets",
+    dueDate: "2025-07-01",
+    status: "planning" as const,
+    progress: 20,
+    team: [
+      { id: "u2", name: "Jamie Lee", avatar: "https://api.dicebear.com/7.x/initials/svg?seed=JL" },
+      { id: "u4", name: "Sam Jordan", avatar: "https://api.dicebear.com/7.x/initials/svg?seed=SJ" },
+    ],
   },
 ];
 

@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -11,66 +11,52 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, isLoading, userProfile } = useAuth();
   const location = useLocation();
+  const redirectAttempted = useRef(false);
 
+  // Enhanced debugging
   useEffect(() => {
-    console.log('ProtectedRoute - State:', {
-      path: location.pathname,
-      user: user ? 'Authenticated' : 'Not authenticated',
-      profile: userProfile?.role || 'No profile',
-      allowedRoles,
-      isLoading
-    });
+    if (!isLoading) {
+      console.log('ProtectedRoute - Path:', location.pathname);
+      console.log('ProtectedRoute - User:', user ? 'Authenticated' : 'Not authenticated');
+      console.log('ProtectedRoute - UserProfile:', userProfile);
+      console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
+      
+      // Reset redirect attempt if we have a user
+      if (user) {
+        redirectAttempted.current = false;
+      }
+    }
   }, [user, userProfile, allowedRoles, isLoading, location.pathname]);
 
-  // Show loading state while authentication is being checked
   if (isLoading) {
-    console.log('ProtectedRoute - Showing loading state');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="relative w-16 h-16">
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-300/20 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-500 rounded-full border-t-transparent animate-spin"></div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
       </div>
     );
   }
 
   // Don't redirect if already on auth page
   if (location.pathname === "/auth") {
-    console.log('ProtectedRoute - On auth page, allowing access');
     return <>{children}</>;
   }
 
-  // If no user, redirect to auth
-  if (!user) {
-    console.log('ProtectedRoute - No user, redirecting to auth');
+  if (!user && !redirectAttempted.current) {
+    // Mark that we've attempted a redirect to prevent loops
+    redirectAttempted.current = true;
+    console.log(`Redirecting to auth from ${location.pathname}`);
+    // Use replace to avoid building up history
     return <Navigate to="/auth" replace state={{ from: location }} />;
-  }
-
-  // If user is authenticated but no profile yet, show loading
-  // This prevents premature access denials while profile is being fetched
-  if (!userProfile) {
-    console.log('ProtectedRoute - User authenticated but no profile yet, showing loading');
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="relative w-16 h-16">
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-300/20 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-500 rounded-full border-t-transparent animate-spin"></div>
-        </div>
-      </div>
-    );
   }
 
   // If allowedRoles is specified, check if user has one of the allowed roles
   if (allowedRoles && userProfile) {
     if (!allowedRoles.includes(userProfile.role)) {
-      console.log('ProtectedRoute - Access denied for role:', userProfile.role, 'Required roles:', allowedRoles);
-      console.log('ProtectedRoute - Redirecting to dashboard');
+      console.log(`Access denied: User role ${userProfile.role} not in allowed roles:`, allowedRoles);
       return <Navigate to="/dashboard" replace />;
     }
   }
 
-  console.log('ProtectedRoute - Access granted for role:', userProfile.role);
   return <>{children}</>;
 };
 

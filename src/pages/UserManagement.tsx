@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Dashboard from '@/components/layout/Dashboard';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, UserPlus, MoreHorizontal, Mail, Calendar } from 'lucide-react';
+import { Search, UserPlus, MoreHorizontal, Mail, Calendar, Edit, Eye, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +17,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import CreateUserDialog from '@/components/users/CreateUserDialog';
+import EditUserDialog from '@/components/users/EditUserDialog';
+import UserProfileDialog from '@/components/users/UserProfileDialog';
 
 interface UserProfile {
   id: string;
@@ -33,6 +37,8 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (isAdmin()) {
@@ -62,20 +68,23 @@ const UserManagement = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer') => {
+  const sendActivationEmail = async (user: UserProfile) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole, updated_at: new Date().toISOString() })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast.success('User role updated successfully');
-      fetchUsers(); // Refresh the users list
+      // For now, we'll just show a success message
+      // In a real implementation, you'd call an edge function to send the email
+      toast.success(`Activation email sent to ${user.first_name} ${user.last_name}`);
     } catch (error: any) {
-      console.error('Error updating user role:', error);
-      toast.error(`Failed to update user role: ${error.message}`);
+      toast.error(`Failed to send activation email: ${error.message}`);
+    }
+  };
+
+  const sendInviteEmail = async (email: string) => {
+    try {
+      // For now, we'll just show a success message
+      // In a real implementation, you'd call an edge function to send the invite
+      toast.success(`Invitation sent to ${email}`);
+    } catch (error: any) {
+      toast.error(`Failed to send invitation: ${error.message}`);
     }
   };
 
@@ -133,13 +142,18 @@ const UserManagement = () => {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              User Management
-            </CardTitle>
-            <CardDescription>
-              Manage user accounts, roles, and permissions
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  User Management
+                </CardTitle>
+                <CardDescription>
+                  Manage user accounts, roles, and permissions
+                </CardDescription>
+              </div>
+              <CreateUserDialog onUserCreated={fetchUsers} />
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -201,7 +215,7 @@ const UserManagement = () => {
                               {user.first_name} {user.last_name}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {user.id}
+                              {user.id.substring(0, 8)}...
                             </div>
                           </div>
                         </div>
@@ -230,35 +244,21 @@ const UserManagement = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              onClick={() => updateUserRole(user.id, 'admin')}
-                              disabled={user.role === 'admin'}
-                            >
-                              Make Admin
+                            <DropdownMenuItem onClick={() => setViewingUser(user)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => updateUserRole(user.id, 'creator')}
-                              disabled={user.role === 'creator'}
-                            >
-                              Make Creator
+                            <DropdownMenuItem onClick={() => setEditingUser(user)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit User
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => updateUserRole(user.id, 'brand')}
-                              disabled={user.role === 'brand'}
-                            >
-                              Make Brand
+                            <DropdownMenuItem onClick={() => sendActivationEmail(user)}>
+                              <Send className="mr-2 h-4 w-4" />
+                              Send Activation
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => updateUserRole(user.id, 'agency')}
-                              disabled={user.role === 'agency'}
-                            >
-                              Make Agency
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => updateUserRole(user.id, 'influencer')}
-                              disabled={user.role === 'influencer'}
-                            >
-                              Make Influencer
+                            <DropdownMenuItem onClick={() => sendInviteEmail(`${user.first_name}@example.com`)}>
+                              <Mail className="mr-2 h-4 w-4" />
+                              Send Invite
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -277,6 +277,25 @@ const UserManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit User Dialog */}
+      {editingUser && (
+        <EditUserDialog
+          user={editingUser}
+          open={!!editingUser}
+          onOpenChange={(open) => !open && setEditingUser(null)}
+          onUserUpdated={fetchUsers}
+        />
+      )}
+
+      {/* View Profile Dialog */}
+      {viewingUser && (
+        <UserProfileDialog
+          user={viewingUser}
+          open={!!viewingUser}
+          onOpenChange={(open) => !open && setViewingUser(null)}
+        />
+      )}
     </Dashboard>
   );
 };

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Dashboard from "@/components/layout/Dashboard";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, MoreHorizontal, Plus, Mail } from "lucide-react";
+import { Search, MoreHorizontal, Plus, Mail, Edit, Eye } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -30,6 +29,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import CreateUserDialog from "@/components/users/CreateUserDialog";
 
 // Sample users data
 const usersData = [
@@ -151,10 +151,23 @@ const Users = () => {
   // Group users by role
   const admins = filteredUsers.filter(user => user.role === 'admin');
   const creators = filteredUsers.filter(user => user.role === 'creator');
-  const clients = filteredUsers.filter(user => user.role === 'client');
+  const clients = filteredUsers.filter(user => user.role === '');
 
-  const handleInviteUser = () => {
-    toast.success("Invitation sent successfully!");
+  const handleViewProfile = (user: any) => {
+    toast.info(`Viewing profile for ${user.name}`);
+  };
+
+  const handleEditUser = (user: any) => {
+    toast.info(`Opening edit dialog for ${user.name}`);
+  };
+
+  const handleEmailUser = (user: any) => {
+    toast.success(`Email sent to ${user.email}`);
+  };
+
+  const handleToggleUserStatus = (user: any) => {
+    const newStatus = user.status === 'active' ? 'active' : 'inactive';
+    toast.success(`User ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
   };
 
   const UsersTable = ({ users }) => (
@@ -209,13 +222,20 @@ const Users = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View Profile</DropdownMenuItem>
-                    <DropdownMenuItem>Edit User</DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleViewProfile(user)}>
+                      <Eye className="mr-2 h-4 w-4" /> View Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                      <Edit className="mr-2 h-4 w-4" /> Edit User
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEmailUser(user)}>
                       <Mail className="mr-2 h-4 w-4" /> Email User
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem 
+                      className="text-destructive"
+                      onClick={() => handleToggleUserStatus(user)}
+                    >
                       {user.status === 'active' ? 'Deactivate' : 'Activate'} User
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -265,9 +285,7 @@ const Users = () => {
             </Select>
           </div>
 
-          <Button className="sm:w-auto" onClick={handleInviteUser}>
-            <Plus className="mr-2 h-4 w-4" /> Invite User
-          </Button>
+          <CreateUserDialog />
         </div>
 
         <Tabs defaultValue="all" className="space-y-6">

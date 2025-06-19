@@ -53,8 +53,11 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
       const { data, error } = await supabase
         .from('project_assignments')
         .select(`
-          *,
-          profiles!assigned_to (
+          id,
+          assigned_to,
+          department,
+          assigned_at,
+          profiles:assigned_to (
             first_name,
             last_name
           )

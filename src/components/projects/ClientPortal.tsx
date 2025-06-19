@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,8 +81,12 @@ const ClientPortal = () => {
       const { data, error } = await supabase
         .from('client_comments')
         .select(`
-          *,
-          profiles!created_by (
+          id,
+          comment,
+          created_at,
+          created_by,
+          status,
+          profiles:created_by (
             first_name,
             last_name,
             role

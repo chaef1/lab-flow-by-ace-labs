@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -47,15 +46,8 @@ const Influencers = () => {
       const { data, error } = await supabase
         .from('influencers')
         .select(`
-          id,
-          bio,
-          categories,
-          follower_count,
-          engagement_rate,
-          instagram_handle,
-          tiktok_handle,
-          youtube_handle,
-          profiles:id (
+          *,
+          profiles (
             first_name,
             last_name,
             avatar_url

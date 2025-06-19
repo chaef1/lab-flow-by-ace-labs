@@ -19,7 +19,7 @@ interface Assignment {
   profiles: {
     first_name: string;
     last_name: string;
-  };
+  } | null;
 }
 
 interface ProjectAssignmentsProps {
@@ -53,7 +53,7 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
       .from('project_assignments')
       .select(`
         *,
-        assigned_to_profile:profiles!assigned_to (
+        profiles!assigned_to (
           first_name,
           last_name
         )
@@ -63,15 +63,7 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
     if (error) {
       console.error('Error fetching assignments:', error);
     } else {
-      // Transform the data to match our interface
-      const transformedData = data?.map(item => ({
-        id: item.id,
-        assigned_to: item.assigned_to,
-        department: item.department,
-        assigned_at: item.assigned_at,
-        profiles: item.assigned_to_profile
-      })) || [];
-      setAssignments(transformedData);
+      setAssignments(data || []);
     }
   };
 

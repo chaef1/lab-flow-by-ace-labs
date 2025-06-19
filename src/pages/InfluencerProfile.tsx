@@ -46,17 +46,8 @@ const InfluencerProfile = () => {
       const { data, error } = await supabase
         .from('influencers')
         .select(`
-          id,
-          bio,
-          categories,
-          follower_count,
-          engagement_rate,
-          instagram_handle,
-          tiktok_handle,
-          youtube_handle,
-          rate_per_post,
-          portfolio_images,
-          profiles:id (
+          *,
+          profiles (
             first_name,
             last_name,
             avatar_url

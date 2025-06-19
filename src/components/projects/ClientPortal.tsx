@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,7 @@ interface Comment {
     first_name: string;
     last_name: string;
     role: string;
-  };
+  } | null;
 }
 
 const ClientPortal = () => {
@@ -83,7 +82,7 @@ const ClientPortal = () => {
         .from('client_comments')
         .select(`
           *,
-          profiles (
+          profiles!created_by (
             first_name,
             last_name,
             role
@@ -234,10 +233,10 @@ const ClientPortal = () => {
                     <div className="flex items-center gap-2 mb-2">
                       <User className="h-4 w-4" />
                       <span className="font-medium text-sm">
-                        {comment.profiles.first_name} {comment.profiles.last_name}
+                        {comment.profiles?.first_name} {comment.profiles?.last_name}
                       </span>
                       <Badge variant="outline" className="text-xs">
-                        {comment.profiles.role}
+                        {comment.profiles?.role}
                       </Badge>
                       <span className="text-xs text-muted-foreground ml-auto">
                         {new Date(comment.created_at).toLocaleDateString()}

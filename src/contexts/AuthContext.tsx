@@ -117,49 +117,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log('AuthContext initializing');
     let mounted = true;
     
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('Auth state changed:', event, newSession?.user?.email);
-        
-        if (!mounted) return;
-        
-        // Update session and user state synchronously
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        // If session exists, fetch profile asynchronously
-        if (newSession?.user) {
-          // Use a small delay to prevent potential deadlock
-          setTimeout(async () => {
-            if (!mounted) return;
-            try {
-              const profile = await fetchUserProfile(newSession.user.id);
-              if (mounted) {
-                setUserProfile(profile);
-                setIsLoading(false);
-              }
-            } catch (error) {
-              console.error('Error fetching profile after auth change:', error);
-              if (mounted) {
-                setIsLoading(false);
-              }
-            }
-          }, 100);
-        } else {
-          setUserProfile(null);
-          setIsLoading(false);
-        }
-      }
-    );
-
-    // Then check for existing session
+    // Get initial session
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       console.log('Initial session check:', currentSession?.user?.email);
       
       if (!mounted) return;
       
-      // Update session and user state
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -168,20 +131,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const profile = await fetchUserProfile(currentSession.user.id);
           if (mounted) {
             setUserProfile(profile);
-            setIsLoading(false);
           }
         } catch (error) {
           console.error('Error fetching profile on init:', error);
-          if (mounted) {
-            setIsLoading(false);
-          }
         }
-      } else {
+      }
+      
+      if (mounted) {
+        setIsLoading(false);
+      }
+    });
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.log('Auth state changed:', event, newSession?.user?.email);
+        
+        if (!mounted) return;
+        
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        if (newSession?.user) {
+          try {
+            const profile = await fetchUserProfile(newSession.user.id);
+            if (mounted) {
+              setUserProfile(profile);
+            }
+          } catch (error) {
+            console.error('Error fetching profile after auth change:', error);
+          }
+        } else {
+          setUserProfile(null);
+        }
+        
         if (mounted) {
           setIsLoading(false);
         }
       }
-    });
+    );
 
     return () => {
       mounted = false;

@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -11,20 +11,13 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, isLoading, userProfile } = useAuth();
   const location = useLocation();
-  const redirectAttempted = useRef(false);
 
-  // Enhanced debugging
   useEffect(() => {
     console.log('ProtectedRoute - Path:', location.pathname);
     console.log('ProtectedRoute - User:', user ? 'Authenticated' : 'Not authenticated');
     console.log('ProtectedRoute - UserProfile:', userProfile);
     console.log('ProtectedRoute - AllowedRoles:', allowedRoles);
     console.log('ProtectedRoute - IsLoading:', isLoading);
-    
-    // Reset redirect attempt if we have a user
-    if (user) {
-      redirectAttempted.current = false;
-    }
   }, [user, userProfile, allowedRoles, isLoading, location.pathname]);
 
   // Show loading state while authentication is being checked
@@ -41,9 +34,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <>{children}</>;
   }
 
-  // If no user and we haven't attempted redirect, go to auth
-  if (!user && !redirectAttempted.current) {
-    redirectAttempted.current = true;
+  // If no user, redirect to auth
+  if (!user) {
     console.log(`Redirecting to auth from ${location.pathname}`);
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }

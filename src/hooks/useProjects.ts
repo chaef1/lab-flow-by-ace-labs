@@ -22,7 +22,9 @@ export const useProjects = () => {
         updated_at,
         shoot_date,
         user_id,
-        brand_id
+        brand_id,
+        campaign_id,
+        client_id
       `)
       .order('created_at', { ascending: false });
     
@@ -65,7 +67,9 @@ export const useProjectById = (id: string | undefined) => {
           updated_at,
           shoot_date,
           user_id,
-          brand_id
+          brand_id,
+          campaign_id,
+          client_id
         `)
         .eq('id', id)
         .single();

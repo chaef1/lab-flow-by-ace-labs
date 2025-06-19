@@ -3,7 +3,6 @@ import { ReactNode } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardProps {
   children: ReactNode;
@@ -14,23 +13,6 @@ interface DashboardProps {
 
 const Dashboard = ({ children, title, subtitle, showSearch = false }: DashboardProps) => {
   const isMobile = useIsMobile();
-  const { user, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
-      </div>
-    );
-  }
-  
-  if (!user) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen bg-background">

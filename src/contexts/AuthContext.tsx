@@ -61,47 +61,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let mounted = true;
     
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      if (!mounted) return;
-      
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        const profile = await fetchUserProfile(currentSession.user.id);
-        if (mounted) {
-          setUserProfile(profile);
-        }
-      }
-      
-      if (mounted) {
-        setIsLoading(false);
-      }
-    });
-
-    // Listen for auth changes
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
+        console.log('Auth state changed:', event, newSession?.user?.email);
+        
         if (!mounted) return;
         
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
         if (newSession?.user) {
-          const profile = await fetchUserProfile(newSession.user.id);
-          if (mounted) {
-            setUserProfile(profile);
-          }
+          // Fetch profile after a short delay to avoid recursion
+          setTimeout(async () => {
+            if (!mounted) return;
+            const profile = await fetchUserProfile(newSession.user.id);
+            if (mounted) {
+              setUserProfile(profile);
+            }
+          }, 100);
         } else {
           setUserProfile(null);
         }
         
-        if (mounted && !newSession) {
+        if (mounted) {
           setIsLoading(false);
         }
       }
     );
+
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          const profile = await fetchUserProfile(currentSession.user.id);
+          if (mounted) {
+            setUserProfile(profile);
+          }
+        }
+        
+        if (mounted) {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
 
     return () => {
       mounted = false;

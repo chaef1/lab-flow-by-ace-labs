@@ -80,6 +80,16 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
         modules: selectedModules 
       });
 
+      // First check if the database is ready by testing a simple query
+      try {
+        const { data: testQuery } = await supabase.from('profiles').select('id').limit(1);
+        console.log('Database connection test:', testQuery ? 'success' : 'no data');
+      } catch (dbError) {
+        console.error('Database connection test failed:', dbError);
+        toast.error('Database connection issue. Please try again.');
+        return;
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -88,34 +98,65 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
             first_name: formData.firstName,
             last_name: formData.lastName,
             role: formData.role
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
 
       if (authError) {
         console.error('Auth error:', authError);
+        toast.error(`Authentication error: ${authError.message}`);
         throw authError;
       }
 
-      console.log('User created successfully:', authData.user?.id);
+      console.log('User signup response:', authData);
 
-      // If user was created and we have their ID, set up custom permissions
-      if (authData.user?.id && selectedModules.length > 0) {
+      if (!authData.user?.id) {
+        console.error('No user ID returned from signup');
+        toast.error('User creation failed - no user ID returned');
+        return;
+      }
+
+      console.log('User created successfully:', authData.user.id);
+
+      // Wait a moment for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check if profile was created by the trigger
+      const { data: profileCheck, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('id, role')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileCheckError) {
+        console.error('Profile check error:', profileCheckError);
+        // Profile wasn't created by trigger, let's create it manually
+        console.log('Creating profile manually...');
+        
+        const { error: manualProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            role: formData.role
+          });
+
+        if (manualProfileError) {
+          console.error('Manual profile creation error:', manualProfileError);
+          toast.error(`Profile creation failed: ${manualProfileError.message}`);
+          return;
+        }
+      } else {
+        console.log('Profile exists:', profileCheck);
+      }
+
+      // Set up custom permissions if needed
+      if (selectedModules.length > 0) {
         // Get current user ID first
         const { data: currentUser } = await supabase.auth.getUser();
         const currentUserId = currentUser.user?.id;
-
-        // First, get the user's profile to ensure it exists
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('Profile error:', profileError);
-          // Profile might not exist yet due to trigger timing, that's okay
-        }
 
         // Delete existing permissions for this user (in case of role change)
         const { error: deleteError } = await supabase
@@ -143,6 +184,8 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
         if (permissionsError) {
           console.error('Permissions error:', permissionsError);
           toast.error(`User created but failed to set permissions: ${permissionsError.message}`);
+        } else {
+          console.log('Permissions set successfully');
         }
       }
 

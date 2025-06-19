@@ -101,6 +101,10 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
 
       // If user was created and we have their ID, set up custom permissions
       if (authData.user?.id && selectedModules.length > 0) {
+        // Get current user ID first
+        const { data: currentUser } = await supabase.auth.getUser();
+        const currentUserId = currentUser.user?.id;
+
         // First, get the user's profile to ensure it exists
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -123,11 +127,11 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
           console.error('Delete permissions error:', deleteError);
         }
 
-        // Add selected permissions
+        // Add selected permissions with proper typing
         const permissionsToInsert = selectedModules.map(module => ({
           user_id: authData.user.id,
-          module: module,
-          granted_by: (await supabase.auth.getUser()).data.user?.id
+          module: module as any, // Type assertion for the enum
+          granted_by: currentUserId
         }));
 
         console.log('Inserting permissions:', permissionsToInsert);

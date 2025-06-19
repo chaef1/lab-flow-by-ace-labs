@@ -135,10 +135,14 @@ const EditUserDialog = ({ user, open, onOpenChange, onUserUpdated }: EditUserDia
 
       // Then, insert new permissions
       if (selectedModules.length > 0) {
+        // Get current user ID first
+        const { data: currentUser } = await supabase.auth.getUser();
+        const currentUserId = currentUser.user?.id;
+
         const permissionsToInsert = selectedModules.map(module => ({
           user_id: user.id,
-          module: module,
-          granted_by: (await supabase.auth.getUser()).data.user?.id
+          module: module as any, // Type assertion for the enum
+          granted_by: currentUserId
         }));
 
         console.log('Inserting new permissions:', permissionsToInsert);

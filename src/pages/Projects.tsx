@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListFilter, Grid } from "lucide-react";
 
 const Projects = () => {
-  const [view, setView] = useState<"board" | "list">("board");
+  const [view, setView] = useState<"board" | "list">("list");
 
   return (
     <Dashboard title="Projects" subtitle="Manage and track all your agency projects">

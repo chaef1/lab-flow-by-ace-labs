@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -111,7 +112,7 @@ const Sidebar = ({ className }: SidebarProps) => {
         )}
       </div>
       
-      <div className="mt-2 space-y-1 px-2">
+      <div className="mt-2 space-y-1 px-2 flex-1">
         {menuItems.map((item) => (
           <Link 
             key={item.path} 
@@ -151,27 +152,27 @@ const Sidebar = ({ className }: SidebarProps) => {
         <Button 
           variant="outline" 
           size="icon" 
-          className="fixed top-4 left-4 z-40 md:hidden"
+          className="fixed top-4 left-4 z-50 md:hidden"
           onClick={toggleSidebar}
         >
           <Menu size={20} />
         </Button>
       )}
       
-      <div 
-        className={cn(
-          "fixed inset-0 z-30 bg-black/50 md:hidden",
-          isOpen ? "block" : "hidden"
-        )}
-        onClick={toggleSidebar}
-      />
+      {isMobile && (
+        <div 
+          className={cn(
+            "fixed inset-0 z-40 bg-black/50 md:hidden transition-opacity",
+            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          )}
+          onClick={toggleSidebar}
+        />
+      )}
 
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-40 w-64 border-r border-border bg-sidebar flex flex-col transition-transform",
-          isMobile && !isOpen && "-translate-x-full",
-          isMobile && isOpen && "translate-x-0",
-          !isMobile && "translate-x-0",
+          "fixed top-0 bottom-0 left-0 z-50 w-64 border-r border-border bg-sidebar flex flex-col transition-transform duration-300",
+          isMobile ? (isOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0",
           className
         )}
       >

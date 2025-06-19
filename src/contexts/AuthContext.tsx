@@ -117,30 +117,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log('AuthContext initializing');
     let mounted = true;
     
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      console.log('Initial session check:', currentSession?.user?.email);
-      
-      if (!mounted) return;
-      
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        try {
+    // Simple initialization - get session first, then listen for changes
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log('Initial session check:', currentSession?.user?.email);
+        
+        if (!mounted) return;
+        
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
           const profile = await fetchUserProfile(currentSession.user.id);
           if (mounted) {
             setUserProfile(profile);
           }
-        } catch (error) {
-          console.error('Error fetching profile on init:', error);
+        }
+      } catch (error) {
+        console.error('Error during auth initialization:', error);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
         }
       }
-      
-      if (mounted) {
-        setIsLoading(false);
-      }
-    });
+    };
+
+    initializeAuth();
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -153,20 +156,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(newSession?.user ?? null);
         
         if (newSession?.user) {
-          try {
-            const profile = await fetchUserProfile(newSession.user.id);
-            if (mounted) {
-              setUserProfile(profile);
-            }
-          } catch (error) {
-            console.error('Error fetching profile after auth change:', error);
+          const profile = await fetchUserProfile(newSession.user.id);
+          if (mounted) {
+            setUserProfile(profile);
           }
         } else {
           setUserProfile(null);
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
         }
       }
     );

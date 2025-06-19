@@ -11,27 +11,35 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'login';
   const from = location.state?.from?.pathname || '/dashboard';
 
   useEffect(() => {
-    // Check current session without using useAuth to avoid circular dependency
+    console.log('Auth page - Checking session');
+    
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Auth page - session check:', session?.user?.email);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Auth page - Session check error:', error);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log('Auth page - Session check result:', session?.user?.email || 'No session');
         
         if (session?.user) {
-          setUser(session.user);
-          console.log('Auth page - redirecting to:', from);
+          console.log('Auth page - User found, redirecting to:', from);
           navigate(from, { replace: true });
+        } else {
+          console.log('Auth page - No user, staying on auth page');
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('Auth page - session check error:', error);
-      } finally {
+        console.error('Auth page - Unexpected error:', error);
         setIsLoading(false);
       }
     };
@@ -41,22 +49,23 @@ const Auth = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth page - auth state change:', event, session?.user?.email);
+        console.log('Auth page - Auth state change:', event, session?.user?.email || 'No user');
         
         if (session?.user) {
-          setUser(session.user);
+          console.log('Auth page - User authenticated, redirecting to:', from);
           navigate(from, { replace: true });
-        } else {
-          setUser(null);
         }
-        setIsLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('Auth page - Cleanup');
+      subscription.unsubscribe();
+    };
   }, [navigate, from]);
 
   if (isLoading) {
+    console.log('Auth page - Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="relative w-16 h-16">
@@ -67,6 +76,7 @@ const Auth = () => {
     );
   }
 
+  console.log('Auth page - Rendering auth forms');
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ace-50 to-ace-100 p-4">
       <Card className="w-full max-w-md">

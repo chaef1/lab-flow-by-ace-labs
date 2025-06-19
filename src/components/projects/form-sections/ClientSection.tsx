@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
@@ -15,6 +16,7 @@ interface Client {
   email: string;
   company_name: string;
   contact_person: string;
+  brief: string;
 }
 
 interface ClientSectionProps {
@@ -31,7 +33,7 @@ const ClientSection = ({ selectedClient, onClientChange }: ClientSectionProps) =
     phone: "",
     company_name: "",
     contact_person: "",
-    address: "",
+    brief: "",
   });
 
   useEffect(() => {
@@ -72,7 +74,7 @@ const ClientSection = ({ selectedClient, onClientChange }: ClientSectionProps) =
         phone: "",
         company_name: "",
         contact_person: "",
-        address: "",
+        brief: "",
       });
       toast.success("Client created successfully!");
     } catch (error: any) {
@@ -92,50 +94,54 @@ const ClientSection = ({ selectedClient, onClientChange }: ClientSectionProps) =
               New Client
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create New Client</DialogTitle>
               <DialogDescription>
-                Add a new client to your database
+                Create a new client with their project brief
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Client Name *</Label>
-                <Input
-                  id="name"
-                  value={newClient.name}
-                  onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                  placeholder="Enter client name"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Client Name *</Label>
+                  <Input
+                    id="name"
+                    value={newClient.name}
+                    onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                    placeholder="Enter client name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="company_name">Company Name</Label>
+                  <Input
+                    id="company_name"
+                    value={newClient.company_name}
+                    onChange={(e) => setNewClient({ ...newClient, company_name: e.target.value })}
+                    placeholder="Enter company name"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="company_name">Company Name</Label>
-                <Input
-                  id="company_name"
-                  value={newClient.company_name}
-                  onChange={(e) => setNewClient({ ...newClient, company_name: e.target.value })}
-                  placeholder="Enter company name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="contact_person">Contact Person</Label>
-                <Input
-                  id="contact_person"
-                  value={newClient.contact_person}
-                  onChange={(e) => setNewClient({ ...newClient, contact_person: e.target.value })}
-                  placeholder="Enter contact person"
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newClient.email}
-                  onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                  placeholder="Enter email"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="contact_person">Contact Person</Label>
+                  <Input
+                    id="contact_person"
+                    value={newClient.contact_person}
+                    onChange={(e) => setNewClient({ ...newClient, contact_person: e.target.value })}
+                    placeholder="Enter contact person"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newClient.email}
+                    onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                    placeholder="Enter email"
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="phone">Phone</Label>
@@ -146,11 +152,21 @@ const ClientSection = ({ selectedClient, onClientChange }: ClientSectionProps) =
                   placeholder="Enter phone number"
                 />
               </div>
+              <div>
+                <Label htmlFor="brief">Project Brief *</Label>
+                <Textarea
+                  id="brief"
+                  value={newClient.brief}
+                  onChange={(e) => setNewClient({ ...newClient, brief: e.target.value })}
+                  placeholder="Enter the project brief and requirements..."
+                  rows={4}
+                />
+              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateClient} disabled={!newClient.name}>
+                <Button onClick={handleCreateClient} disabled={!newClient.name || !newClient.brief}>
                   Create Client
                 </Button>
               </div>
@@ -180,6 +196,12 @@ const ClientSection = ({ selectedClient, onClientChange }: ClientSectionProps) =
               <p><strong>Company:</strong> {clients.find(c => c.id === selectedClient)?.company_name}</p>
               <p><strong>Contact:</strong> {clients.find(c => c.id === selectedClient)?.contact_person}</p>
               <p><strong>Email:</strong> {clients.find(c => c.id === selectedClient)?.email}</p>
+              {clients.find(c => c.id === selectedClient)?.brief && (
+                <div>
+                  <strong>Brief:</strong>
+                  <p className="mt-1 text-sm text-muted-foreground">{clients.find(c => c.id === selectedClient)?.brief}</p>
+                </div>
+              )}
             </div>
           )}
         </div>

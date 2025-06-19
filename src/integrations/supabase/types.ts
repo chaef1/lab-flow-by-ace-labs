@@ -253,9 +253,104 @@ export type Database = {
           },
         ]
       }
+      client_access: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_comments: {
+        Row: {
+          client_id: string | null
+          comment: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          comment: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          comment?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_comments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_comments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
+          brief: string | null
           company_name: string | null
           contact_person: string | null
           created_at: string
@@ -268,6 +363,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          brief?: string | null
           company_name?: string | null
           contact_person?: string | null
           created_at?: string
@@ -280,6 +376,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          brief?: string | null
           company_name?: string | null
           contact_person?: string | null
           created_at?: string
@@ -473,6 +570,55 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      project_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          department: string | null
+          id: string
+          project_id: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          department?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          department?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_assignments_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {

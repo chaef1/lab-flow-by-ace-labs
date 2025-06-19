@@ -49,21 +49,28 @@ const ProjectAssignments = ({ projectId }: ProjectAssignmentsProps) => {
   }, [projectId]);
 
   const fetchAssignments = async () => {
-    const { data, error } = await supabase
-      .from('project_assignments')
-      .select(`
-        *,
-        profiles!assigned_to (
-          first_name,
-          last_name
-        )
-      `)
-      .eq('project_id', projectId);
+    try {
+      const { data, error } = await supabase
+        .from('project_assignments')
+        .select(`
+          *,
+          profiles!assigned_to (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('project_id', projectId);
 
-    if (error) {
-      console.error('Error fetching assignments:', error);
-    } else {
+      if (error) {
+        console.error('Error fetching assignments:', error);
+        toast.error('Failed to fetch assignments');
+        return;
+      }
+
       setAssignments(data || []);
+    } catch (error: any) {
+      console.error('Error fetching assignments:', error);
+      toast.error('Failed to fetch assignments');
     }
   };
 

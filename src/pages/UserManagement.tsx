@@ -88,7 +88,7 @@ const UserManagement = () => {
     try {
       setIsLoading(true);
       
-      // Get users from auth.users and join with profiles
+      // Get users from profiles
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -100,26 +100,32 @@ const UserManagement = () => {
         return;
       }
 
-      // Get user emails from auth metadata
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error fetching auth users:', authError);
-        // Continue with profiles only if auth query fails
+      // Try to get user emails from auth metadata
+      try {
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        
+        if (authError) {
+          console.error('Error fetching auth users:', authError);
+          // Continue with profiles only if auth query fails
+          setUsers(profiles || []);
+          return;
+        }
+
+        // Merge profile data with email from auth
+        const usersWithEmails = profiles?.map(profile => {
+          const authUser = authUsers.users.find((user: any) => user.id === profile.id);
+          return {
+            ...profile,
+            email: authUser?.email
+          };
+        }) || [];
+
+        setUsers(usersWithEmails);
+      } catch (authError) {
+        console.error('Auth query failed:', authError);
+        // Fallback to profiles only
         setUsers(profiles || []);
-        return;
       }
-
-      // Merge profile data with email from auth
-      const usersWithEmails = profiles?.map(profile => {
-        const authUser = authUsers.users.find(user => user.id === profile.id);
-        return {
-          ...profile,
-          email: authUser?.email
-        };
-      }) || [];
-
-      setUsers(usersWithEmails);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');

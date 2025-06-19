@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -61,9 +62,9 @@ const Influencers = () => {
       // Format the data to match the Influencer interface
       return data?.map(item => ({
         id: item.id,
-        first_name: item.profiles?.first_name,
-        last_name: item.profiles?.last_name,
-        avatar_url: item.profiles?.avatar_url,
+        first_name: item.profiles?.first_name || null,
+        last_name: item.profiles?.last_name || null,
+        avatar_url: item.profiles?.avatar_url || null,
         bio: item.bio,
         categories: item.categories,
         follower_count: item.follower_count,

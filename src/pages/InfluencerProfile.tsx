@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -60,9 +61,9 @@ const InfluencerProfile = () => {
       
       return {
         id: data.id,
-        first_name: data.profiles?.first_name,
-        last_name: data.profiles?.last_name,
-        avatar_url: data.profiles?.avatar_url,
+        first_name: data.profiles?.first_name || null,
+        last_name: data.profiles?.last_name || null,
+        avatar_url: data.profiles?.avatar_url || null,
         bio: data.bio,
         categories: data.categories,
         follower_count: data.follower_count,

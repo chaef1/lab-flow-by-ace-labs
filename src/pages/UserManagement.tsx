@@ -63,7 +63,7 @@ const UserManagement = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: string) => {
+  const updateUserRole = async (userId: string, newRole: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer') => {
     try {
       const { error } = await supabase
         .from('profiles')

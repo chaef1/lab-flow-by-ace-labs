@@ -5,66 +5,42 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import LoginForm from '@/components/auth/LoginForm';
 import SignUpForm from '@/components/auth/SignUpForm';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoading } = useAuth();
+  const [authLoading, setAuthLoading] = useState(true);
   
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'login';
   const from = location.state?.from?.pathname || '/dashboard';
 
   useEffect(() => {
-    console.log('Auth page - Checking session');
+    console.log('Auth page - Checking authentication state');
     
-    const checkSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Auth page - Session check error:', error);
-          setIsLoading(false);
-          return;
+    const checkAuth = () => {
+      // Wait a moment for auth context to settle
+      setTimeout(() => {
+        if (!isLoading) {
+          console.log('Auth page - Auth context loaded, user:', user?.email || 'No user');
+          
+          if (user) {
+            console.log('Auth page - User authenticated, redirecting to:', from);
+            navigate(from, { replace: true });
+          } else {
+            console.log('Auth page - No user, staying on auth page');
+            setAuthLoading(false);
+          }
         }
-        
-        console.log('Auth page - Session check result:', session?.user?.email || 'No session');
-        
-        if (session?.user) {
-          console.log('Auth page - User found, redirecting to:', from);
-          navigate(from, { replace: true });
-        } else {
-          console.log('Auth page - No user, staying on auth page');
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('Auth page - Unexpected error:', error);
-        setIsLoading(false);
-      }
+      }, 100);
     };
 
-    checkSession();
+    checkAuth();
+  }, [user, isLoading, navigate, from]);
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth page - Auth state change:', event, session?.user?.email || 'No user');
-        
-        if (session?.user) {
-          console.log('Auth page - User authenticated, redirecting to:', from);
-          navigate(from, { replace: true });
-        }
-      }
-    );
-
-    return () => {
-      console.log('Auth page - Cleanup');
-      subscription.unsubscribe();
-    };
-  }, [navigate, from]);
-
-  if (isLoading) {
+  if (isLoading || authLoading) {
     console.log('Auth page - Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

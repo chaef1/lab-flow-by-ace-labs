@@ -47,15 +47,30 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
+  // If user is authenticated but no profile yet, show loading
+  // This prevents premature access denials while profile is being fetched
+  if (!userProfile) {
+    console.log('ProtectedRoute - User authenticated but no profile yet, showing loading');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="relative w-16 h-16">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-300/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-500 rounded-full border-t-transparent animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
   // If allowedRoles is specified, check if user has one of the allowed roles
   if (allowedRoles && userProfile) {
     if (!allowedRoles.includes(userProfile.role)) {
-      console.log('ProtectedRoute - Access denied, redirecting to dashboard');
+      console.log('ProtectedRoute - Access denied for role:', userProfile.role, 'Required roles:', allowedRoles);
+      console.log('ProtectedRoute - Redirecting to dashboard');
       return <Navigate to="/dashboard" replace />;
     }
   }
 
-  console.log('ProtectedRoute - Access granted');
+  console.log('ProtectedRoute - Access granted for role:', userProfile.role);
   return <>{children}</>;
 };
 

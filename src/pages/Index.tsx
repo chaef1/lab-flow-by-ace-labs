@@ -10,18 +10,34 @@ const Index = () => {
   const { user, isLoading } = useAuth();
   
   useEffect(() => {
+    console.log('Index - Auth state:', { user: user?.email, isLoading });
+    
+    // Only redirect if we have a confirmed user and we're not loading
     if (user && !isLoading) {
-      navigate('/dashboard');
+      console.log('Index - Redirecting authenticated user to dashboard');
+      navigate('/dashboard', { replace: true });
     }
-  }, [navigate, user, isLoading]);
+  }, [user, isLoading, navigate]);
   
+  // Show loading while checking auth
   if (isLoading) {
+    console.log('Index - Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
+        <div className="relative w-16 h-16">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-300/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-500 rounded-full border-t-transparent animate-spin"></div>
+        </div>
       </div>
     );
   }
+  
+  // Don't show landing page if user is authenticated (they'll be redirected)
+  if (user) {
+    return null;
+  }
+  
+  console.log('Index - Showing landing page for unauthenticated user');
   
   return (
     <div className="min-h-screen bg-white">

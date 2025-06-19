@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -14,9 +15,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   const [activeTab, setActiveTab] = useState(defaultTab);
-  const [redirected, setRedirected] = useState(false);
   
-  // Get the intended destination from state, or default to dashboard
   const from = location.state?.from?.pathname || "/dashboard";
   
   useEffect(() => {
@@ -27,71 +26,43 @@ const Auth = () => {
     }
   }, [searchParams]);
   
-  // Only redirect if user is loaded and authenticated, and we haven't redirected already
   useEffect(() => {
-    if (isLoading) {
-      return;
+    if (!isLoading && user) {
+      navigate(from, { replace: true });
     }
-    
-    if (user && !redirected) {
-      console.log('Auth: User authenticated, redirecting to:', from);
-      setRedirected(true);
-      // Use a small timeout to prevent potential race conditions with state updates
-      setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 100);
-    }
-  }, [user, isLoading, navigate, redirected, from]);
+  }, [user, isLoading, navigate, from]);
   
-  // Don't render anything while checking auth state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-agency-50 to-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ace-50 to-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
       </div>
     );
   }
   
-  // Only render the auth form if user is not authenticated
   if (user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-agency-50 to-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-agency-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ace-50 to-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-agency-50 to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ace-50 to-white p-4">
       <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8 items-center">
         <div className="flex-1 text-center lg:text-left">
           <div className="mb-6 flex justify-center lg:justify-start">
-            <div className="h-12 w-12 rounded-full bg-agency-600 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-full bg-ace-500 flex items-center justify-center">
               <span className="text-white font-bold text-2xl">L</span>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-agency-900 mb-4">
+          <h1 className="text-4xl font-bold text-ace-dark mb-4">
             LabFlow
           </h1>
           <p className="text-xl text-muted-foreground mb-6">
             Manage scientific projects, workflows, and lab operations in one place.
           </p>
-          <div className="hidden lg:block mb-8">
-            <div className="flex gap-3 flex-wrap">
-              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Project Management
-              </span>
-              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Team Collaboration
-              </span>
-              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Data Integration
-              </span>
-              <span className="inline-flex h-8 items-center rounded-full border border-muted bg-muted px-3 text-xs font-medium">
-                Workflow Automation
-              </span>
-            </div>
-          </div>
         </div>
         
         <div className="flex-1 w-full max-w-md">
@@ -128,7 +99,6 @@ const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => P
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +106,6 @@ const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => P
     
     try {
       await signIn(email, password);
-      navigate('/dashboard');
     } catch (error) {
       // Error is handled in signIn function
     } finally {
@@ -198,7 +167,6 @@ const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, user
         last_name: lastName,
         role: role
       });
-      // User will need to sign in after registration
     } catch (error) {
       // Error is handled in signUp function
     } finally {
@@ -251,14 +219,13 @@ const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, user
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <p className="text-xs text-muted-foreground">Password must be at least 8 characters</p>
       </div>
       
       <div className="space-y-2">
         <Label htmlFor="role">Sign up as</Label>
         <select 
           id="role"
-          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={role}
           onChange={(e) => setRole(e.target.value)}
         >
@@ -266,11 +233,6 @@ const SignUpForm = ({ signUp }: { signUp: (email: string, password: string, user
           <option value="agency">Agency</option>
           <option value="influencer">Influencer</option>
         </select>
-        <p className="text-xs text-muted-foreground">
-          {role === 'brand' && "For brand managers and marketing teams"}
-          {role === 'agency' && "For agencies with full platform access"}
-          {role === 'influencer' && "For social media influencers and content creators"}
-        </p>
       </div>
       
       <Button 

@@ -13,16 +13,6 @@ interface UserProfile {
   role: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
 }
 
-// Define the type for the profile data structure when updating in Supabase
-type ProfileUpdateData = {
-  id?: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  avatar_url?: string | null;
-  role?: 'admin' | 'creator' | 'brand' | 'agency' | 'influencer';
-  updated_at?: string;
-};
-
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -48,9 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch user profile data from the profiles table
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
-      console.log('Fetching user profile for:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url, role')
@@ -62,7 +51,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
       
-      console.log('User profile fetched:', data);
       return data as UserProfile;
     } catch (error) {
       console.error('Unexpected error fetching user profile:', error);
@@ -71,43 +59,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    console.log('AuthContext initializing');
     let mounted = true;
     
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('Auth state changed:', event, newSession?.user?.id);
-        
-        if (!mounted) return;
-        
-        // Update session and user state synchronously
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        // If session exists, fetch profile asynchronously
-        if (newSession?.user) {
-          // Use setTimeout to avoid potential deadlock with Supabase client
-          setTimeout(async () => {
-            if (!mounted) return;
-            const profile = await fetchUserProfile(newSession.user.id);
-            setUserProfile(profile);
-            setIsLoading(false);
-          }, 0);
-        } else {
-          setUserProfile(null);
-          setIsLoading(false);
-        }
-      }
-    );
-
-    // Then check for existing session
+    // Get initial session
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      console.log('Initial session check:', currentSession?.user?.id);
-      
       if (!mounted) return;
       
-      // Update session and user state
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -123,6 +80,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        if (!mounted) return;
+        
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        if (newSession?.user) {
+          const profile = await fetchUserProfile(newSession.user.id);
+          if (mounted) {
+            setUserProfile(profile);
+          }
+        } else {
+          setUserProfile(null);
+        }
+        
+        if (mounted && !newSession) {
+          setIsLoading(false);
+        }
+      }
+    );
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
@@ -131,7 +111,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      setIsLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -146,19 +125,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error signing in:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, userData: { first_name?: string; last_name?: string; role?: string }) => {
     try {
-      setIsLoading(true);
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData
+          data: userData,
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
       
@@ -171,43 +148,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error signing up:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      setIsLoading(true);
       await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
       toast.info('Signed out');
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Failed to sign out');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const updateProfile = async (data: Partial<UserProfile>) => {
     if (!user || !userProfile) return;
     try {
-      setIsLoading(true);
-      
-      // Create a properly typed update object
-      const updateData: ProfileUpdateData = {
-        ...data,
-        updated_at: new Date().toISOString()
-      };
-      
       const { error } = await supabase
         .from('profiles')
-        .update(updateData)
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id);
       
       if (error) throw error;
       
-      // Update the local state
       setUserProfile({
         ...userProfile,
         ...data
@@ -218,8 +187,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error updating profile:', error);
       toast.error(`Failed to update profile: ${error.message}`);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 

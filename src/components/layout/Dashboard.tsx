@@ -1,6 +1,5 @@
 
-import { ReactNode, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { ReactNode } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -14,22 +13,13 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ children, title, subtitle, showSearch = false }: DashboardProps) => {
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user, isLoading } = useAuth();
-  const location = useLocation();
-  
-  useEffect(() => {
-    console.log(`Dashboard rendering - Path: ${location.pathname}, User: ${user?.id || 'none'}, Loading: ${isLoading}`);
-  }, [user, isLoading, location.pathname]);
   
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="relative w-16 h-16">
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-300/20 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-500 rounded-full border-t-transparent animate-spin"></div>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
       </div>
     );
   }
@@ -37,10 +27,7 @@ const Dashboard = ({ children, title, subtitle, showSearch = false }: DashboardP
   if (!user) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="relative w-16 h-16">
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-300/20 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-ace-500 rounded-full border-t-transparent animate-spin"></div>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ace-500"></div>
       </div>
     );
   }

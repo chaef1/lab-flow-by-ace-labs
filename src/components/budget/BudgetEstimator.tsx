@@ -64,9 +64,11 @@ const BudgetEstimator = () => {
     creatorCosts.total = creatorCosts.nano + creatorCosts.micro + creatorCosts.midTier + creatorCosts.macro;
     creatorCosts.totalWithMargin = creatorCosts.total * (1 + CREATOR_MARGIN);
 
-    // Calculate creative costs
-    const finalCreativeHours = Math.max(creativeHours, MINIMUM_CREATIVE_HOURS);
-    const creativeCost = finalCreativeHours * CREATIVE_RATE;
+    // Calculate creative costs based on total creator count
+    const totalCreators = creators[0].count + creators[1].count + creators[2].count + creators[3].count;
+    const creativeCost = totalCreators > 10 
+      ? 30000 // Average R30,000 for campaigns with more than 10 creators
+      : Math.max(creativeHours, MINIMUM_CREATIVE_HOURS) * CREATIVE_RATE;
 
     // Calculate subtotal (before agency fee)
     const subtotal = creatorCosts.totalWithMargin + creativeCost;
@@ -83,7 +85,7 @@ const BudgetEstimator = () => {
 
     const newBreakdown: BudgetBreakdown = {
       creatorCosts,
-      creativeHours: finalCreativeHours,
+      creativeHours: totalCreators > 10 ? 0 : Math.max(creativeHours, MINIMUM_CREATIVE_HOURS), // Show 0 hours for fixed price
       creativeCost,
       subtotal,
       agencyFee,
@@ -218,7 +220,13 @@ const BudgetEstimator = () => {
 
             {/* Creative Costs */}
             <div className="flex justify-between">
-              <span>Creative & Ideation ({breakdown.creativeHours} hrs × {formatCurrency(CREATIVE_RATE)})</span>
+              <span>
+                Creative & Ideation{' '}
+                {creators[0].count + creators[1].count + creators[2].count + creators[3].count > 10 
+                  ? '(Fixed Rate for 10+ Creators)'
+                  : `(${breakdown.creativeHours} hrs × ${formatCurrency(CREATIVE_RATE)})`
+                }
+              </span>
               <span>{formatCurrency(breakdown.creativeCost)}</span>
             </div>
 

@@ -15,7 +15,9 @@ import {
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -29,6 +31,7 @@ interface NavItemProps {
 
 const Sidebar = () => {
   const { userProfile, signOut } = useAuth();
+  const { hasPermission } = useUserPermissions();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -46,11 +49,6 @@ const Sidebar = () => {
     { name: 'Wallet', href: '/wallet', icon: Wallet, permission: 'wallet' },
     { name: 'User Management', href: '/user-management', icon: Settings, permission: 'user_management' },
   ];
-
-  const hasPermission = (permission: string) => {
-    if (!userProfile || !userProfile.permissions) return false;
-    return userProfile.permissions.includes(permission);
-  };
 
   const filteredNavigation = navigationItems.filter(item => hasPermission(item.permission));
 

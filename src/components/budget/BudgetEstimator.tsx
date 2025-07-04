@@ -223,7 +223,7 @@ const BudgetEstimator = () => {
               <span>
                 Creative & Ideation{' '}
                 {creators[0].count + creators[1].count + creators[2].count + creators[3].count > 10 
-                  ? '(Fixed Rate for 10+ Creators)'
+                  ? `(${Math.round((30000 / CREATIVE_RATE) * 10) / 10} hrs × ${formatCurrency(CREATIVE_RATE)} - Fixed Rate for 10+ Creators)`
                   : `(${breakdown.creativeHours} hrs × ${formatCurrency(CREATIVE_RATE)})`
                 }
               </span>

@@ -3,9 +3,6 @@ import { useMemo } from "react";
 import { BoardProject } from "@/lib/project-utils";
 import ProjectBoardCard from "./ProjectBoardCard";
 import { Plus } from "lucide-react";
-import { Database } from "@/integrations/supabase/types";
-
-type ProjectStatus = Database['public']['Enums']['project_status'];
 
 interface ProjectColumnProps {
   id: string;
@@ -14,7 +11,7 @@ interface ProjectColumnProps {
   projects: BoardProject[];
   showMembers?: boolean;
   showDueDates?: boolean;
-  onProjectMove: (projectId: string, newStatus: ProjectStatus) => void;
+  onProjectMove: (projectId: string, newStatus: string) => void;
 }
 
 const ProjectColumn = ({
@@ -44,7 +41,7 @@ const ProjectColumn = ({
     e.preventDefault();
     const projectId = e.dataTransfer.getData("projectId");
     if (projectId) {
-      onProjectMove(projectId, id as ProjectStatus);
+      onProjectMove(projectId, id);
     }
   };
 

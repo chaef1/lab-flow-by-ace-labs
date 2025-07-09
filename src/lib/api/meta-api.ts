@@ -20,7 +20,7 @@ export const getMetaOAuthUrl = () => {
   
   const encodedRedirectUri = encodeURIComponent(redirectUri);
   const state = encodeURIComponent(JSON.stringify({ platform: 'meta', timestamp: Date.now() }));
-  const scope = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_manage_posts");
+  const scope = encodeURIComponent("ads_management,ads_read,business_management,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_insights,pages_show_list,instagram_content_publish");
   
   console.log('Generating Meta OAuth URL with redirect URI:', redirectUri);
   

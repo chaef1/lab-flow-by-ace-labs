@@ -24,8 +24,8 @@ export const getMetaOAuthUrl = () => {
   
   console.log('Generating Meta OAuth URL with redirect URI:', redirectUri);
   
-  // Use the enhanced URL with more debug parameters and proper OAuth flow
-  return `https://www.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodedRedirectUri}&state=${state}&scope=${scope}&response_type=code&auth_type=rerequest`;
+  // Use the Graph API OAuth endpoint for consistency
+  return `https://graph.facebook.com/v17.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodedRedirectUri}&state=${state}&scope=${scope}&response_type=code&auth_type=rerequest`;
 };
 
 // Exchange Meta authorization code for an access token

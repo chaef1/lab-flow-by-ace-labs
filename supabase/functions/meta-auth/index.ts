@@ -40,6 +40,65 @@ serve(async (req) => {
 
     // Use a switch statement to handle different API actions
     switch (action) {
+      case 'exchange_code':
+        // Exchange authorization code for access token using Graph API
+        const code = requestData.code;
+        const redirectUri = requestData.redirectUri;
+        
+        if (!code || !redirectUri) {
+          return new Response(
+            JSON.stringify({ error: 'Authorization code and redirect URI are required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Exchanging Meta authorization code for access token...');
+        
+        try {
+          // Use Facebook's App ID for advertising
+          const appId = "1749800232620671";
+          
+          // Exchange code for access token using Graph API
+          const tokenResponse = await fetch(`https://graph.facebook.com/v17.0/oauth/access_token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              client_id: appId,
+              client_secret: metaAppSecret,
+              redirect_uri: redirectUri,
+              code: code
+            }),
+          });
+
+          const tokenResult = await tokenResponse.json();
+          console.log('Token exchange response status:', tokenResponse.status);
+          
+          if (!tokenResponse.ok) {
+            console.error('Token exchange failed with status:', tokenResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to exchange code for token', 
+                details: tokenResult,
+                status: tokenResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: tokenResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(tokenResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error exchanging code for token:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to exchange code for token', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
       case 'get_user_permissions':
         // Get user permissions and accessible accounts
         const permissionToken = requestData.accessToken;

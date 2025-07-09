@@ -25,58 +25,41 @@ const ProfileVetting = () => {
     }
 
     setIsLoading(true);
+    setProfileData(null);
     
-    // Mock profile data - will be replaced with actual Meta API calls
-    setTimeout(() => {
-      const mockProfile = {
-        username: username,
-        displayName: "Sample Creator",
-        followers: 125430,
-        following: 847,
-        posts: 342,
-        verified: false,
-        bio: "Content creator | Lifestyle & Fashion | Collaboration: email@example.com",
-        avatar: "https://randomuser.me/api/portraits/women/45.jpg",
-        engagement: {
-          rate: 8.5,
-          avgLikes: 2340,
-          avgComments: 156,
-          avgShares: 23
+    try {
+      // Call Meta API for profile vetting
+      const response = await fetch('/api/meta/profile-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        demographics: {
-          ageGroups: {
-            "18-24": 35,
-            "25-34": 45,
-            "35-44": 15,
-            "45+": 5
-          },
-          genders: {
-            female: 68,
-            male: 32
-          },
-          topCountries: ["South Africa", "United States", "United Kingdom"]
-        },
-        authenticity: {
-          score: 85,
-          fakeFollowers: 12,
-          botComments: 5,
-          suspicious: false
-        },
-        recentPosts: [
-          { likes: 2850, comments: 189, date: "2024-01-15" },
-          { likes: 1920, comments: 134, date: "2024-01-14" },
-          { likes: 3240, comments: 201, date: "2024-01-13" }
-        ]
-      };
-      
-      setProfileData(mockProfile);
-      setIsLoading(false);
+        body: JSON.stringify({ username }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to analyze profile: ${response.status} ${response.statusText}`);
+      }
+
+      const profileData = await response.json();
+      setProfileData(profileData);
       
       toast({
         title: "Profile analysis complete",
         description: `Analysis completed for @${username}`,
       });
-    }, 2500);
+    } catch (error: any) {
+      console.error('Profile analysis error:', error);
+      toast({
+        title: "API Error - Profile Analysis Failed",
+        description: error.message || "Unable to fetch profile data. Please check your Meta API connection and Instagram permissions.",
+        variant: "destructive"
+      });
+      setProfileData(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getAuthenticityColor = (score: number) => {

@@ -9,6 +9,8 @@ import ContentTable from '../ContentTable';
 import CreatorTable from '../CreatorTable';
 import FacebookContentReports from '../facebook/FacebookContentReports';
 import { useOrganicReportingData } from './useOrganicReportingData';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface OrganicReportingProps {
   timeRange: string;
@@ -19,14 +21,14 @@ const OrganicReporting = ({ timeRange, platform }: OrganicReportingProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const data = useOrganicReportingData(timeRange, platform);
 
-  if (isLoading) {
+  if (data.error) {
     return (
-      <div className="flex items-center justify-center h-[400px]">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading organic reporting data...</p>
-        </div>
-      </div>
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>API Error - Organic Reporting Failed:</strong> {data.error}
+        </AlertDescription>
+      </Alert>
     );
   }
 

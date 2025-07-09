@@ -24,27 +24,41 @@ const HashtagSearch = () => {
     }
 
     setIsLoading(true);
+    setResults([]);
     
-    // Mock search results for now - will be replaced with actual Meta API calls
-    setTimeout(() => {
-      const mockResults = [
-        {
-          hashtag: searchTerm,
-          postCount: 45230,
-          engagement: 12.5,
-          topPosts: 156,
-          trend: 'up',
-          difficulty: 'medium'
-        }
-      ];
-      setResults(mockResults);
-      setIsLoading(false);
+    try {
+      // Call Meta API for hashtag search
+      const response = await fetch('/api/meta/hashtag-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ hashtag: searchTerm }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to search hashtag: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setResults([data]);
       
       toast({
         title: "Hashtag analysis complete",
         description: `Found analytics for #${searchTerm}`,
       });
-    }, 2000);
+    } catch (error: any) {
+      console.error('Hashtag search error:', error);
+      toast({
+        title: "API Error - Hashtag Search Failed",
+        description: error.message || "Unable to fetch hashtag data. Please check your Meta API connection and permissions.",
+        variant: "destructive"
+      });
+      setResults([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

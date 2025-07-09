@@ -13,72 +13,46 @@ const AccountInsights = ({ timeRange }: AccountInsightsProps) => {
   const [insights, setInsights] = useState<any>(null);
 
   useEffect(() => {
-    // Mock data - will be replaced with actual Meta API calls
-    const mockInsights = {
-      followerGrowth: {
-        total: 125430,
-        growth: 8.5,
-        newFollowers: 2340,
-        unfollowers: 890
-      },
-      demographics: {
-        ageGroups: [
-          { name: '18-24', value: 35, color: '#8884d8' },
-          { name: '25-34', value: 45, color: '#82ca9d' },
-          { name: '35-44', value: 15, color: '#ffc658' },
-          { name: '45+', value: 5, color: '#ff7300' }
-        ],
-        genders: [
-          { name: 'Female', value: 68, color: '#ff69b4' },
-          { name: 'Male', value: 32, color: '#4169e1' }
-        ],
-        topCities: [
-          { city: 'Cape Town', followers: 28450, percentage: 22.7 },
-          { city: 'Johannesburg', followers: 21340, percentage: 17.0 },
-          { city: 'Durban', followers: 15230, percentage: 12.1 },
-          { city: 'London', followers: 8920, percentage: 7.1 },
-          { city: 'New York', followers: 6780, percentage: 5.4 }
-        ]
-      },
-      activity: {
-        bestPostTimes: [
-          { hour: '9:00', engagement: 85 },
-          { hour: '12:00', engagement: 92 },
-          { hour: '15:00', engagement: 78 },
-          { hour: '18:00', engagement: 95 },
-          { hour: '21:00', engagement: 88 }
-        ],
-        bestDays: [
-          { day: 'Monday', engagement: 78 },
-          { day: 'Tuesday', engagement: 85 },
-          { day: 'Wednesday', engagement: 92 },
-          { day: 'Thursday', engagement: 88 },
-          { day: 'Friday', engagement: 95 },
-          { day: 'Saturday', engagement: 82 },
-          { day: 'Sunday', engagement: 75 }
-        ]
-      },
-      contentPerformance: {
-        topHashtags: [
-          { tag: '#lifestyle', usage: 45, engagement: 12.5 },
-          { tag: '#fashion', usage: 38, engagement: 10.8 },
-          { tag: '#travel', usage: 32, engagement: 14.2 },
-          { tag: '#photography', usage: 28, engagement: 9.7 },
-          { tag: '#inspiration', usage: 25, engagement: 11.3 }
-        ]
-      },
-      growthData: [
-        { month: 'Oct', followers: 118500 },
-        { month: 'Nov', followers: 121800 },
-        { month: 'Dec', followers: 123900 },
-        { month: 'Jan', followers: 125430 }
-      ]
+    const fetchAccountInsights = async () => {
+      try {
+        const response = await fetch('/api/meta/account-insights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ timeRange }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to fetch account insights: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setInsights(data);
+      } catch (error: any) {
+        console.error('Account insights error:', error);
+        setInsights({
+          error: error.message || "Unable to fetch account insights. Please check your Meta API connection and Instagram insights permissions."
+        });
+      }
     };
 
-    setInsights(mockInsights);
+    fetchAccountInsights();
   }, [timeRange]);
 
   if (!insights) return <div>Loading account insights...</div>;
+
+  if (insights.error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-4">
+          <div className="text-red-500 text-lg font-semibold">API Error - Account Insights Failed</div>
+          <div className="text-muted-foreground max-w-md">{insights.error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

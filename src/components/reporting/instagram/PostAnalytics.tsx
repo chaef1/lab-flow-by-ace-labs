@@ -14,63 +14,45 @@ const PostAnalytics = ({ timeRange }: PostAnalyticsProps) => {
   const [metrics, setMetrics] = useState<any>(null);
 
   useEffect(() => {
-    // Mock data - will be replaced with actual Meta API calls
-    const mockPosts = [
-      {
-        id: '1',
-        url: 'https://instagram.com/p/abc123',
-        caption: 'Amazing sunset at the beach #nature #photography',
-        timestamp: '2024-01-15T10:30:00Z',
-        likes: 2850,
-        comments: 189,
-        shares: 45,
-        reach: 15420,
-        impressions: 23150,
-        engagement_rate: 12.8,
-        type: 'photo'
-      },
-      {
-        id: '2',
-        url: 'https://instagram.com/p/def456',
-        caption: 'New recipe tutorial coming soon! #cooking #foodie',
-        timestamp: '2024-01-14T14:20:00Z',
-        likes: 1920,
-        comments: 134,
-        shares: 28,
-        reach: 11200,
-        impressions: 18900,
-        engagement_rate: 10.2,
-        type: 'video'
-      },
-      {
-        id: '3',
-        url: 'https://instagram.com/p/ghi789',
-        caption: 'Behind the scenes of todays photoshoot ✨',
-        timestamp: '2024-01-13T16:45:00Z',
-        likes: 3240,
-        comments: 201,
-        shares: 67,
-        reach: 18750,
-        impressions: 28400,
-        engagement_rate: 15.1,
-        type: 'carousel'
-      }
-    ];
+    const fetchPostAnalytics = async () => {
+      try {
+        const response = await fetch('/api/meta/post-analytics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ timeRange }),
+        });
 
-    const mockMetrics = {
-      totalPosts: mockPosts.length,
-      avgEngagement: 12.7,
-      totalReach: mockPosts.reduce((sum, post) => sum + post.reach, 0),
-      totalImpressions: mockPosts.reduce((sum, post) => sum + post.impressions, 0),
-      chartData: [
-        { date: '2024-01-13', engagement: 15.1, reach: 18750 },
-        { date: '2024-01-14', engagement: 10.2, reach: 11200 },
-        { date: '2024-01-15', engagement: 12.8, reach: 15420 }
-      ]
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to fetch post analytics: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setPosts(data.posts || []);
+        setMetrics(data.metrics || {
+          totalPosts: 0,
+          avgEngagement: 0,
+          totalReach: 0,
+          totalImpressions: 0,
+          chartData: []
+        });
+      } catch (error: any) {
+        console.error('Post analytics error:', error);
+        setPosts([]);
+        setMetrics({
+          totalPosts: 0,
+          avgEngagement: 0,
+          totalReach: 0,
+          totalImpressions: 0,
+          chartData: [],
+          error: error.message || "Unable to fetch post analytics. Please check your Meta API connection and Instagram insights permissions."
+        });
+      }
     };
 
-    setPosts(mockPosts);
-    setMetrics(mockMetrics);
+    fetchPostAnalytics();
   }, [timeRange]);
 
   const formatDate = (timestamp: string) => {
@@ -86,7 +68,18 @@ const PostAnalytics = ({ timeRange }: PostAnalyticsProps) => {
     }
   };
 
-  if (!metrics) return <div>Loading...</div>;
+  if (!metrics) return <div>Loading post analytics...</div>;
+
+  if (metrics.error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-4">
+          <div className="text-red-500 text-lg font-semibold">API Error - Post Analytics Failed</div>
+          <div className="text-muted-foreground max-w-md">{metrics.error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

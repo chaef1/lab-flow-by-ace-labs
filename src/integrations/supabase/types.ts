@@ -518,6 +518,36 @@ export type Database = {
           },
         ]
       }
+      instagram_webhook_events: {
+        Row: {
+          created_at: string
+          event_data: Json
+          event_type: string
+          id: string
+          instagram_account_id: string
+          processed: boolean
+          timestamp: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json
+          event_type: string
+          id?: string
+          instagram_account_id: string
+          processed?: boolean
+          timestamp: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          id?: string
+          instagram_account_id?: string
+          processed?: boolean
+          timestamp?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -819,7 +849,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      enable_instagram_webhook_subscription: {
+        Args: {
+          access_token: string
+          instagram_account_id: string
+          webhook_fields: string[]
+        }
+        Returns: Json
+      }
     }
     Enums: {
       project_status:

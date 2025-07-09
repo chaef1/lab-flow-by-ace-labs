@@ -712,6 +712,20 @@ serve(async (req) => {
           );
         }
 
+      case 'subscribe_instagram_webhook':
+        const instagramSubscribeResult = await subscribeInstagramWebhook(requestData.instagramAccountId, requestData.fields);
+        return new Response(
+          JSON.stringify(instagramSubscribeResult),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+        
+      case 'get_instagram_subscriptions':
+        const instagramSubsResult = await getInstagramSubscriptions(requestData.instagramAccountId);
+        return new Response(
+          JSON.stringify(instagramSubsResult),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
       default:
         return new Response(
           JSON.stringify({ error: 'Unknown action', requestedAction: action }),
@@ -726,3 +740,62 @@ serve(async (req) => {
     );
   }
 });
+
+// Instagram webhook subscription management
+async function subscribeInstagramWebhook(instagramAccountId: string, fields: string[]) {
+  const webhookAccessToken = Deno.env.get('INSTAGRAM_WEBHOOK_ACCESS_TOKEN');
+  
+  if (!webhookAccessToken) {
+    throw new Error('Instagram webhook access token not configured');
+  }
+
+  const subscriptionUrl = `https://graph.facebook.com/v17.0/${instagramAccountId}/subscribed_apps`;
+  
+  const response = await fetch(subscriptionUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      subscribed_fields: fields.join(','),
+      access_token: webhookAccessToken
+    })
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    console.error('Instagram webhook subscription error:', data);
+    throw new Error(data.error?.message || 'Failed to subscribe to Instagram webhooks');
+  }
+
+  return {
+    success: true,
+    subscriptions: data,
+    message: `Successfully subscribed to fields: ${fields.join(', ')}`
+  };
+}
+
+async function getInstagramSubscriptions(instagramAccountId: string) {
+  const webhookAccessToken = Deno.env.get('INSTAGRAM_WEBHOOK_ACCESS_TOKEN');
+  
+  if (!webhookAccessToken) {
+    throw new Error('Instagram webhook access token not configured');
+  }
+
+  const subscriptionUrl = `https://graph.facebook.com/v17.0/${instagramAccountId}/subscribed_apps?access_token=${webhookAccessToken}`;
+  
+  const response = await fetch(subscriptionUrl);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    console.error('Get Instagram subscriptions error:', data);
+    throw new Error(data.error?.message || 'Failed to get Instagram subscriptions');
+  }
+
+  return {
+    success: true,
+    subscriptions: data.data || [],
+    message: 'Successfully retrieved Instagram webhook subscriptions'
+  };
+}

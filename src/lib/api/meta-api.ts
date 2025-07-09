@@ -373,5 +373,46 @@ export const refreshMetaTokenStatus = () => {
   return !!accessToken;
 };
 
+// Subscribe to Instagram webhooks
+export const subscribeInstagramWebhook = async (instagramAccountId: string, fields: string[]) => {
+  try {
+    console.log('Subscribing to Instagram webhooks for account:', instagramAccountId, 'fields:', fields);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        instagramAccountId, 
+        fields,
+        action: 'subscribe_instagram_webhook' 
+      }
+    });
+    
+    if (error) throw new Error(error.message || 'Error subscribing to Instagram webhooks');
+    return data;
+  } catch (err) {
+    console.error('Error subscribing to Instagram webhooks:', err);
+    throw err;
+  }
+};
+
+// Get Instagram webhook subscriptions
+export const getInstagramSubscriptions = async (instagramAccountId: string) => {
+  try {
+    console.log('Getting Instagram webhook subscriptions for account:', instagramAccountId);
+    
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: { 
+        instagramAccountId,
+        action: 'get_instagram_subscriptions' 
+      }
+    });
+    
+    if (error) throw new Error(error.message || 'Error getting Instagram subscriptions');
+    return data;
+  } catch (err) {
+    console.error('Error getting Instagram subscriptions:', err);
+    throw err;
+  }
+};
+
 // Export token storage functions directly
 export { saveMetaToken, hasMetaToken, getSavedMetaToken, removeMetaToken };

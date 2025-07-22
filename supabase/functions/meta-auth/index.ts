@@ -212,13 +212,15 @@ serve(async (req) => {
         console.log('Fetching pages with token:', pageToken.substring(0, 5) + '...');
         
         try {
-          const pagesResponse = await fetch(`https://graph.facebook.com/v17.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username}&access_token=${pageToken}`);
+          const pagesResponse = await fetch(`https://graph.facebook.com/v17.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username},category,tasks&access_token=${pageToken}`);
           const pagesResult = await pagesResponse.json();
           
           console.log('Pages response status:', pagesResponse.status);
+          console.log('Pages response data structure:', JSON.stringify(pagesResult, null, 2));
           
           if (!pagesResponse.ok) {
             console.error('Pages request failed with status:', pagesResponse.status);
+            console.error('Pages error details:', pagesResult);
             return new Response(
               JSON.stringify({ 
                 error: 'Failed to fetch pages', 
@@ -227,6 +229,22 @@ serve(async (req) => {
               }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: pagesResponse.status }
             );
+          }
+
+          // Additional debugging - check if pages exist and what permissions they have
+          if (pagesResult.data && Array.isArray(pagesResult.data)) {
+            console.log(`Found ${pagesResult.data.length} pages:`);
+            pagesResult.data.forEach((page, index) => {
+              console.log(`Page ${index + 1}:`, {
+                id: page.id,
+                name: page.name,
+                category: page.category,
+                tasks: page.tasks,
+                hasInstagram: !!page.instagram_business_account
+              });
+            });
+          } else {
+            console.log('No pages data found or unexpected structure:', pagesResult);
           }
           
           return new Response(

@@ -25,7 +25,22 @@ const PageSelector: React.FC<PageSelectorProps> = ({
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchPages();
+    // Only fetch pages if we don't have them already
+    if (pages.length === 0) {
+      fetchPages();
+    }
+  }, [pages.length]);
+
+  // Also fetch pages when component becomes visible (useful in tab scenario)
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (pages.length === 0) {
+        console.log('PageSelector: No pages found after component mount, fetching...');
+        fetchPages();
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const fetchPages = async () => {
@@ -48,18 +63,41 @@ const PageSelector: React.FC<PageSelectorProps> = ({
       
       if (pagesData && pagesData.data && Array.isArray(pagesData.data)) {
         console.log('Meta pages fetched successfully:', pagesData.data.length, 'pages');
-        setPages(pagesData.data);
+        console.log('Pages data structure:', JSON.stringify(pagesData.data, null, 2));
+        
+        // Filter pages to only include those with proper permissions
+        const availablePages = pagesData.data.filter(page => {
+          // Check if page has required permissions for advertising
+          const hasPermissions = page.tasks && Array.isArray(page.tasks) && 
+            (page.tasks.includes('ADVERTISE') || page.tasks.includes('MANAGE'));
+          
+          console.log(`Page ${page.name} (${page.id}):`, {
+            tasks: page.tasks,
+            hasPermissions,
+            category: page.category
+          });
+          
+          // If no tasks field, assume it's available (some pages don't have this field)
+          return !page.tasks || hasPermissions;
+        });
+        
+        console.log(`Filtered pages: ${availablePages.length} out of ${pagesData.data.length} total pages are available for advertising`);
+        setPages(availablePages);
         
         // Auto-select first page if none selected and pages exist
-        if (pagesData.data.length > 0 && !selectedPageId) {
-          console.log('Auto-selecting first page:', pagesData.data[0]);
-          onPageSelected(pagesData.data[0]);
+        if (availablePages.length > 0 && !selectedPageId) {
+          console.log('Auto-selecting first page:', availablePages[0]);
+          onPageSelected(availablePages[0]);
+        } else if (availablePages.length === 0 && pagesData.data.length > 0) {
+          // Show specific error if pages exist but none have advertising permissions
+          throw new Error('You have Facebook pages but none have advertising permissions. Please ensure you have admin access to the pages or request advertising permissions.');
         }
       } else if (pagesData && pagesData.error) {
         // Handle API error response
         throw new Error(pagesData.error.message || 'Failed to fetch pages from Meta API');
       } else {
         console.warn('Unexpected pages data structure:', pagesData);
+        console.log('Full response:', JSON.stringify(pagesData, null, 2));
         setPages([]);
       }
     } catch (error: any) {

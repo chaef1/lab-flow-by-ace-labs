@@ -21,7 +21,7 @@ export function calculateEngagementRate(posts: any[], followersCount: number) {
  */
 const INSTAGRAM_OAUTH_URL = 'https://api.instagram.com/oauth/authorize';
 const INSTAGRAM_TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
-const INSTAGRAM_GRAPH_URL = 'https://graph.instagram.com';
+const INSTAGRAM_GRAPH_URL = 'https://graph.facebook.com';
 
 /**
  * Fetches Instagram profile data using the Instagram Graph API and social scraper

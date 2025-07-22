@@ -422,7 +422,56 @@ export async function exchangeCodeForToken(code: string, redirectUri: string, ap
 }
 
 /**
- * Gets a user's profile using a valid access token
+ * Fetches Instagram profile data using the Instagram Graph API.
+ */
+export async function fetchInstagramProfileWithToken(userId: string, accessToken: string) {
+  const profileUrl = `${INSTAGRAM_GRAPH_URL}/me?fields=id,username,account_type,media_count&access_token=${accessToken}`
+  const mediaUrl = `${INSTAGRAM_GRAPH_URL}/me/media?fields=id,caption,media_type,like_count,comments_count,timestamp&access_token=${accessToken}`
+
+  try {
+    const profileRes = await fetch(profileUrl, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+
+    const contentType = profileRes.headers.get("content-type") || ''
+    if (!contentType.includes("application/json")) {
+      const errorText = await profileRes.text()
+      throw new Error(`Non-JSON response: ${errorText}`)
+    }
+
+    const profileData = await profileRes.json()
+
+    const mediaRes = await fetch(mediaUrl, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+
+    const mediaType = mediaRes.headers.get("content-type") || ''
+    if (!mediaType.includes("application/json")) {
+      const errorText = await mediaRes.text()
+      throw new Error(`Non-JSON response: ${errorText}`)
+    }
+
+    const mediaData = await mediaRes.json()
+
+    return {
+      profile: profileData,
+      media: mediaData.data
+    }
+  } catch (error: any) {
+    console.error("Error fetching Instagram profile:", error.message || error)
+    return {
+      error: true,
+      message: error.message || 'Unexpected error'
+    }
+  }
+}
+
+/**
+ * Gets a user's profile using a valid access token (legacy function - kept for compatibility)
  */
 export async function getProfileWithToken(accessToken: string) {
   const fields = 'id,username,account_type,media_count';
@@ -439,7 +488,7 @@ export async function getProfileWithToken(accessToken: string) {
 }
 
 /**
- * Gets a user's media using a valid access token
+ * Gets a user's media using a valid access token (legacy function - kept for compatibility)
  */
 export async function getUserMedia(accessToken: string) {
   const fields = 'id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,username';

@@ -212,6 +212,19 @@ serve(async (req) => {
         console.log('Fetching pages with token:', pageToken.substring(0, 5) + '...');
         
         try {
+          // First, let's check what the user's basic info is
+          console.log('Checking user basic info first...');
+          const userInfoResponse = await fetch(`https://graph.facebook.com/v17.0/me?fields=id,name,email&access_token=${pageToken}`);
+          const userInfo = await userInfoResponse.json();
+          console.log('User info:', userInfo);
+          
+          // Now check permissions
+          console.log('Checking token permissions...');
+          const permissionsResponse = await fetch(`https://graph.facebook.com/v17.0/me/permissions?access_token=${pageToken}`);
+          const permissionsInfo = await permissionsResponse.json();
+          console.log('Token permissions:', permissionsInfo);
+          
+          // Try the pages endpoint
           const pagesResponse = await fetch(`https://graph.facebook.com/v17.0/me/accounts?fields=id,name,access_token,instagram_business_account{id,name,username},category,tasks&access_token=${pageToken}`);
           const pagesResult = await pagesResponse.json();
           
@@ -225,9 +238,32 @@ serve(async (req) => {
               JSON.stringify({ 
                 error: 'Failed to fetch pages', 
                 details: pagesResult,
-                status: pagesResponse.status
+                status: pagesResponse.status,
+                userInfo: userInfo,
+                permissions: permissionsInfo
               }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: pagesResponse.status }
+            );
+          }
+
+          // Check if the user has no pages
+          if (pagesResult.data && Array.isArray(pagesResult.data) && pagesResult.data.length === 0) {
+            console.log('No pages found for user. This could mean:');
+            console.log('1. User has no Facebook pages');
+            console.log('2. User is not an admin/editor of any pages');
+            console.log('3. Pages are not properly connected to their account');
+            
+            // Return the empty result but with helpful debug info
+            return new Response(
+              JSON.stringify({
+                ...pagesResult,
+                debugInfo: {
+                  userInfo,
+                  permissions: permissionsInfo,
+                  message: 'No Facebook pages found. You need to create a Facebook page or have admin access to an existing page to run ads.'
+                }
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
           }
 
@@ -243,12 +279,16 @@ serve(async (req) => {
                 hasInstagram: !!page.instagram_business_account
               });
             });
-          } else {
-            console.log('No pages data found or unexpected structure:', pagesResult);
           }
           
           return new Response(
-            JSON.stringify(pagesResult),
+            JSON.stringify({
+              ...pagesResult,
+              debugInfo: {
+                userInfo,
+                permissions: permissionsInfo
+              }
+            }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         } catch (error) {

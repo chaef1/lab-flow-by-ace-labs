@@ -202,9 +202,20 @@ const PageSelector: React.FC<PageSelectorProps> = ({
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                No Facebook pages found. Make sure you have admin access to at least one Facebook page.
+                {debugInfo?.debugInfo?.message || 'No Facebook pages found. Make sure you have admin access to at least one Facebook page.'}
               </AlertDescription>
             </Alert>
+            
+            {debugInfo?.debugInfo?.message && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <h4 className="font-medium text-blue-900 mb-2">What you need to do:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>1. Create a Facebook page for your business</li>
+                  <li>2. Make sure you're an admin or editor of the page</li>
+                  <li>3. Try reconnecting your Facebook account</li>
+                </ul>
+              </div>
+            )}
             
             <div className="flex justify-center">
               <Button onClick={handleRetry} variant="outline" size="sm">

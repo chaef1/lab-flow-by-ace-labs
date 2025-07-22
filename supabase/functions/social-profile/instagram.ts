@@ -425,8 +425,13 @@ export async function exchangeCodeForToken(code: string, redirectUri: string, ap
  * Fetches Instagram profile data using the Instagram Graph API.
  */
 export async function fetchInstagramProfileWithToken(userId: string, accessToken: string) {
+  console.log(`Fetching Instagram profile for user: ${userId}`);
+  console.log(`Access token (first 10 chars): ${accessToken.substring(0, 10)}...`);
+  
   const profileUrl = `${INSTAGRAM_GRAPH_URL}/me?fields=id,username,account_type,media_count&access_token=${accessToken}`
   const mediaUrl = `${INSTAGRAM_GRAPH_URL}/me/media?fields=id,caption,media_type,like_count,comments_count,timestamp&access_token=${accessToken}`
+
+  console.log(`Profile URL: ${INSTAGRAM_GRAPH_URL}/me?fields=id,username,account_type,media_count&access_token=***`);
 
   try {
     const profileRes = await fetch(profileUrl, {
@@ -435,13 +440,37 @@ export async function fetchInstagramProfileWithToken(userId: string, accessToken
       }
     })
 
+    console.log(`Profile response status: ${profileRes.status}`);
+    console.log(`Profile response headers:`, Object.fromEntries(profileRes.headers.entries()));
+
     const contentType = profileRes.headers.get("content-type") || ''
+    
+    // Get the response text first to see what we're actually getting
+    const responseText = await profileRes.text();
+    console.log(`Profile response body (first 200 chars): ${responseText.substring(0, 200)}`);
+
     if (!contentType.includes("application/json")) {
-      const errorText = await profileRes.text()
-      throw new Error(`Non-JSON response: ${errorText}`)
+      console.error(`Expected JSON but got content-type: ${contentType}`);
+      console.error(`Full response: ${responseText}`);
+      throw new Error(`API returned HTML instead of JSON. Status: ${profileRes.status}. This usually means the access token is invalid or expired. Response: ${responseText.substring(0, 200)}...`)
     }
 
-    const profileData = await profileRes.json()
+    let profileData;
+    try {
+      profileData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error(`Failed to parse JSON: ${parseError}`);
+      console.error(`Response text: ${responseText}`);
+      throw new Error(`Invalid JSON response from Instagram API: ${responseText.substring(0, 200)}...`);
+    }
+
+    // Check if the response contains an error from Facebook
+    if (profileData.error) {
+      console.error(`Instagram API error:`, profileData.error);
+      throw new Error(`Instagram API error: ${profileData.error.message} (Code: ${profileData.error.code})`);
+    }
+
+    console.log(`Successfully got profile data for: ${profileData.username || 'unknown'}`);
 
     const mediaRes = await fetch(mediaUrl, {
       headers: {
@@ -449,23 +478,44 @@ export async function fetchInstagramProfileWithToken(userId: string, accessToken
       }
     })
 
+    console.log(`Media response status: ${mediaRes.status}`);
+
     const mediaType = mediaRes.headers.get("content-type") || ''
+    const mediaText = await mediaRes.text();
+    
     if (!mediaType.includes("application/json")) {
-      const errorText = await mediaRes.text()
-      throw new Error(`Non-JSON response: ${errorText}`)
+      console.error(`Expected JSON for media but got content-type: ${mediaType}`);
+      console.error(`Media response: ${mediaText.substring(0, 200)}`);
+      // Don't fail completely, just return profile data without media
+      return {
+        profile: profileData,
+        media: [],
+        warning: "Could not fetch media data"
+      }
     }
 
-    const mediaData = await mediaRes.json()
+    let mediaData;
+    try {
+      mediaData = JSON.parse(mediaText);
+    } catch (parseError) {
+      console.error(`Failed to parse media JSON: ${parseError}`);
+      return {
+        profile: profileData,
+        media: [],
+        warning: "Could not parse media data"
+      }
+    }
 
     return {
       profile: profileData,
-      media: mediaData.data
+      media: mediaData.data || []
     }
   } catch (error: any) {
     console.error("Error fetching Instagram profile:", error.message || error)
     return {
       error: true,
-      message: error.message || 'Unexpected error'
+      message: error.message || 'Unexpected error',
+      details: error.stack
     }
   }
 }

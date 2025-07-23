@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExternalLink, Key, Facebook, CheckCircle, AlertCircle, User } from 'lucide-react';
+import { ExternalLink, Key, Facebook, CheckCircle, AlertCircle, User, Unlink } from 'lucide-react';
 import { getMetaOAuthUrl, getMetaUserProfile } from '@/lib/api/meta-api';
-import { getSavedMetaToken } from '@/lib/storage/token-storage';
+import { getSavedMetaToken, removeMetaToken } from '@/lib/storage/token-storage';
 import MetaTokenManager from './MetaTokenManager';
 
 interface AuthSelectorProps {
@@ -97,6 +97,12 @@ const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }
     }, 1000);
   };
 
+  const handleDisconnect = () => {
+    removeMetaToken();
+    setUserProfile(null);
+    onAuthChange();
+  };
+
   if (isConnected) {
     return (
       <Card>
@@ -147,21 +153,31 @@ const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }
             </div>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
             <Badge variant="default" className="bg-green-100 text-green-800">
               Active Connection
             </Badge>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                // Force a reconnection by clearing tokens and refreshing
-                localStorage.removeItem('meta_auth_data');
-                onAuthChange();
-              }}
-            >
-              Reconnect Account
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDisconnect}
+              >
+                <Unlink className="h-4 w-4 mr-2" />
+                Disconnect
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // Force a reconnection by clearing tokens and refreshing
+                  removeMetaToken();
+                  onAuthChange();
+                }}
+              >
+                Reconnect Account
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -173,11 +189,11 @@ const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-orange-500" />
-            Connect to Meta Advertising
+            <Facebook className="h-5 w-5 text-primary" />
+            Connect Account
           </CardTitle>
           <CardDescription>
-            Choose how you want to connect to Meta (Facebook/Instagram) for advertising features.
+            Connect your Meta (Facebook/Instagram) account to access advertising features and manage campaigns.
           </CardDescription>
         </CardHeader>
         <CardContent>

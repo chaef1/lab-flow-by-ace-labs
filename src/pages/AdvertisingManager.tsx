@@ -29,6 +29,31 @@ const AdvertisingManager = () => {
   }, [activeTab]);
 
   useEffect(() => {
+    // Check if this is an OAuth callback by looking for URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    
+    if (code && state && window.opener) {
+      // This is an OAuth callback in a popup window
+      console.log('OAuth callback detected, processing...');
+      
+      // Import and process the OAuth callback
+      import('@/lib/api/meta-api').then(({ processMetaAuthCallback }) => {
+        processMetaAuthCallback(window.location.href)
+          .then(() => {
+            console.log('OAuth processed successfully, notifying parent');
+            window.opener.postMessage({ type: 'META_OAUTH_SUCCESS' }, window.location.origin);
+          })
+          .catch((error) => {
+            console.error('OAuth processing failed:', error);
+            window.opener.postMessage({ type: 'META_OAUTH_ERROR', error: error.message }, window.location.origin);
+          });
+      });
+      
+      return; // Don't continue with normal initialization
+    }
+
     // Check Meta token status on component mount
     const checkMetaConnection = () => {
       const connected = hasMetaToken();

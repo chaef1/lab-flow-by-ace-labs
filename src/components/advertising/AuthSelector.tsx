@@ -18,7 +18,34 @@ const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }
   const handleConnectMeta = () => {
     const authUrl = getMetaOAuthUrl();
     console.log('Opening Meta OAuth URL:', authUrl);
-    window.open(authUrl, '_blank', 'width=600,height=700,scrollbars=yes,resizable=yes');
+    
+    const popup = window.open(authUrl, 'meta_oauth', 'width=600,height=700,scrollbars=yes,resizable=yes');
+    
+    // Listen for messages from the popup
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      
+      if (event.data.type === 'META_OAUTH_SUCCESS') {
+        console.log('OAuth success received in main window');
+        popup?.close();
+        onAuthChange(); // Refresh the connection status
+        window.removeEventListener('message', handleMessage);
+      } else if (event.data.type === 'META_OAUTH_ERROR') {
+        console.error('OAuth error received in main window:', event.data.error);
+        popup?.close();
+        window.removeEventListener('message', handleMessage);
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    // Clean up if popup is closed manually
+    const checkClosed = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(checkClosed);
+        window.removeEventListener('message', handleMessage);
+      }
+    }, 1000);
   };
 
   if (isConnected) {

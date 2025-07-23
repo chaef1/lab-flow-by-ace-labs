@@ -156,9 +156,8 @@ const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }
               size="sm" 
               onClick={() => {
                 // Force a reconnection by clearing tokens and refreshing
-                localStorage.removeItem('meta_token_data');
+                localStorage.removeItem('meta_auth_data');
                 onAuthChange();
-                window.location.reload();
               }}
             >
               Reconnect Account

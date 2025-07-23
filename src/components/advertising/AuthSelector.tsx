@@ -26,14 +26,21 @@ const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }
       if (event.origin !== window.location.origin) return;
       
       if (event.data.type === 'META_OAUTH_SUCCESS') {
-        console.log('OAuth success received in main window');
+        console.log('OAuth success received in main window', event.data);
         popup?.close();
         
-        // Trigger the meta_auth_changed event to update all listeners
-        window.dispatchEvent(new Event('meta_auth_changed'));
+        // Wait a moment for storage to be written, then refresh
+        setTimeout(() => {
+          // Trigger the meta_auth_changed event to update all listeners
+          window.dispatchEvent(new Event('meta_auth_changed'));
+          
+          // Also call the onAuthChange callback
+          onAuthChange();
+          
+          // Force a window reload to ensure all components get the updated state
+          window.location.reload();
+        }, 100);
         
-        // Also call the onAuthChange callback
-        onAuthChange(); // Refresh the connection status
         window.removeEventListener('message', handleMessage);
       } else if (event.data.type === 'META_OAUTH_ERROR') {
         console.error('OAuth error received in main window:', event.data.error);

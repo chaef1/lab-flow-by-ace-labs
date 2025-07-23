@@ -44,6 +44,14 @@ const AdvertisingManager = () => {
           .then((result) => {
             console.log('OAuth processed successfully, notifying parent', result);
             if (result.success) {
+              // Ensure the token is properly saved with account ID
+              if (result.token && result.accountId) {
+                import('@/lib/storage/token-storage').then(({ saveMetaToken }) => {
+                  saveMetaToken(result.token, result.accountId);
+                  console.log('Token saved with account ID:', result.accountId);
+                });
+              }
+              
               window.opener.postMessage({ 
                 type: 'META_OAUTH_SUCCESS', 
                 token: result.token,

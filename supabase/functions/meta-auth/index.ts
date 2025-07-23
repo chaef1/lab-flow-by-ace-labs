@@ -157,6 +157,48 @@ serve(async (req) => {
           );
         }
 
+      case 'get_user_profile':
+        // Get user profile information
+        const userToken = requestData.access_token || requestData.accessToken;
+        if (!userToken) {
+          return new Response(
+            JSON.stringify({ error: 'Access token is required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          );
+        }
+
+        console.log('Fetching user profile with token:', userToken.substring(0, 5) + '...');
+        
+        try {
+          const profileResponse = await fetch(`https://graph.facebook.com/v17.0/me?fields=id,name,email,picture.width(200).height(200)&access_token=${userToken}`);
+          const profileResult = await profileResponse.json();
+          
+          console.log('User profile response status:', profileResponse.status);
+          
+          if (!profileResponse.ok) {
+            console.error('User profile request failed with status:', profileResponse.status);
+            return new Response(
+              JSON.stringify({ 
+                error: 'Failed to fetch user profile', 
+                details: profileResult,
+                status: profileResponse.status
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: profileResponse.status }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify(profileResult),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch user profile', message: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+
       case 'get_ad_accounts':
         // Get ad accounts for the authenticated user
         const accessToken = requestData.accessToken;

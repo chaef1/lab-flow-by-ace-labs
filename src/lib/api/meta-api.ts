@@ -96,6 +96,9 @@ export const processMetaAuthCallback = async (url: string) => {
     if (tokenData && tokenData.access_token) {
       const accessToken = tokenData.access_token;
       
+      // Get user profile information
+      const userProfile = await getMetaUserProfile(accessToken);
+      
       // Save the token
       const saved = saveMetaToken(accessToken);
       console.log('Meta token saved successfully:', saved);
@@ -114,6 +117,7 @@ export const processMetaAuthCallback = async (url: string) => {
         success: true,
         token: accessToken,
         accountId,
+        userProfile,
         tokenData
       };
     } else {
@@ -339,6 +343,28 @@ export const createMetaAdCreative = async (accessToken: string, accountId: strin
   } catch (err) {
     console.error('Error creating Meta ad creative:', err);
     throw err;
+  }
+};
+
+// Get Meta user profile information
+export const getMetaUserProfile = async (accessToken: string) => {
+  try {
+    const { data, error } = await supabase.functions.invoke('meta-auth', {
+      body: {
+        action: 'get_user_profile',
+        access_token: accessToken
+      }
+    });
+
+    if (error) {
+      console.error('Error fetching Meta user profile:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getMetaUserProfile:', error);
+    return null;
   }
 };
 

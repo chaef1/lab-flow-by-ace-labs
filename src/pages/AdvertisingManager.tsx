@@ -99,9 +99,12 @@ const AdvertisingManager = () => {
   }, []);
 
   const handleAuthChange = () => {
-    const connected = hasMetaToken();
-    console.log('Auth changed, new connection status:', connected);
-    setIsMetaConnected(connected);
+    // Use a small delay to ensure localStorage is updated
+    setTimeout(() => {
+      const connected = hasMetaToken();
+      console.log('Auth changed, new connection status:', connected);
+      setIsMetaConnected(connected);
+    }, 100);
   };
 
   return (

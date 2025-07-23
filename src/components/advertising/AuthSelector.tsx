@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExternalLink, Key, Facebook, CheckCircle, AlertCircle } from 'lucide-react';
-import { getMetaOAuthUrl } from '@/lib/api/meta-api';
+import { ExternalLink, Key, Facebook, CheckCircle, AlertCircle, User } from 'lucide-react';
+import { getMetaOAuthUrl, getMetaUserProfile } from '@/lib/api/meta-api';
+import { getSavedMetaToken } from '@/lib/storage/token-storage';
 import MetaTokenManager from './MetaTokenManager';
 
 interface AuthSelectorProps {
@@ -12,8 +13,47 @@ interface AuthSelectorProps {
   onAuthChange: () => void;
 }
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email?: string;
+  picture?: {
+    data: {
+      url: string;
+    };
+  };
+}
+
 const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }) => {
   const [selectedMethod, setSelectedMethod] = useState<'oauth' | 'token'>('oauth');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  // Load user profile when connected
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (isConnected) {
+        setIsLoadingProfile(true);
+        try {
+          const tokenData = getSavedMetaToken();
+          if (tokenData.accessToken) {
+            const profile = await getMetaUserProfile(tokenData.accessToken);
+            if (profile) {
+              setUserProfile(profile);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+        } finally {
+          setIsLoadingProfile(false);
+        }
+      } else {
+        setUserProfile(null);
+      }
+    };
+
+    loadUserProfile();
+  }, [isConnected]);
 
   const handleConnectMeta = () => {
     const authUrl = getMetaOAuthUrl();
@@ -69,7 +109,44 @@ const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }
             Your Meta account is successfully connected and ready to use.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* User Profile Display */}
+          {isLoadingProfile ? (
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <div className="h-12 w-12 bg-muted rounded-full animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+          ) : userProfile ? (
+            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              {userProfile.picture?.data?.url ? (
+                <img 
+                  src={userProfile.picture.data.url} 
+                  alt={userProfile.name}
+                  className="h-12 w-12 rounded-full border-2 border-green-200"
+                />
+              ) : (
+                <div className="h-12 w-12 rounded-full bg-green-200 flex items-center justify-center">
+                  <User className="h-6 w-6 text-green-600" />
+                </div>
+              )}
+              <div>
+                <p className="font-semibold text-green-900">{userProfile.name}</p>
+                {userProfile.email && (
+                  <p className="text-sm text-green-700">{userProfile.email}</p>
+                )}
+                <p className="text-xs text-green-600">ID: {userProfile.id}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
+              <p className="text-sm text-yellow-800">Connected but unable to load profile information</p>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <Badge variant="default" className="bg-green-100 text-green-800">
               Active Connection

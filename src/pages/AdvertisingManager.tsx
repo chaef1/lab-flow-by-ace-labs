@@ -41,13 +41,27 @@ const AdvertisingManager = () => {
       // Import and process the OAuth callback
       import('@/lib/api/meta-api').then(({ processMetaAuthCallback }) => {
         processMetaAuthCallback(window.location.href)
-          .then(() => {
-            console.log('OAuth processed successfully, notifying parent');
-            window.opener.postMessage({ type: 'META_OAUTH_SUCCESS' }, window.location.origin);
+          .then((result) => {
+            console.log('OAuth processed successfully, notifying parent', result);
+            if (result.success) {
+              window.opener.postMessage({ 
+                type: 'META_OAUTH_SUCCESS', 
+                token: result.token,
+                accountId: result.accountId 
+              }, window.location.origin);
+            } else {
+              window.opener.postMessage({ 
+                type: 'META_OAUTH_ERROR', 
+                error: result.error 
+              }, window.location.origin);
+            }
           })
           .catch((error) => {
             console.error('OAuth processing failed:', error);
-            window.opener.postMessage({ type: 'META_OAUTH_ERROR', error: error.message }, window.location.origin);
+            window.opener.postMessage({ 
+              type: 'META_OAUTH_ERROR', 
+              error: error.message 
+            }, window.location.origin);
           });
       });
       

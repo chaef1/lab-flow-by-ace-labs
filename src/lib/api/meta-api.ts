@@ -10,13 +10,8 @@ export const getMetaOAuthUrl = () => {
   // Use the dedicated Facebook Ads app ID for advertising
   const appId = "1749800232620671";
   
-  // Determine the appropriate redirect URI based on the current domain
-  let redirectUri = window.location.origin + "/advertising";
-  
-  // Check if we're on the sandbox domain and use it instead
-  if (window.location.hostname === 'app-sandbox.acelabs.co.za') {
-    redirectUri = 'https://app-sandbox.acelabs.co.za/advertising';
-  }
+  // Use a consistent redirect URI that matches what's registered in Facebook
+  const redirectUri = 'https://app-sandbox.acelabs.co.za/advertising';
   
   const encodedRedirectUri = encodeURIComponent(redirectUri);
   const state = encodeURIComponent(JSON.stringify({ platform: 'meta', timestamp: Date.now() }));
@@ -33,13 +28,8 @@ export const exchangeMetaCode = async (code: string) => {
   try {
     console.log('Exchanging Meta code:', code);
     
-    // Determine the appropriate redirect URI based on the current domain
-    let redirectUri = window.location.origin + "/advertising";
-    
-    // Check if we're on the sandbox domain and use it instead
-    if (window.location.hostname === 'app-sandbox.acelabs.co.za') {
-      redirectUri = 'https://app-sandbox.acelabs.co.za/advertising';
-    }
+    // Use the same redirect URI as in the OAuth URL
+    const redirectUri = 'https://app-sandbox.acelabs.co.za/advertising';
     
     const { data, error } = await supabase.functions.invoke('meta-auth', {
       body: { 

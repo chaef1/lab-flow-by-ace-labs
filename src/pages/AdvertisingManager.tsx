@@ -36,7 +36,7 @@ const AdvertisingManager = () => {
     
     if (code && state && window.opener) {
       // This is an OAuth callback in a popup window
-      console.log('OAuth callback detected, processing...');
+      console.log('OAuth callback detected, processing...', { code: code.substring(0, 10) + '...', state });
       
       // Import and process the OAuth callback
       import('@/lib/api/meta-api').then(({ processMetaAuthCallback }) => {
@@ -47,15 +47,19 @@ const AdvertisingManager = () => {
               // Ensure the token is properly saved with account ID
               if (result.token && result.accountId) {
                 import('@/lib/storage/token-storage').then(({ saveMetaToken }) => {
-                  saveMetaToken(result.token, result.accountId);
-                  console.log('Token saved with account ID:', result.accountId);
+                  const saved = saveMetaToken(result.token, result.accountId);
+                  console.log('Token saved with account ID:', result.accountId, 'Success:', saved);
+                  
+                  // Dispatch the meta_auth_changed event after saving
+                  window.opener.dispatchEvent(new Event('meta_auth_changed'));
                 });
               }
               
               window.opener.postMessage({ 
                 type: 'META_OAUTH_SUCCESS', 
                 token: result.token,
-                accountId: result.accountId 
+                accountId: result.accountId,
+                userProfile: result.userProfile
               }, window.location.origin);
             } else {
               window.opener.postMessage({ 

@@ -8,12 +8,8 @@ import AdPerformance from '@/components/advertising/AdPerformance';
 import CampaignCreator from '@/components/advertising/CampaignCreator';
 import MediaUploader from '@/components/advertising/MediaUploader';
 import AdWallet from '@/components/wallet/AdWallet';
-import MetaTokenManager from '@/components/advertising/MetaTokenManager';
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ExternalLink, AlertCircle } from "lucide-react";
+import AuthSelector from '@/components/advertising/AuthSelector';
 import { hasMetaToken } from '@/lib/storage/token-storage';
-import { getMetaOAuthUrl } from '@/lib/api/meta-api';
 
 const AdvertisingManager = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -55,10 +51,10 @@ const AdvertisingManager = () => {
     };
   }, []);
 
-  const handleConnectMeta = () => {
-    const authUrl = getMetaOAuthUrl();
-    console.log('Opening Meta OAuth URL:', authUrl);
-    window.open(authUrl, '_blank', 'width=600,height=700,scrollbars=yes,resizable=yes');
+  const handleAuthChange = () => {
+    const connected = hasMetaToken();
+    console.log('Auth changed, new connection status:', connected);
+    setIsMetaConnected(connected);
   };
 
   return (
@@ -87,25 +83,24 @@ const AdvertisingManager = () => {
             
             <TabsContent value="campaigns">
               {!isMetaConnected && (
-                <Alert className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="flex items-center justify-between">
-                    <span>Connect your Meta account to access campaign management features.</span>
-                    <Button onClick={handleConnectMeta} size="sm" className="ml-4">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Connect Meta Account
-                    </Button>
-                  </AlertDescription>
-                </Alert>
+                <AuthSelector 
+                  isConnected={isMetaConnected}
+                  onAuthChange={handleAuthChange}
+                />
               )}
-              <CampaignCreator 
-                isConnected={isMetaConnected}
-                platform="meta"
-              />
+              {isMetaConnected && (
+                <CampaignCreator 
+                  isConnected={isMetaConnected}
+                  platform="meta"
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="tokens">
-              <MetaTokenManager />
+              <AuthSelector 
+                isConnected={isMetaConnected}
+                onAuthChange={handleAuthChange}
+              />
             </TabsContent>
             
             <TabsContent value="creatives">

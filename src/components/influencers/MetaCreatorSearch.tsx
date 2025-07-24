@@ -155,14 +155,12 @@ export default function MetaCreatorSearch() {
     );
   }
   
-  const showMockDataNotice = isFetched && creators && creators.some((c: any) => c.id.startsWith('1234'));
-  
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Find Meta Creators</CardTitle>
         <CardDescription>
-          Search for Instagram creators through the Meta Graph API
+          Search for Instagram creators through the Meta Graph API. Only connected business accounts will be searchable.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -185,11 +183,11 @@ export default function MetaCreatorSearch() {
             </Button>
           </div>
           
-          {showMockDataNotice && (
+          {isFetched && creators && creators.length === 0 && searchQuery && (
             <Alert variant="default" className="bg-blue-50 border-blue-200">
               <Info className="h-4 w-4 text-blue-500" />
               <AlertDescription className="text-blue-700">
-                Showing mock data. To access real Instagram data, your Meta App needs additional permissions.
+                No creators found. The Meta Graph API only allows searching within your connected business accounts or requires advanced API permissions for broader discovery.
               </AlertDescription>
             </Alert>
           )}

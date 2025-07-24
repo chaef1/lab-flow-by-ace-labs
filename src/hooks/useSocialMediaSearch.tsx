@@ -146,8 +146,20 @@ export function useSocialMediaSearch() {
       
       // Call our Supabase Edge Function for regular search
       console.log('Calling social-profile edge function for:', cleanUsername);
+      
+      // Get access token if available for the platform
+      let accessToken;
+      if (platform === 'instagram' && isMetaConnected) {
+        const metaToken = getSavedMetaToken();
+        accessToken = metaToken.accessToken;
+      }
+      
       const { data, error: functionError } = await supabase.functions.invoke('social-profile', {
-        body: { platform, username: cleanUsername },
+        body: { 
+          platform, 
+          username: cleanUsername,
+          accessToken 
+        },
       });
       
       if (functionError) {

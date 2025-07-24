@@ -43,71 +43,111 @@ Deno.serve(async (req) => {
       console.log('Making request to Instagram Graph API with token:', metaAccessToken?.substring(0, 5) + '...');
       
       try {
-        // The Instagram Graph API has significant restrictions on searching for users
-        // Most apps don't have the necessary permissions, so we'll try a different approach
-        
-        // Instead of using the hashtag search endpoint which requires special permissions,
-        // we'll try to get business account information if we have an account ID
-        if (accountId) {
-          try {
-            const businessUrl = `https://graph.facebook.com/v19.0/${accountId}?fields=instagram_business_account&access_token=${metaAccessToken}`;
-            const businessResponse = await fetch(businessUrl);
-            const businessData = await businessResponse.json();
-            
-            if (businessData.instagram_business_account && businessData.instagram_business_account.id) {
-              console.log('Found Instagram business account:', businessData.instagram_business_account.id);
-              // You could do more with this business account ID
-            }
-          } catch (bizError) {
-            console.log('Error fetching business account:', bizError);
-            // Continue to fallback approach
-          }
-        }
-        
-        // For demo purposes, try a direct search for the username
-        // Note: This will only work if you have advanced access permissions from Meta
+        // Try to search for Instagram business accounts using the Graph API
+        // First, get all pages (business accounts) accessible with this token
         try {
-          const searchUrl = `https://graph.facebook.com/v19.0/ig_hashtag_search?q=${encodeURIComponent(query)}&access_token=${metaAccessToken}`;
-          const response = await fetch(searchUrl);
-          const data = await response.json();
+          const pagesUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=name,instagram_business_account&access_token=${metaAccessToken}`;
+          const pagesResponse = await fetch(pagesUrl);
+          const pagesData = await pagesResponse.json();
           
-          // If this works, great! But most apps won't have these permissions
-          if (!data.error && data.data && data.data.length > 0) {
-            console.log('Search success:', data);
-            return formatResponse({
-              success: true,
-              data: data.data
-            });
-          } else if (data.error) {
-            console.log('Search error (expected for most apps):', data.error.message);
+          if (pagesData.data && pagesData.data.length > 0) {
+            const creators = [];
+            
+            for (const page of pagesData.data) {
+              if (page.instagram_business_account && page.instagram_business_account.id) {
+                const igAccountId = page.instagram_business_account.id;
+                
+                // Get detailed Instagram business account info
+                try {
+                  const profileUrl = `https://graph.facebook.com/v19.0/${igAccountId}?fields=username,name,biography,followers_count,follows_count,media_count,profile_picture_url,website&access_token=${metaAccessToken}`;
+                  const profileResponse = await fetch(profileUrl);
+                  const profileData = await profileResponse.json();
+                  
+                  if (!profileData.error && profileData.username) {
+                    // Check if this profile matches our search query
+                    const username = profileData.username.toLowerCase();
+                    const searchQuery = query.toLowerCase();
+                    const name = (profileData.name || '').toLowerCase();
+                    const bio = (profileData.biography || '').toLowerCase();
+                    
+                    if (username.includes(searchQuery) || name.includes(searchQuery) || bio.includes(searchQuery)) {
+                      creators.push({
+                        id: igAccountId,
+                        name: profileData.name || profileData.username,
+                        username: profileData.username,
+                        profile_picture_url: profileData.profile_picture_url || '',
+                        follower_count: profileData.followers_count || 0,
+                        media_count: profileData.media_count || 0,
+                        biography: profileData.biography || '',
+                        is_verified: false, // Not available in basic API
+                        category: 'Business Account'
+                      });
+                    }
+                  }
+                } catch (profileError) {
+                  console.log('Error fetching profile details:', profileError);
+                  continue;
+                }
+              }
+            }
+            
+            if (creators.length > 0) {
+              console.log(`Found ${creators.length} matching creators from connected accounts`);
+              return formatResponse({
+                success: true,
+                data: creators
+              });
+            }
           }
         } catch (searchError) {
-          console.log('Search error:', searchError);
-          // Continue to fallback approach
+          console.log('Error searching connected accounts:', searchError);
         }
         
-        // If all API attempts fail, fall back to mock data
-        console.log('Falling back to mock data for demonstration');
-        const mockCreators = generateMockCreators(query);
+        // If no connected accounts match, try Instagram Graph API discovery endpoints
+        // Note: Most discovery endpoints require advanced permissions
+        try {
+          console.log('Attempting Instagram Graph API discovery (requires advanced permissions)');
+          
+          // Try hashtag search if available (requires special permissions)
+          const hashtagUrl = `https://graph.facebook.com/v19.0/ig_hashtag_search?q=${encodeURIComponent(query)}&access_token=${metaAccessToken}`;
+          const hashtagResponse = await fetch(hashtagUrl);
+          const hashtagData = await hashtagResponse.json();
+          
+          if (!hashtagData.error && hashtagData.data && hashtagData.data.length > 0) {
+            console.log('Hashtag search successful');
+            return formatResponse({
+              success: true,
+              data: hashtagData.data.map((hashtag: any) => ({
+                id: hashtag.id,
+                name: hashtag.name,
+                username: hashtag.name,
+                profile_picture_url: '',
+                follower_count: 0,
+                media_count: 0,
+                biography: 'Found via hashtag search',
+                is_verified: false,
+                category: 'Hashtag'
+              }))
+            });
+          }
+        } catch (discoveryError) {
+          console.log('Discovery API not available (requires advanced permissions):', discoveryError);
+        }
         
+        // Return empty results with explanation
         return formatResponse({
           success: true,
-          data: mockCreators,
-          note: "Using mock data - to use real data, you need to apply for Instagram Graph API permissions"
+          data: [],
+          note: "No matching creators found in connected accounts. Instagram Graph API discovery features require advanced permissions from Meta."
         });
         
       } catch (apiError) {
-        console.error('Error calling Instagram API:', apiError);
-        
-        // Fall back to mock data for demonstration purposes
-        console.log('Falling back to mock data due to API error');
-        const mockCreators = generateMockCreators(query);
+        console.error('Error calling Instagram Graph API:', apiError);
         
         return formatResponse({
-          success: true,
-          data: mockCreators,
-          note: "Using mock data due to API error - in production, you would need proper Instagram Graph API permissions"
-        });
+          success: false,
+          error: "Instagram Graph API error. Please check your access token and permissions."
+        }, 500);
       }
     }
     
@@ -122,86 +162,3 @@ Deno.serve(async (req) => {
   }
 });
 
-// Helper function to generate mock creator data based on search query
-// This will be removed when proper API integration is complete
-function generateMockCreators(query: string) {
-  const searchTerms = query.toLowerCase().split(' ');
-  
-  // Base set of influencers to filter from
-  const influencers = [
-    {
-      id: '123456789',
-      name: 'Sarah Johnson',
-      username: 'sarah_lifestyle',
-      profile_picture_url: 'https://randomuser.me/api/portraits/women/20.jpg',
-      follower_count: 165000,
-      media_count: 342,
-      biography: 'Lifestyle blogger, fashion enthusiast, and coffee addict',
-      is_verified: true,
-      category: 'Lifestyle'
-    },
-    {
-      id: '234567890',
-      name: 'Mike Chen',
-      username: 'mikefitness',
-      profile_picture_url: 'https://randomuser.me/api/portraits/men/32.jpg',
-      follower_count: 890000,
-      media_count: 560,
-      biography: 'Fitness coach helping you achieve your health goals',
-      is_verified: true,
-      category: 'Fitness'
-    },
-    {
-      id: '345678901',
-      name: 'Emma Wilson',
-      username: 'emma_travels',
-      profile_picture_url: 'https://randomuser.me/api/portraits/women/44.jpg',
-      follower_count: 432000,
-      media_count: 278,
-      biography: 'Travel blogger exploring the world one country at a time ✈️',
-      is_verified: false,
-      category: 'Travel'
-    },
-    {
-      id: '456789012',
-      name: 'Alex Thompson',
-      username: 'alex_tech',
-      profile_picture_url: 'https://randomuser.me/api/portraits/men/67.jpg',
-      follower_count: 215000,
-      media_count: 189,
-      biography: 'Tech reviewer and gadget enthusiast',
-      is_verified: false,
-      category: 'Technology'
-    },
-    {
-      id: '567890123',
-      name: 'Jessica Lee',
-      username: 'jessica_beauty',
-      profile_picture_url: 'https://randomuser.me/api/portraits/women/91.jpg',
-      follower_count: 1200000,
-      media_count: 420,
-      biography: 'Beauty influencer sharing makeup tips and product reviews',
-      is_verified: true,
-      category: 'Beauty'
-    }
-  ];
-  
-  // If query matches exact username, prioritize that match
-  const exactMatch = influencers.find(influencer => 
-    influencer.username.toLowerCase() === query.toLowerCase()
-  );
-  
-  if (exactMatch) {
-    return [exactMatch];
-  }
-  
-  // Filter influencers based on search terms
-  return influencers.filter(influencer => {
-    return searchTerms.some(term =>
-      influencer.name.toLowerCase().includes(term) ||
-      influencer.username.toLowerCase().includes(term) ||
-      influencer.biography?.toLowerCase().includes(term) ||
-      influencer.category?.toLowerCase().includes(term)
-    );
-  });
-}

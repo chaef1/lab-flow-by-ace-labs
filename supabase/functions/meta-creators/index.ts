@@ -43,23 +43,23 @@ Deno.serve(async (req) => {
       console.log('Making request to Instagram Graph API with token:', metaAccessToken?.substring(0, 5) + '...');
       
       try {
-        // Try to search for Instagram business accounts using the Graph API
-        // First, get all pages (business accounts) accessible with this token
+        // Try multiple approaches to find Instagram profiles
+        const creators = [];
+        
+        // 1. First, get all pages (business accounts) accessible with this token
         try {
           const pagesUrl = `https://graph.facebook.com/v19.0/me/accounts?fields=name,instagram_business_account&access_token=${metaAccessToken}`;
           const pagesResponse = await fetch(pagesUrl);
           const pagesData = await pagesResponse.json();
           
           if (pagesData.data && pagesData.data.length > 0) {
-            const creators = [];
-            
             for (const page of pagesData.data) {
               if (page.instagram_business_account && page.instagram_business_account.id) {
                 const igAccountId = page.instagram_business_account.id;
                 
-                // Get detailed Instagram business account info
+                // Get detailed Instagram business account info with more fields
                 try {
-                  const profileUrl = `https://graph.facebook.com/v19.0/${igAccountId}?fields=username,name,biography,followers_count,follows_count,media_count,profile_picture_url,website&access_token=${metaAccessToken}`;
+                  const profileUrl = `https://graph.facebook.com/v19.0/${igAccountId}?fields=id,username,name,biography,followers_count,follows_count,media_count,profile_picture_url,website,account_type,is_verified_user&access_token=${metaAccessToken}`;
                   const profileResponse = await fetch(profileUrl);
                   const profileData = await profileResponse.json();
                   
@@ -71,16 +71,35 @@ Deno.serve(async (req) => {
                     const bio = (profileData.biography || '').toLowerCase();
                     
                     if (username.includes(searchQuery) || name.includes(searchQuery) || bio.includes(searchQuery)) {
+                      // Auto-categorize based on follower count
+                      let tier = 'Business Account';
+                      const followerCount = profileData.followers_count || 0;
+                      
+                      if (followerCount >= 1000000) {
+                        tier = 'Celebrity/Elite';
+                      } else if (followerCount >= 100001) {
+                        tier = 'Macro';
+                      } else if (followerCount >= 50001) {
+                        tier = 'Mid-Tier';
+                      } else if (followerCount >= 10001) {
+                        tier = 'Micro';
+                      } else if (followerCount >= 1000) {
+                        tier = 'Nano';
+                      }
+                      
                       creators.push({
                         id: igAccountId,
                         name: profileData.name || profileData.username,
                         username: profileData.username,
                         profile_picture_url: profileData.profile_picture_url || '',
                         follower_count: profileData.followers_count || 0,
+                        following_count: profileData.follows_count || 0,
                         media_count: profileData.media_count || 0,
                         biography: profileData.biography || '',
-                        is_verified: false, // Not available in basic API
-                        category: 'Business Account'
+                        is_verified: profileData.is_verified_user || false,
+                        website: profileData.website || '',
+                        account_type: profileData.account_type || 'BUSINESS',
+                        category: tier
                       });
                     }
                   }
@@ -90,17 +109,40 @@ Deno.serve(async (req) => {
                 }
               }
             }
-            
-            if (creators.length > 0) {
-              console.log(`Found ${creators.length} matching creators from connected accounts`);
-              return formatResponse({
-                success: true,
-                data: creators
-              });
-            }
           }
         } catch (searchError) {
           console.log('Error searching connected accounts:', searchError);
+        }
+        
+        // 2. Try to search Instagram Basic Display API for personal accounts (if user authorized)
+        try {
+          const userUrl = `https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${metaAccessToken}`;
+          const userResponse = await fetch(userUrl);
+          const userData = await userResponse.json();
+          
+          if (!userData.error && userData.name) {
+            const searchQuery = query.toLowerCase();
+            const name = userData.name.toLowerCase();
+            
+            if (name.includes(searchQuery)) {
+              creators.push({
+                id: userData.id,
+                name: userData.name,
+                username: userData.name.replace(/\s+/g, '').toLowerCase(),
+                profile_picture_url: '',
+                follower_count: 0,
+                following_count: 0,
+                media_count: 0,
+                biography: 'Personal Facebook Account',
+                is_verified: false,
+                website: '',
+                account_type: 'PERSONAL',
+                category: 'Personal Account'
+              });
+            }
+          }
+        } catch (personalError) {
+          console.log('Error searching personal account:', personalError);
         }
         
         // If no connected accounts match, try Instagram Graph API discovery endpoints
@@ -134,7 +176,15 @@ Deno.serve(async (req) => {
           console.log('Discovery API not available (requires advanced permissions):', discoveryError);
         }
         
-        // Return empty results with explanation
+        // Return creators if found, otherwise empty results with explanation
+        if (creators.length > 0) {
+          console.log(`Found ${creators.length} matching creators`);
+          return formatResponse({
+            success: true,
+            data: creators
+          });
+        }
+        
         return formatResponse({
           success: true,
           data: [],

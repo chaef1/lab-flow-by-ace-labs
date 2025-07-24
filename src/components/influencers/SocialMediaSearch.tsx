@@ -14,7 +14,8 @@ import { ProfileDisplay } from "./ProfileDisplay";
 import { SearchHistory } from "./SearchHistory";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { hasMetaToken } from "@/lib/ads-api";
+import { hasMetaToken, hasTikTokToken } from "@/lib/ads-api";
+import MetaCreatorSearch from './MetaCreatorSearch';
 
 interface SocialMediaSearchProps {
   onAddInfluencer?: (profileData: any) => void;
@@ -213,57 +214,78 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
             <TabsContent value="search">
               <Tabs defaultValue="instagram" value={platform} onValueChange={handlePlatformChange}>
                 <TabsList className="mb-4">
-                  <TabsTrigger value="instagram">Instagram</TabsTrigger>
+                  <TabsTrigger value="instagram">Instagram Search</TabsTrigger>
+                  {isMetaConnected && <TabsTrigger value="meta">Meta Creator Search</TabsTrigger>}
                   <TabsTrigger value="tiktok">TikTok</TabsTrigger>
                 </TabsList>
                 
-                {platform === 'instagram' && !isMetaConnected && (
-                  <Alert variant="warning" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Connect your Meta account to enhance Instagram search capabilities.
-                      Visit the Advertising page to connect your account.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
-                <SearchForm
-                  platform={platform}
-                  username={username}
-                  isLoading={isLoading}
-                  onUsernameChange={setUsername}
-                  onSearch={handleSearch}
-                />
-                
-                {/* Rate limit error message */}
-                {profileData?.temporary_error && (
-                  <RateLimitError 
-                    message={profileData.message} 
-                    onRetry={() => searchProfile(platform, username)}
+                <TabsContent value="instagram">
+                  {!isMetaConnected && (
+                    <Alert variant="warning" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Connect your Meta account to enhance Instagram search capabilities.
+                        Visit the Advertising page to connect your account.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  <SearchForm
+                    platform="instagram"
+                    username={username}
+                    isLoading={isLoading}
+                    onUsernameChange={setUsername}
+                    onSearch={handleSearch}
                   />
+                  
+                  {/* Rate limit error message */}
+                  {profileData?.temporary_error && (
+                    <RateLimitError 
+                      message={profileData.message} 
+                      onRetry={() => searchProfile('instagram', username)}
+                    />
+                  )}
+                  
+                  {/* Profile data display */}
+                  <ProfileDisplay
+                    profileData={profileData}
+                    platform="instagram"
+                    isAuthenticating={isAuthenticating}
+                    onOAuthLogin={handleOAuthLogin}
+                  />
+                </TabsContent>
+                
+                {isMetaConnected && (
+                  <TabsContent value="meta">
+                    <MetaCreatorSearch onAddInfluencer={() => onAddInfluencer?.(null)} />
+                  </TabsContent>
                 )}
                 
-                {/* Profile data display */}
-                <ProfileDisplay
-                  profileData={profileData}
-                  platform={platform}
-                  isAuthenticating={isAuthenticating}
-                  onOAuthLogin={handleOAuthLogin}
-                />
-                
-                {/* Instagram Graph API info if connected */}
-                {platform === 'instagram' && isMetaConnected && !profileData && (
-                  <div className="mt-4 p-4 bg-background border rounded-md">
-                    <div className="flex items-center gap-2">
-                      <Instagram className="h-5 w-5 text-blue-500" />
-                      <p className="font-medium">Instagram Graph API Connected</p>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Search for Instagram profiles using your connected Meta account.
-                      This enhances search capabilities and provides more detailed results.
-                    </p>
-                  </div>
-                )}
+                <TabsContent value="tiktok">
+                  <SearchForm
+                    platform="tiktok"
+                    username={username}
+                    isLoading={isLoading}
+                    onUsernameChange={setUsername}
+                    onSearch={handleSearch}
+                  />
+                  
+                  {/* Rate limit error message */}
+                  {profileData?.temporary_error && (
+                    <RateLimitError 
+                      message={profileData.message} 
+                      onRetry={() => searchProfile('tiktok', username)}
+                    />
+                  )}
+                  
+                  {/* Profile data display */}
+                  <ProfileDisplay
+                    profileData={profileData}
+                    platform="tiktok"
+                    isAuthenticating={isAuthenticating}
+                    onOAuthLogin={handleOAuthLogin}
+                  />
+                </TabsContent>
               </Tabs>
             </TabsContent>
             

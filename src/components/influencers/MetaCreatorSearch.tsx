@@ -19,13 +19,36 @@ interface Creator {
   username: string;
   profile_picture_url: string;
   follower_count: number;
+  following_count?: number;
   media_count?: number;
   biography?: string;
   is_verified?: boolean;
+  website?: string;
+  account_type?: string;
   category?: string;
 }
 
-export default function MetaCreatorSearch() {
+// Helper function to categorize influencers based on follower count
+const categorizeInfluencer = (followerCount: number): string => {
+  if (followerCount >= 1000000) {
+    return 'Celebrity/Elite';
+  } else if (followerCount >= 100001) {
+    return 'Macro';
+  } else if (followerCount >= 50001) {
+    return 'Mid-Tier';
+  } else if (followerCount >= 10001) {
+    return 'Micro';
+  } else if (followerCount >= 1000) {
+    return 'Nano';
+  }
+  return 'Emerging';
+};
+
+interface MetaCreatorSearchProps {
+  onAddInfluencer?: () => void;
+}
+
+export default function MetaCreatorSearch({ onAddInfluencer }: MetaCreatorSearchProps = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
   const { toast } = useToast();
@@ -111,6 +134,20 @@ export default function MetaCreatorSearch() {
         
       if (profileError) throw profileError;
       
+      // Auto-categorize the influencer
+      const followerTier = categorizeInfluencer(creator.follower_count || 0);
+      const categories = [followerTier];
+      
+      // Add account type category if available
+      if (creator.account_type) {
+        categories.push(creator.account_type);
+      }
+      
+      // Add additional category if provided
+      if (creator.category && creator.category !== followerTier) {
+        categories.push(creator.category);
+      }
+      
       // Now create the influencer record
       const { error: influencerError } = await supabase
         .from('influencers')
@@ -120,7 +157,7 @@ export default function MetaCreatorSearch() {
           follower_count: creator.follower_count || 0,
           engagement_rate: 0, // Would need to calculate this separately
           instagram_handle: creator.username,
-          categories: creator.category ? [creator.category] : []
+          categories: categories
         });
         
       if (influencerError) throw influencerError;
@@ -132,6 +169,9 @@ export default function MetaCreatorSearch() {
         title: "Influencer added",
         description: "Successfully added creator to your database",
       });
+      
+      // Call the parent callback if provided
+      onAddInfluencer?.();
       
     } catch (error: any) {
       console.error("Error adding creator as influencer:", error);

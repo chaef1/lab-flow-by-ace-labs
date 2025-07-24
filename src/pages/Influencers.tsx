@@ -105,12 +105,25 @@ const Influencers = () => {
     // Follower count filter
     let followerMatch = true;
     if (followerCountFilter !== 'all' && inf.follower_count) {
-      if (followerCountFilter === 'micro' && (inf.follower_count < 10000 || inf.follower_count > 50000)) {
-        followerMatch = false;
-      } else if (followerCountFilter === 'mid' && (inf.follower_count < 50000 || inf.follower_count > 500000)) {
-        followerMatch = false;
-      } else if (followerCountFilter === 'macro' && inf.follower_count < 500000) {
-        followerMatch = false;
+      const followers = inf.follower_count;
+      switch (followerCountFilter) {
+        case 'nano':
+          followerMatch = followers >= 1000 && followers <= 10000;
+          break;
+        case 'micro':
+          followerMatch = followers >= 10001 && followers <= 50000;
+          break;
+        case 'mid':
+          followerMatch = followers >= 50001 && followers <= 100000;
+          break;
+        case 'macro':
+          followerMatch = followers >= 100001 && followers < 1000000;
+          break;
+        case 'celebrity':
+          followerMatch = followers >= 1000000;
+          break;
+        default:
+          followerMatch = true;
       }
     }
     
@@ -163,9 +176,11 @@ const Influencers = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Followers</SelectItem>
+                  <SelectItem value="nano">Nano (1K-10K)</SelectItem>
                   <SelectItem value="micro">Micro (10K-50K)</SelectItem>
-                  <SelectItem value="mid">Mid-tier (50K-500K)</SelectItem>
-                  <SelectItem value="macro">Macro (500K+)</SelectItem>
+                  <SelectItem value="mid">Mid-Tier (50K-100K)</SelectItem>
+                  <SelectItem value="macro">Macro (100K-1M)</SelectItem>
+                  <SelectItem value="celebrity">Celebrity/Elite (1M+)</SelectItem>
                 </SelectContent>
               </Select>
 

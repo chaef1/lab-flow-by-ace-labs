@@ -67,10 +67,10 @@ export function useSocialMediaSearch() {
       const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
       
       // Check if this is an Instagram search and we have a Meta token
-      const isMetaConnected = hasMetaToken();
+      const isMetaConnected = await hasMetaToken();
       if (platform === 'instagram' && isMetaConnected) {
         console.log('Using Meta Graph API for Instagram search');
-        const { accessToken } = getSavedMetaToken();
+        const { accessToken } = await getSavedMetaToken();
         
         // Call the meta-creators edge function with our token
         const { data: metaData, error: metaError } = await supabase.functions.invoke('meta-creators', {
@@ -150,7 +150,7 @@ export function useSocialMediaSearch() {
       // Get access token if available for the platform
       let accessToken;
       if (platform === 'instagram' && isMetaConnected) {
-        const metaToken = getSavedMetaToken();
+        const metaToken = await getSavedMetaToken();
         accessToken = metaToken.accessToken;
       }
       

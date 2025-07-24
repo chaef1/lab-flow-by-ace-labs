@@ -379,8 +379,8 @@ export const getMetaUserPermissions = async (accessToken: string) => {
 };
 
 // Force refresh Meta token status and trigger listeners
-export const refreshMetaTokenStatus = () => {
-  const { accessToken } = getSavedMetaToken();
+export const refreshMetaTokenStatus = async () => {
+  const { accessToken } = await getSavedMetaToken();
   console.log('Force refreshing Meta token status, token exists:', !!accessToken);
   
   // Dispatch event to notify listeners of potential token change

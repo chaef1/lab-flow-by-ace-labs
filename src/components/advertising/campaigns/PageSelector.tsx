@@ -49,7 +49,7 @@ const PageSelector: React.FC<PageSelectorProps> = ({
       setError(null);
       setDebugInfo(null);
 
-      const { accessToken } = getSavedMetaToken();
+      const { accessToken } = await getSavedMetaToken();
       
       if (!accessToken) {
         throw new Error('No Meta access token found');

@@ -38,7 +38,7 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
   // Function to fetch Meta audiences
   const fetchAudiences = async () => {
     try {
-      const { accessToken, accountId } = getSavedMetaToken();
+      const { accessToken, accountId } = await getSavedMetaToken();
       
       if (accessToken && accountId) {
         const audiencesData = await getMetaAudiences(accessToken, accountId);
@@ -60,7 +60,7 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
       setError(null);
       
       if (platform === 'meta') {
-        const { accessToken, accountId } = getSavedMetaToken();
+        const { accessToken, accountId } = await getSavedMetaToken();
         
         if (accessToken && accountId) {
           console.log('Fetching Meta campaigns for account:', accountId);
@@ -108,7 +108,7 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
       setError(null);
       
       // Get Meta token from storage
-      const { accessToken } = getSavedMetaToken();
+      const { accessToken } = await getSavedMetaToken();
       
       if (!accessToken) {
         throw new Error('Meta authentication required. Please connect your Meta account first.');
@@ -281,7 +281,7 @@ export const useCampaigns = (platform: 'meta', isConnected: boolean) => {
     try {
       setIsRefreshing(true);
       
-      const { accessToken, accountId } = getSavedMetaToken();
+      const { accessToken, accountId } = await getSavedMetaToken();
       
       if (!accessToken) {
         throw new Error('Meta authentication required');

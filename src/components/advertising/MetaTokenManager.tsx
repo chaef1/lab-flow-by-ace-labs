@@ -23,9 +23,9 @@ const MetaTokenManager = () => {
   }, []);
 
   const checkCurrentToken = async () => {
-    const isConnected = hasMetaToken();
+    const isConnected = await hasMetaToken();
     if (isConnected) {
-      const { accessToken, accountId } = getSavedMetaToken();
+      const { accessToken, accountId } = await getSavedMetaToken();
       setCurrentTokenInfo({
         hasToken: true,
         tokenPreview: accessToken?.substring(0, 15) + '...',
@@ -93,38 +93,7 @@ const MetaTokenManager = () => {
     }
   };
 
-  const quickUpdateWithProvidedToken = async () => {
-    const providedToken = "EAAY3bx1LEn8BO2SHmucBdWc4ZAXN5jGuPFxNhvrOpFtErHzUMHe293XyxyCWzcFfceRiZC1hwLpm4eHx9jWd8cDYpeCBzR0wEBHW0uAJhfyPG95pZC1X5rRXeGv4ZB0n6mMhZAIWqlbDJWpqy9XnaZBZANGdxvXCY4Ndu9Flh6jFdknqWS1kXIimDyTVoQYEZAGiwsaC0ldI";
-    setNewToken(providedToken);
-    
-    setIsUpdating(true);
-    try {
-      const result = await updateMetaToken(providedToken);
-      
-      if (result.success) {
-        toast({
-          title: "Token Updated",
-          description: result.message,
-        });
-        setNewToken('');
-        checkCurrentToken();
-      } else {
-        toast({
-          title: "Update Failed",
-          description: result.error,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Update Error",
-        description: error.message || "Failed to update token",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
+  // Removed hardcoded token for security - users must input their own tokens
 
   return (
     <div className="space-y-6">
@@ -200,20 +169,12 @@ const MetaTokenManager = () => {
             </Alert>
           )}
 
-          {/* Quick Update Button */}
-          <div className="border rounded-lg p-4">
-            <h3 className="font-medium mb-2">Quick Update</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Use the token you provided in the message
+          {/* Security Notice */}
+          <div className="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
+            <h3 className="font-medium mb-2 text-yellow-800">Security Notice</h3>
+            <p className="text-sm text-yellow-700">
+              For security reasons, API tokens are not hardcoded. Please obtain your Meta Marketing API token from the Meta Developer Console and enter it manually below.
             </p>
-            <Button 
-              onClick={quickUpdateWithProvidedToken}
-              disabled={isUpdating}
-              className="w-full"
-            >
-              {isUpdating && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-              Update with Provided Token
-            </Button>
           </div>
 
           {/* Manual Token Input */}

@@ -27,16 +27,16 @@ export const usePaidReportingData = (timeRange: string, platform: 'meta' | 'tikt
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const checkConnection = () => {
+    const checkConnection = async () => {
       if (platform === 'meta') {
-        return hasMetaToken();
+        return await hasMetaToken();
       } else if (platform === 'tiktok') {
-        return hasTikTokToken();
+        return await hasTikTokToken();
       }
       return false;
     };
     
-    setIsConnected(checkConnection());
+    checkConnection().then(setIsConnected);
 
     const fetchPaidData = async () => {
       // Reset error state

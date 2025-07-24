@@ -257,7 +257,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
             setIsConnected(true);
             if (onConnectionStatusChange) onConnectionStatusChange(true);
             
-            const { accessToken, accountId } = getSavedMetaToken();
+            const { accessToken, accountId } = await getSavedMetaToken();
             
             if (accessToken) {
               console.log('Using existing Meta token to fetch ad accounts');

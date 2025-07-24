@@ -81,8 +81,8 @@ const AdvertisingManager = () => {
     }
 
     // Check Meta token status on component mount
-    const checkMetaConnection = () => {
-      const connected = hasMetaToken();
+    const checkMetaConnection = async () => {
+      const connected = await hasMetaToken();
       console.log('Checking Meta connection status:', connected);
       setIsMetaConnected(connected);
     };
@@ -104,8 +104,8 @@ const AdvertisingManager = () => {
 
   const handleAuthChange = () => {
     // Use a small delay to ensure localStorage is updated
-    setTimeout(() => {
-      const connected = hasMetaToken();
+    setTimeout(async () => {
+      const connected = await hasMetaToken();
       console.log('Auth changed, new connection status:', connected);
       setIsMetaConnected(connected);
     }, 100);

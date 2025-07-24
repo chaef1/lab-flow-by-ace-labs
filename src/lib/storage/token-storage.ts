@@ -1,13 +1,15 @@
 
 /**
  * Token storage utilities for TikTok and Meta advertising platforms
- * Handles saving, retrieving, and managing authentication tokens
+ * Handles saving, retrieving, and managing authentication tokens with encryption
  */
+
+import { encryptToken, decryptToken, clearEncryptionKey } from '../security/token-encryption';
 
 // TikTok Token Handling Functions
 
-// Save TikTok access token to localStorage with expiration handling
-export const saveTikTokToken = (token: string, advertiserId: string = '') => {
+// Save TikTok access token to localStorage with expiration handling and encryption
+export const saveTikTokToken = async (token: string, advertiserId: string = '') => {
   try {
     if (!token) {
       console.error('Cannot save empty token');
@@ -17,8 +19,11 @@ export const saveTikTokToken = (token: string, advertiserId: string = '') => {
     // Current timestamp plus 30 days (in milliseconds) - extended for better persistence
     const expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
     
+    // Encrypt the token before storage
+    const encryptedToken = await encryptToken(token);
+    
     const tokenData = {
-      token,
+      token: encryptedToken,
       advertiserId,
       expiresAt,
       lastUsed: Date.now()
@@ -40,8 +45,8 @@ export const saveTikTokToken = (token: string, advertiserId: string = '') => {
   }
 };
 
-// Get saved TikTok access token
-export const getSavedTikTokToken = () => {
+// Get saved TikTok access token with decryption
+export const getSavedTikTokToken = async () => {
   try {
     // Use the consistent key name
     const tokenDataStr = localStorage.getItem('tiktok_auth_data');
@@ -75,14 +80,18 @@ export const getSavedTikTokToken = () => {
       return { accessToken: null, advertiserId: null };
     }
     
-    // Update the last used timestamp
+    // Decrypt the token
+    let decryptedToken = null;
     if (tokenData.token) {
+      decryptedToken = await decryptToken(tokenData.token);
+      
+      // Update the last used timestamp
       tokenData.lastUsed = Date.now();
       localStorage.setItem('tiktok_auth_data', JSON.stringify(tokenData));
     }
     
     return { 
-      accessToken: tokenData.token,
+      accessToken: decryptedToken,
       advertiserId: tokenData.advertiserId
     };
   } catch (err) {
@@ -92,8 +101,8 @@ export const getSavedTikTokToken = () => {
 };
 
 // Check if the TikTok token is saved and valid
-export const hasTikTokToken = () => {
-  const { accessToken } = getSavedTikTokToken();
+export const hasTikTokToken = async () => {
+  const { accessToken } = await getSavedTikTokToken();
   return !!accessToken;
 };
 
@@ -105,6 +114,8 @@ export const removeTikTokToken = () => {
     // Also remove any legacy keys
     localStorage.removeItem('tiktok_auth');
     localStorage.removeItem('tiktok_auth_code');
+    // Clear encryption key on logout
+    clearEncryptionKey();
     console.log('TikTok token removed from storage');
     return true;
   } catch (error) {
@@ -115,8 +126,8 @@ export const removeTikTokToken = () => {
 
 // Meta Token Handling Functions
 
-// Save Meta access token to localStorage with expiration handling
-export const saveMetaToken = (token: string, accountId: string = '') => {
+// Save Meta access token to localStorage with expiration handling and encryption
+export const saveMetaToken = async (token: string, accountId: string = '') => {
   try {
     if (!token) {
       console.error('Cannot save empty Meta token');
@@ -126,8 +137,11 @@ export const saveMetaToken = (token: string, accountId: string = '') => {
     // Current timestamp plus 60 days (in milliseconds) - Meta tokens have longer validity
     const expiresAt = Date.now() + (60 * 24 * 60 * 60 * 1000);
     
+    // Encrypt the token before storage
+    const encryptedToken = await encryptToken(token);
+    
     const tokenData = {
-      token,
+      token: encryptedToken,
       accountId,
       expiresAt,
       lastUsed: Date.now()
@@ -152,8 +166,8 @@ export const saveMetaToken = (token: string, accountId: string = '') => {
   }
 };
 
-// Get saved Meta access token
-export const getSavedMetaToken = () => {
+// Get saved Meta access token with decryption
+export const getSavedMetaToken = async () => {
   try {
     const tokenDataStr = localStorage.getItem('meta_auth_data');
     console.log('Retrieved Meta token data string exists:', !!tokenDataStr);
@@ -186,14 +200,18 @@ export const getSavedMetaToken = () => {
       return { accessToken: null, accountId: null };
     }
     
-    // Update the last used timestamp
+    // Decrypt the token
+    let decryptedToken = null;
     if (tokenData.token) {
+      decryptedToken = await decryptToken(tokenData.token);
+      
+      // Update the last used timestamp
       tokenData.lastUsed = Date.now();
       localStorage.setItem('meta_auth_data', JSON.stringify(tokenData));
     }
     
     return { 
-      accessToken: tokenData.token,
+      accessToken: decryptedToken,
       accountId: tokenData.accountId
     };
   } catch (err) {
@@ -203,8 +221,8 @@ export const getSavedMetaToken = () => {
 };
 
 // Check if Meta token is saved and valid
-export const hasMetaToken = () => {
-  const { accessToken } = getSavedMetaToken();
+export const hasMetaToken = async () => {
+  const { accessToken } = await getSavedMetaToken();
   console.log('Checking Meta token availability:', !!accessToken);
   return !!accessToken;
 };
@@ -213,6 +231,8 @@ export const hasMetaToken = () => {
 export const removeMetaToken = () => {
   try {
     localStorage.removeItem('meta_auth_data');
+    // Clear encryption key on logout
+    clearEncryptionKey();
     console.log('Meta token removed from storage');
     
     // Trigger event for listeners
@@ -226,8 +246,8 @@ export const removeMetaToken = () => {
 };
 
 // Function to force token refresh check
-export const refreshMetaTokenStatus = () => {
-  const { accessToken } = getSavedMetaToken();
+export const refreshMetaTokenStatus = async () => {
+  const { accessToken } = await getSavedMetaToken();
   console.log('Force refreshing Meta token status, token exists:', !!accessToken);
   
   // Dispatch event to notify listeners of potential token change

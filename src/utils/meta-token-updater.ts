@@ -15,7 +15,7 @@ export const updateMetaToken = async (newToken: string) => {
       console.log('Token validated successfully. First account ID:', firstAccountId);
       
       // Save the token with the first available account ID
-      const saved = saveMetaToken(newToken, firstAccountId);
+      const saved = await saveMetaToken(newToken, firstAccountId);
       
       if (saved) {
         console.log('Meta token updated and saved successfully');
@@ -41,7 +41,7 @@ export const updateMetaToken = async (newToken: string) => {
 };
 
 export const testMetaApiConnection = async () => {
-  const { accessToken, accountId } = getSavedMetaToken();
+  const { accessToken, accountId } = await getSavedMetaToken();
   
   if (!accessToken) {
     return {

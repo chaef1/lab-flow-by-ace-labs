@@ -31,7 +31,7 @@ const AccountSelector: React.FC<AccountSelectorProps> = ({
       setIsLoading(true);
       setError(null);
 
-      const { accessToken } = getSavedMetaToken();
+      const { accessToken } = await getSavedMetaToken();
       
       if (!accessToken) {
         throw new Error('No Meta access token found');

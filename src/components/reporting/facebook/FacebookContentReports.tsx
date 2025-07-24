@@ -61,7 +61,7 @@ const FacebookContentReports = () => {
 
     try {
       // Get the Meta access token
-      const { accessToken } = getSavedMetaToken();
+      const { accessToken } = await getSavedMetaToken();
 
       if (!accessToken) {
         toast({

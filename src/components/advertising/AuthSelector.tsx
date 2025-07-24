@@ -35,7 +35,7 @@ const AuthSelector: React.FC<AuthSelectorProps> = ({ isConnected, onAuthChange }
       if (isConnected) {
         setIsLoadingProfile(true);
         try {
-          const tokenData = getSavedMetaToken();
+          const tokenData = await getSavedMetaToken();
           if (tokenData.accessToken) {
             const profile = await getMetaUserProfile(tokenData.accessToken);
             if (profile) {

@@ -11,15 +11,15 @@ import { formatRelativeDate } from "@/lib/utils";
 interface ProfileDisplayProps {
   profileData: any; // Using any for now as the profileData structure is complex
   platform: Platform;
-  isAuthenticating: boolean;
-  onOAuthLogin: (authUrl: string) => void;
+  isAuthenticating?: boolean;
+  onOAuthLogin?: (authUrl: string) => void;
 }
 
 export function ProfileDisplay({ 
   profileData, 
   platform, 
-  isAuthenticating, 
-  onOAuthLogin 
+  isAuthenticating = false, 
+  onOAuthLogin = () => {} 
 }: ProfileDisplayProps) {
   // Helper function to render platform-specific icon
   const PlatformIcon = ({platform}: {platform: Platform}) => {
@@ -41,95 +41,88 @@ export function ProfileDisplay({
   }
 
   return (
-    <div className="mt-6 border rounded-lg p-4">
-      <div className="flex items-center gap-4">
-        <Avatar className="h-16 w-16">
-          <AvatarImage src={profileData.profile_pic_url} />
-          <AvatarFallback>
+    <div className="mt-6 border-0 rounded-xl p-6 bg-gradient-to-br from-background to-muted/30 shadow-lg">
+        <div className="flex items-center gap-6">
+        <Avatar className="h-20 w-20 ring-4 ring-primary/20">
+          <AvatarImage src={profileData.profile_picture_url} />
+          <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-lg font-bold">
             {profileData.full_name?.split(' ').map((n: string) => n[0]).join('') || profileData.username?.substring(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         
-        <div>
-          <div className="flex items-center">
-            <h3 className="font-medium text-lg">{profileData.full_name || profileData.username}</h3>
-            {profileData.is_verified && (
-              <Badge variant="secondary" className="ml-2">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="font-bold text-xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              {profileData.full_name || profileData.username}
+            </h3>
+            {profileData.verified && (
+              <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
                 <UserCheck className="h-3 w-3 mr-1" /> Verified
               </Badge>
             )}
           </div>
           
-          <div className="flex items-center text-sm text-muted-foreground">
+          <div className="flex items-center text-muted-foreground mb-2">
             <PlatformIcon platform={platform} />
-            @{profileData.username}
+            <span className="font-medium">@{profileData.username}</span>
           </div>
+          
+          <Badge variant="outline" className="text-xs font-medium">
+            {profileData.category || 'Influencer'}
+          </Badge>
         </div>
       </div>
       
-      {/* OAuth auth prompt if needed */}
-      {profileData.requires_auth && (
-        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
-          <div className="flex items-center text-amber-800">
-            <Lock className="h-4 w-4 mr-2" />
-            <p className="text-sm">Authentication required to view full profile details</p>
-          </div>
-          <Button 
-            className="w-full mt-2" 
-            variant="outline"
-            onClick={() => onOAuthLogin(profileData.auth_url)}
-            disabled={isAuthenticating}
-          >
-            {isAuthenticating ? 
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Authenticating...</> :
-              <><Instagram className="mr-2 h-4 w-4" /> Connect with Instagram</>
-            }
-          </Button>
-        </div>
-      )}
       
-      <Tabs defaultValue="profile" className="mt-6">
-        <TabsList className="mb-4">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
+      <Tabs defaultValue="profile" className="mt-8">
+        <TabsList className="mb-6 bg-muted/50">
+          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-white">Profile</TabsTrigger>
           {profileData.posts && profileData.posts.length > 0 && (
-            <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="posts" className="data-[state=active]:bg-primary data-[state=active]:text-white">Posts</TabsTrigger>
           )}
         </TabsList>
         
         <TabsContent value="profile">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-2 bg-muted rounded">
-              <div className="text-muted-foreground text-xs">Followers</div>
-              <div className="font-medium">{profileData.follower_count?.toLocaleString() || '0'}</div>
+          <div className="grid grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+              <div className="text-blue-600 text-sm font-medium">Followers</div>
+              <div className="font-bold text-xl text-blue-800">{profileData.follower_count?.toLocaleString() || '0'}</div>
             </div>
-            <div className="text-center p-2 bg-muted rounded">
-              <div className="text-muted-foreground text-xs">Following</div>
-              <div className="font-medium">{profileData.following_count?.toLocaleString() || '0'}</div>
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+              <div className="text-green-600 text-sm font-medium">Following</div>
+              <div className="font-bold text-xl text-green-800">{profileData.following_count?.toLocaleString() || '0'}</div>
             </div>
-            <div className="text-center p-2 bg-muted rounded">
-              <div className="text-muted-foreground text-xs">Posts</div>
-              <div className="font-medium">{profileData.post_count?.toLocaleString() || '0'}</div>
+            <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+              <div className="text-purple-600 text-sm font-medium">Posts</div>
+              <div className="font-bold text-xl text-purple-800">{profileData.posts_count?.toLocaleString() || '0'}</div>
             </div>
           </div>
           
-          <div className="mt-4">
-            <div className="flex items-center text-sm mb-1">
-              <Star className="h-4 w-4 text-amber-500 mr-1" />
-              <span className="font-medium">{profileData.engagement_rate || '0'}% Engagement Rate</span>
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+              <Star className="h-5 w-5 text-amber-500" />
+              <span className="font-semibold text-amber-800">
+                {profileData.engagement_rate || '0'}% Engagement Rate
+              </span>
             </div>
-            <p className="text-sm text-muted-foreground">{profileData.biography || 'No bio available'}</p>
+            
+            <div className="p-4 bg-muted/30 rounded-lg">
+              <h4 className="font-medium text-sm text-muted-foreground mb-2">Biography</h4>
+              <p className="text-sm leading-relaxed">{profileData.bio || 'No bio available'}</p>
+            </div>
             
             {profileData.website && (
-              <p className="text-sm mt-2">
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-sm text-blue-600 mb-1">Website</h4>
                 <a 
                   href={profileData.website.startsWith('http') ? profileData.website : `https://${profileData.website}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="text-blue-600 hover:text-blue-800 font-medium text-sm hover:underline"
                 >
                   {profileData.website}
                 </a>
-              </p>
+              </div>
             )}
           </div>
         </TabsContent>

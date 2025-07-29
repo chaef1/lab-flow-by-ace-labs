@@ -14,8 +14,6 @@ import { ProfileDisplay } from "./ProfileDisplay";
 import { SearchHistory } from "./SearchHistory";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { hasMetaToken, hasTikTokToken } from "@/lib/ads-api";
-import MetaCreatorSearch from './MetaCreatorSearch';
 
 type Platform = 'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'twitter' | 'linkedin';
 
@@ -27,7 +25,6 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   const [platform, setPlatform] = useState<'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'twitter' | 'linkedin'>('instagram');
   const [username, setUsername] = useState('');
   const [searchTab, setSearchTab] = useState<'search' | 'history'>('search');
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const { 
     searchProfile, 
     clearProfile, 
@@ -42,7 +39,6 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   const { toast } = useToast();
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [savedProfileData, setSavedProfileData] = useState<any>(null);
-  const isMetaConnected = hasMetaToken();
 
   const handleSearch = () => {
     searchProfile(platform, username);
@@ -61,40 +57,6 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     setUsername('');
   };
 
-  const handleOAuthLogin = (authUrl: string) => {
-    setIsAuthenticating(true);
-    
-    // Open the auth URL in a popup window
-    const width = 700;
-    const height = 750;
-    const left = (window.innerWidth - width) / 2;
-    const top = (window.innerHeight - height) / 2;
-    
-    const popup = window.open(
-      authUrl,
-      "oauth-popup",
-      `width=${width},height=${height},top=${top},left=${left}`
-    );
-    
-    // Check for when the popup is closed
-    const checkPopupClosed = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(checkPopupClosed);
-        setIsAuthenticating(false);
-        
-        toast({
-          title: "Authentication window closed",
-          description: "Please try your search again if authentication was successful."
-        });
-      }
-    }, 500);
-    
-    // Cleanup function in case component unmounts
-    return () => {
-      if (popup) popup.close();
-      clearInterval(checkPopupClosed);
-    };
-  };
 
   const handleAddInfluencer = async () => {
     if (!profileData) return;
@@ -207,18 +169,22 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
 
   return (
     <>
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Find Influencers</CardTitle>
-          <CardDescription>
-            Search for influencers by their social media handles or profile URLs
+      <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-background to-muted/50">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-t-lg">
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            Find Influencers
+          </CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Search for influencers across all major social media platforms using Ayrshare
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="search" value={searchTab} onValueChange={(v) => setSearchTab(v as 'search' | 'history')}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="search">Profile Search</TabsTrigger>
-              <TabsTrigger value="history">
+            <TabsList className="mb-6 bg-muted/30">
+              <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                Profile Search
+              </TabsTrigger>
+              <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                 <History className="mr-2 h-4 w-4" />
                 History
               </TabsTrigger>
@@ -226,44 +192,34 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
             
             <TabsContent value="search">
               <Tabs defaultValue="instagram" value={platform} onValueChange={handlePlatformChange}>
-                <TabsList className="grid grid-cols-3 lg:grid-cols-6 mb-4">
-                  <TabsTrigger value="instagram" className="flex items-center gap-1">
+                <TabsList className="grid grid-cols-3 lg:grid-cols-6 mb-6">
+                  <TabsTrigger value="instagram" className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600">
                     <Instagram className="h-4 w-4" />
-                    Instagram
+                    <span className="hidden sm:inline">Instagram</span>
                   </TabsTrigger>
-                  <TabsTrigger value="tiktok" className="flex items-center gap-1">
-                    <span className="text-xs">🎵</span>
-                    TikTok
+                  <TabsTrigger value="tiktok" className="flex items-center gap-2 bg-gradient-to-r from-black to-gray-800 text-white border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gray-900 data-[state=active]:to-black">
+                    <div className="h-4 w-4 text-white font-bold text-xs flex items-center justify-center">♪</div>
+                    <span className="hidden sm:inline">TikTok</span>
                   </TabsTrigger>
-                  <TabsTrigger value="youtube" className="flex items-center gap-1">
+                  <TabsTrigger value="youtube" className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-red-700">
                     <Youtube className="h-4 w-4" />
-                    YouTube
+                    <span className="hidden sm:inline">YouTube</span>
                   </TabsTrigger>
-                  <TabsTrigger value="facebook" className="flex items-center gap-1">
+                  <TabsTrigger value="facebook" className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700">
                     <Facebook className="h-4 w-4" />
-                    Facebook
+                    <span className="hidden sm:inline">Facebook</span>
                   </TabsTrigger>
-                  <TabsTrigger value="twitter" className="flex items-center gap-1">
+                  <TabsTrigger value="twitter" className="flex items-center gap-2 bg-gradient-to-r from-sky-400 to-blue-500 text-white border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-sky-500 data-[state=active]:to-blue-600">
                     <Twitter className="h-4 w-4" />
-                    Twitter
+                    <span className="hidden sm:inline">Twitter</span>
                   </TabsTrigger>
-                  <TabsTrigger value="linkedin" className="flex items-center gap-1">
+                  <TabsTrigger value="linkedin" className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-700 data-[state=active]:to-blue-800">
                     <Linkedin className="h-4 w-4" />
-                    LinkedIn
+                    <span className="hidden sm:inline">LinkedIn</span>
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="instagram">
-                  {!isMetaConnected && (
-                    <Alert variant="warning" className="mb-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Connect your Meta account to enhance Instagram search capabilities.
-                        Visit the Advertising page to connect your account.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  
+                <TabsContent value="instagram" className="space-y-4">
                   <SearchForm
                     platform="instagram"
                     username={username}
@@ -284,18 +240,10 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   <ProfileDisplay
                     profileData={profileData}
                     platform="instagram"
-                    isAuthenticating={isAuthenticating}
-                    onOAuthLogin={handleOAuthLogin}
                   />
                 </TabsContent>
                 
-                {isMetaConnected && (
-                  <TabsContent value="meta">
-                    <MetaCreatorSearch onAddInfluencer={() => onAddInfluencer?.(null)} />
-                  </TabsContent>
-                )}
-                
-                <TabsContent value="tiktok">
+                <TabsContent value="tiktok" className="space-y-4">
                   <SearchForm
                     platform="tiktok"
                     username={username}
@@ -304,16 +252,13 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                     onSearch={handleSearch}
                   />
                   
-                  {/* Profile data display */}
                   <ProfileDisplay
                     profileData={profileData}
                     platform="tiktok"
-                    isAuthenticating={isAuthenticating}
-                    onOAuthLogin={handleOAuthLogin}
                   />
                 </TabsContent>
 
-                <TabsContent value="youtube">
+                <TabsContent value="youtube" className="space-y-4">
                   <SearchForm
                     platform="youtube"
                     username={username}
@@ -325,12 +270,10 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   <ProfileDisplay
                     profileData={profileData}
                     platform="youtube"
-                    isAuthenticating={isAuthenticating}
-                    onOAuthLogin={handleOAuthLogin}
                   />
                 </TabsContent>
 
-                <TabsContent value="facebook">
+                <TabsContent value="facebook" className="space-y-4">
                   <SearchForm
                     platform="facebook"
                     username={username}
@@ -342,12 +285,10 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   <ProfileDisplay
                     profileData={profileData}
                     platform="facebook"
-                    isAuthenticating={isAuthenticating}
-                    onOAuthLogin={handleOAuthLogin}
                   />
                 </TabsContent>
 
-                <TabsContent value="twitter">
+                <TabsContent value="twitter" className="space-y-4">
                   <SearchForm
                     platform="twitter"
                     username={username}
@@ -359,12 +300,10 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   <ProfileDisplay
                     profileData={profileData}
                     platform="twitter"
-                    isAuthenticating={isAuthenticating}
-                    onOAuthLogin={handleOAuthLogin}
                   />
                 </TabsContent>
 
-                <TabsContent value="linkedin">
+                <TabsContent value="linkedin" className="space-y-4">
                   <SearchForm
                     platform="linkedin"
                     username={username}
@@ -376,8 +315,6 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                   <ProfileDisplay
                     profileData={profileData}
                     platform="linkedin"
-                    isAuthenticating={isAuthenticating}
-                    onOAuthLogin={handleOAuthLogin}
                   />
                 </TabsContent>
               </Tabs>
@@ -394,9 +331,9 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
           </Tabs>
         </CardContent>
         
-        {profileData && !profileData.temporary_error && searchTab === 'search' && !profileData.requires_auth && (
+        {profileData && !profileData.temporary_error && searchTab === 'search' && (
           <CardFooter>
-            <Button className="w-full" onClick={handleAddInfluencer}>
+            <Button className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white" onClick={handleAddInfluencer}>
               <TrendingUp className="mr-2 h-4 w-4" /> 
               Add to Influencer Database
             </Button>

@@ -22,6 +22,7 @@ import InfluencerProfile from "./pages/InfluencerProfile";
 import Campaigns from "./pages/Campaigns";
 import SubmitContent from "./pages/SubmitContent";
 import AdvertisingManager from "./pages/AdvertisingManager";
+import ContentScheduler from "./pages/ContentScheduler";
 
 // Set up React Query with default error handling
 const queryClient = new QueryClient({
@@ -54,9 +55,10 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
             {/* Admin, Creator, Brand routes */}
-            <Route path="/projects" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Projects /></ProtectedRoute>} />
-            <Route path="/content" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><Content /></ProtectedRoute>} />
-            <Route path="/content/:id" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand']}><ContentDetails /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><Projects /></ProtectedRoute>} />
+            <Route path="/content" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><Content /></ProtectedRoute>} />
+            <Route path="/content-scheduler" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><ContentScheduler /></ProtectedRoute>} />
+            <Route path="/content/:id" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><ContentDetails /></ProtectedRoute>} />
             
             {/* Admin, Brand routes */}
             <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Influencers /></ProtectedRoute>} />

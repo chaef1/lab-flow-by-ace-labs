@@ -53,6 +53,9 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Content Approval - admins, creators, agencies, and brands
     { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
     
+    // Content Scheduler - admins, creators, agencies, and brands
+    { name: 'Content Scheduler', path: '/content-scheduler', icon: MessageSquare, roles: ['admin', 'creator', 'brand', 'agency'] },
+    
     // Influencers directory - admins, agencies, and brands
     { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand', 'agency'] },
     

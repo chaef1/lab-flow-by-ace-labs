@@ -47,24 +47,24 @@ export function SearchForm({
 
   return (
     <div className="space-y-4">
-      <div className={`p-4 rounded-lg bg-gradient-to-r ${getPlatformGradient()} text-white`}>
-        <div className="flex items-center font-medium">
+      <div className={`p-3 sm:p-4 rounded-lg bg-gradient-to-r ${getPlatformGradient()} text-white`}>
+        <div className="flex items-center font-medium text-sm sm:text-base">
           {getPlatformIcon()}
           Search {platform.charAt(0).toUpperCase() + platform.slice(1)} Profiles
         </div>
-        <p className="text-white/80 text-sm mt-1">
-          Enter a username, handle, or full profile URL to find influencer profiles
+        <p className="text-white/80 text-xs sm:text-sm mt-1">
+          Enter a username or profile URL
         </p>
       </div>
       
       <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
           <Input
-            placeholder={`Enter @username or full ${platform} profile URL`}
+            placeholder={`@username or ${platform}.com/username`}
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
-            className="pl-12 h-12 text-base border-2 focus:border-primary/50"
+            className="pl-10 sm:pl-12 h-10 sm:h-12 text-sm sm:text-base border-2 focus:border-primary/50"
             onKeyDown={(e) => e.key === 'Enter' && onSearch()}
           />
         </div>
@@ -72,26 +72,15 @@ export function SearchForm({
           onClick={onSearch} 
           disabled={isLoading}
           size="lg"
-          className={`bg-gradient-to-r ${getPlatformGradient()} hover:opacity-90 text-white px-6 sm:px-8 w-full sm:w-auto`}
+          className={`bg-gradient-to-r ${getPlatformGradient()} hover:opacity-90 text-white px-6 sm:px-8 w-full sm:w-auto h-10 sm:h-12`}
         >
           {isLoading ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
           ) : (
-            <Search className="mr-2 h-5 w-5" />
+            <Search className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
           )}
-          Search
+          <span className="text-sm sm:text-base">Search</span>
         </Button>
-      </div>
-      
-      <div className="bg-muted/30 rounded-lg p-3 text-sm">
-        <div className="flex items-center text-muted-foreground mb-2">
-          <Link className="h-4 w-4 mr-2 flex-shrink-0" />
-          <span className="font-medium">Supported formats:</span>
-        </div>
-        <div className="space-y-1 text-xs text-muted-foreground">
-          <p className="break-all">• Username: <code className="bg-muted px-1 rounded">@{platform === 'tiktok' ? 'username' : 'username'}</code></p>
-          <p className="break-all">• Profile URL: <code className="bg-muted px-1 rounded">https://www.{platform}.com/{platform === 'linkedin' ? 'in/' : ''}username</code></p>
-        </div>
       </div>
     </div>
   );

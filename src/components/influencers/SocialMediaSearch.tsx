@@ -171,20 +171,20 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     <>
       <Card className="w-full border-0 shadow-lg bg-gradient-to-br from-background to-muted/50">
         <CardHeader className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-t-lg">
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+          <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Find Influencers
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Search for influencers across all major social media platforms using Ayrshare
+          <CardDescription className="text-sm sm:text-base text-muted-foreground">
+            Search for influencers across all major social media platforms
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <Tabs defaultValue="search" value={searchTab} onValueChange={(v) => setSearchTab(v as 'search' | 'history')}>
-            <TabsList className="mb-6 bg-muted/30">
-              <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+            <TabsList className="mb-4 sm:mb-6 bg-muted/30 w-full sm:w-auto">
+              <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm">
                 Profile Search
               </TabsTrigger>
-              <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm">
                 <History className="mr-2 h-4 w-4" />
                 History
               </TabsTrigger>
@@ -192,30 +192,30 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
             
             <TabsContent value="search">
               <Tabs defaultValue="instagram" value={platform} onValueChange={handlePlatformChange}>
-                <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 mb-6 h-auto p-1 bg-muted/50">
-                  <TabsTrigger value="instagram" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 rounded-md text-xs sm:text-sm">
-                    <Instagram className="h-4 w-4" />
-                    <span className="hidden sm:inline">Instagram</span>
+                <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 mb-4 sm:mb-6 h-auto p-1 bg-muted/50 gap-1">
+                  <TabsTrigger value="instagram" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 rounded-md text-xs">
+                    <Instagram className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs">Instagram</span>
                   </TabsTrigger>
-                  <TabsTrigger value="tiktok" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 bg-gradient-to-r from-black to-gray-800 text-white border-0 data-[state=active]:from-gray-900 data-[state=active]:to-black rounded-md text-xs sm:text-sm">
-                    <div className="h-4 w-4 text-white font-bold text-xs flex items-center justify-center">♪</div>
-                    <span className="hidden sm:inline">TikTok</span>
+                  <TabsTrigger value="tiktok" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-black to-gray-800 text-white border-0 data-[state=active]:from-gray-900 data-[state=active]:to-black rounded-md text-xs">
+                    <div className="h-3 w-3 sm:h-4 sm:w-4 text-white font-bold text-xs flex items-center justify-center">♪</div>
+                    <span className="text-xs">TikTok</span>
                   </TabsTrigger>
-                  <TabsTrigger value="youtube" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 bg-gradient-to-r from-red-500 to-red-600 text-white border-0 data-[state=active]:from-red-600 data-[state=active]:to-red-700 rounded-md text-xs sm:text-sm">
-                    <Youtube className="h-4 w-4" />
-                    <span className="hidden sm:inline">YouTube</span>
+                  <TabsTrigger value="youtube" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-red-500 to-red-600 text-white border-0 data-[state=active]:from-red-600 data-[state=active]:to-red-700 rounded-md text-xs">
+                    <Youtube className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs">YouTube</span>
                   </TabsTrigger>
-                  <TabsTrigger value="facebook" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 rounded-md text-xs sm:text-sm">
-                    <Facebook className="h-4 w-4" />
-                    <span className="hidden sm:inline">Facebook</span>
+                  <TabsTrigger value="facebook" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 rounded-md text-xs">
+                    <Facebook className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs">Facebook</span>
                   </TabsTrigger>
-                  <TabsTrigger value="twitter" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 bg-gradient-to-r from-sky-400 to-blue-500 text-white border-0 data-[state=active]:from-sky-500 data-[state=active]:to-blue-600 rounded-md text-xs sm:text-sm">
-                    <Twitter className="h-4 w-4" />
-                    <span className="hidden sm:inline">Twitter</span>
+                  <TabsTrigger value="twitter" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-sky-400 to-blue-500 text-white border-0 data-[state=active]:from-sky-500 data-[state=active]:to-blue-600 rounded-md text-xs">
+                    <Twitter className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs">Twitter</span>
                   </TabsTrigger>
-                  <TabsTrigger value="linkedin" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-0 data-[state=active]:from-blue-700 data-[state=active]:to-blue-800 rounded-md text-xs sm:text-sm">
-                    <Linkedin className="h-4 w-4" />
-                    <span className="hidden sm:inline">LinkedIn</span>
+                  <TabsTrigger value="linkedin" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white border-0 data-[state=active]:from-blue-700 data-[state=active]:to-blue-800 rounded-md text-xs">
+                    <Linkedin className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="text-xs">LinkedIn</span>
                   </TabsTrigger>
                 </TabsList>
                 

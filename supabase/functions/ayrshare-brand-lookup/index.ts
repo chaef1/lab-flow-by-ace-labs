@@ -57,7 +57,8 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${ayrshareApiKey}`
+        'Authorization': `Bearer ${ayrshareApiKey}`,
+        'User-Agent': 'Supabase-Edge-Function'
       },
       body: JSON.stringify({
         handle: cleanHandle,

@@ -57,7 +57,7 @@ export function SearchForm({
         </p>
       </div>
       
-      <div className="flex space-x-3">
+      <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
@@ -72,7 +72,7 @@ export function SearchForm({
           onClick={onSearch} 
           disabled={isLoading}
           size="lg"
-          className={`bg-gradient-to-r ${getPlatformGradient()} hover:opacity-90 text-white px-8`}
+          className={`bg-gradient-to-r ${getPlatformGradient()} hover:opacity-90 text-white px-6 sm:px-8 w-full sm:w-auto`}
         >
           {isLoading ? (
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -85,12 +85,12 @@ export function SearchForm({
       
       <div className="bg-muted/30 rounded-lg p-3 text-sm">
         <div className="flex items-center text-muted-foreground mb-2">
-          <Link className="h-4 w-4 mr-2" />
+          <Link className="h-4 w-4 mr-2 flex-shrink-0" />
           <span className="font-medium">Supported formats:</span>
         </div>
         <div className="space-y-1 text-xs text-muted-foreground">
-          <p>• Username: <code className="bg-muted px-1 rounded">@{platform === 'tiktok' ? 'username' : 'username'}</code></p>
-          <p>• Profile URL: <code className="bg-muted px-1 rounded">https://www.{platform}.com/{platform === 'linkedin' ? 'in/' : ''}username</code></p>
+          <p className="break-all">• Username: <code className="bg-muted px-1 rounded">@{platform === 'tiktok' ? 'username' : 'username'}</code></p>
+          <p className="break-all">• Profile URL: <code className="bg-muted px-1 rounded">https://www.{platform}.com/{platform === 'linkedin' ? 'in/' : ''}username</code></p>
         </div>
       </div>
     </div>

@@ -4,11 +4,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
-import { TrendingUp, History, Instagram } from "lucide-react";
+import { TrendingUp, History, Instagram, Youtube, Linkedin, Twitter, Facebook } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";
-import { SearchForm, Platform } from "./SearchForm";
+import { SearchForm } from "./SearchForm";
 import { RateLimitError } from "./RateLimitError";
 import { ProfileDisplay } from "./ProfileDisplay";
 import { SearchHistory } from "./SearchHistory";
@@ -17,12 +17,14 @@ import { AlertCircle } from "lucide-react";
 import { hasMetaToken, hasTikTokToken } from "@/lib/ads-api";
 import MetaCreatorSearch from './MetaCreatorSearch';
 
+type Platform = 'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'twitter' | 'linkedin';
+
 interface SocialMediaSearchProps {
   onAddInfluencer?: (profileData: any) => void;
 }
 
 export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearchProps) {
-  const [platform, setPlatform] = useState<Platform>('instagram');
+  const [platform, setPlatform] = useState<'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'twitter' | 'linkedin'>('instagram');
   const [username, setUsername] = useState('');
   const [searchTab, setSearchTab] = useState<'search' | 'history'>('search');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -98,12 +100,23 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     if (!profileData) return;
     
     try {
-      // Check if user already exists with the handle
-      const { data: existingInfluencer } = await supabase
-        .from('influencers')
-        .select('id')
-        .eq(`${platform}_handle`, profileData.username)
-        .maybeSingle();
+      // Check if user already exists with the handle based on platform
+      let existingInfluencer = null;
+      if (platform === 'instagram') {
+        const { data } = await supabase
+          .from('influencers')
+          .select('id')
+          .eq('instagram_handle', profileData.username)
+          .maybeSingle();
+        existingInfluencer = data;
+      } else if (platform === 'tiktok') {
+        const { data } = await supabase
+          .from('influencers')
+          .select('id')
+          .eq('tiktok_handle', profileData.username)
+          .maybeSingle();
+        existingInfluencer = data;
+      }
       
       if (existingInfluencer) {
         toast({
@@ -213,10 +226,31 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
             
             <TabsContent value="search">
               <Tabs defaultValue="instagram" value={platform} onValueChange={handlePlatformChange}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="instagram">Instagram Search</TabsTrigger>
-                  {isMetaConnected && <TabsTrigger value="meta">Meta Creator Search</TabsTrigger>}
-                  <TabsTrigger value="tiktok">TikTok</TabsTrigger>
+                <TabsList className="grid grid-cols-3 lg:grid-cols-6 mb-4">
+                  <TabsTrigger value="instagram" className="flex items-center gap-1">
+                    <Instagram className="h-4 w-4" />
+                    Instagram
+                  </TabsTrigger>
+                  <TabsTrigger value="tiktok" className="flex items-center gap-1">
+                    <span className="text-xs">🎵</span>
+                    TikTok
+                  </TabsTrigger>
+                  <TabsTrigger value="youtube" className="flex items-center gap-1">
+                    <Youtube className="h-4 w-4" />
+                    YouTube
+                  </TabsTrigger>
+                  <TabsTrigger value="facebook" className="flex items-center gap-1">
+                    <Facebook className="h-4 w-4" />
+                    Facebook
+                  </TabsTrigger>
+                  <TabsTrigger value="twitter" className="flex items-center gap-1">
+                    <Twitter className="h-4 w-4" />
+                    Twitter
+                  </TabsTrigger>
+                  <TabsTrigger value="linkedin" className="flex items-center gap-1">
+                    <Linkedin className="h-4 w-4" />
+                    LinkedIn
+                  </TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="instagram">
@@ -270,18 +304,78 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
                     onSearch={handleSearch}
                   />
                   
-                  {/* Rate limit error message */}
-                  {profileData?.temporary_error && (
-                    <RateLimitError 
-                      message={profileData.message} 
-                      onRetry={() => searchProfile('tiktok', username)}
-                    />
-                  )}
-                  
                   {/* Profile data display */}
                   <ProfileDisplay
                     profileData={profileData}
                     platform="tiktok"
+                    isAuthenticating={isAuthenticating}
+                    onOAuthLogin={handleOAuthLogin}
+                  />
+                </TabsContent>
+
+                <TabsContent value="youtube">
+                  <SearchForm
+                    platform="youtube"
+                    username={username}
+                    isLoading={isLoading}
+                    onUsernameChange={setUsername}
+                    onSearch={handleSearch}
+                  />
+                  
+                  <ProfileDisplay
+                    profileData={profileData}
+                    platform="youtube"
+                    isAuthenticating={isAuthenticating}
+                    onOAuthLogin={handleOAuthLogin}
+                  />
+                </TabsContent>
+
+                <TabsContent value="facebook">
+                  <SearchForm
+                    platform="facebook"
+                    username={username}
+                    isLoading={isLoading}
+                    onUsernameChange={setUsername}
+                    onSearch={handleSearch}
+                  />
+                  
+                  <ProfileDisplay
+                    profileData={profileData}
+                    platform="facebook"
+                    isAuthenticating={isAuthenticating}
+                    onOAuthLogin={handleOAuthLogin}
+                  />
+                </TabsContent>
+
+                <TabsContent value="twitter">
+                  <SearchForm
+                    platform="twitter"
+                    username={username}
+                    isLoading={isLoading}
+                    onUsernameChange={setUsername}
+                    onSearch={handleSearch}
+                  />
+                  
+                  <ProfileDisplay
+                    profileData={profileData}
+                    platform="twitter"
+                    isAuthenticating={isAuthenticating}
+                    onOAuthLogin={handleOAuthLogin}
+                  />
+                </TabsContent>
+
+                <TabsContent value="linkedin">
+                  <SearchForm
+                    platform="linkedin"
+                    username={username}
+                    isLoading={isLoading}
+                    onUsernameChange={setUsername}
+                    onSearch={handleSearch}
+                  />
+                  
+                  <ProfileDisplay
+                    profileData={profileData}
+                    platform="linkedin"
                     isAuthenticating={isAuthenticating}
                     onOAuthLogin={handleOAuthLogin}
                   />

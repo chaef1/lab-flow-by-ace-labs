@@ -61,77 +61,10 @@ export function useSocialMediaSearch() {
     setRateLimitError(false);
     
     try {
-      console.log(`Searching for ${username} on ${platform}...`);
+      console.log(`Searching for ${username} on ${platform} using Ayrshare...`);
       
       // Remove @ symbol if present
       const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
-      
-      // Check if this is an Instagram search and we have a Meta token
-      const isMetaConnected = await hasMetaToken();
-      if (platform === 'instagram' && isMetaConnected) {
-        console.log('Using Meta Graph API for Instagram search');
-        const { accessToken } = await getSavedMetaToken();
-        
-        // Call the meta-creators edge function with our token
-        const { data: metaData, error: metaError } = await supabase.functions.invoke('meta-creators', {
-          body: { 
-            action: 'search_creators',
-            query: cleanUsername,
-            accessToken
-          }
-        });
-        
-        if (metaError) {
-          console.error('Meta search error:', metaError);
-          // Fall back to regular API if Meta search fails
-        } else if (metaData && metaData.data && metaData.data.length > 0) {
-          // Find the most relevant creator match
-          const creator = metaData.data.find((c: any) => 
-            c.username.toLowerCase() === cleanUsername.toLowerCase()
-          ) || metaData.data[0];
-          
-          const socialProfile: SocialProfile = {
-            username: creator.username,
-            fullName: creator.name,
-            followersCount: creator.follower_count || 0,
-            followingCount: 0,
-            postsCount: creator.media_count || 0,
-            profilePicture: creator.profile_picture_url,
-            bio: creator.biography || '',
-            verified: creator.is_verified || false,
-            engagementRate: 0, // We don't have this data from the Graph API
-            website: '',
-            recentPosts: []
-          };
-          
-          setProfile(socialProfile);
-          setProfileData({
-            username: creator.username,
-            full_name: creator.name,
-            biography: creator.biography || '',
-            follower_count: creator.follower_count || 0,
-            following_count: 0,
-            post_count: creator.media_count || 0,
-            is_verified: creator.is_verified || false,
-            profile_pic_url: creator.profile_picture_url,
-            website: '',
-            category: creator.category
-          });
-          
-          // Log the search in the database if user is authenticated
-          if (user) {
-            await supabase.from('social_media_searches').insert([
-              {
-                user_id: user.id,
-                platform,
-                username: cleanUsername
-              }
-            ]);
-          }
-          
-          return socialProfile;
-        }
-      }
       
       // Log the search in the database if user is authenticated
       if (user) {
@@ -144,59 +77,30 @@ export function useSocialMediaSearch() {
         ]);
       }
       
-      // Call our Supabase Edge Function for regular search
-      console.log('Calling social-profile edge function for:', cleanUsername);
-      
-      // Get access token if available for the platform
-      let accessToken;
-      if (platform === 'instagram' && isMetaConnected) {
-        const metaToken = await getSavedMetaToken();
-        accessToken = metaToken.accessToken;
-      }
-      
-      const { data, error: functionError } = await supabase.functions.invoke('social-profile', {
+      // Use Ayrshare for all platform searches
+      const { data, error: functionError } = await supabase.functions.invoke('ayrshare-brand-lookup', {
         body: { 
-          platform, 
-          username: cleanUsername,
-          accessToken 
+          handle: cleanUsername,
+          platform: platform
         },
       });
       
       if (functionError) {
-        console.error('Edge function error:', functionError);
+        console.error('Ayrshare function error:', functionError);
         setError(functionError.message);
         toast.error(`Failed to fetch profile: ${functionError.message}`);
         return null;
       }
       
-      // Check for rate limiting errors in the response
-      if (data.error) {
+      // Check for errors in the response
+      if (!data.success) {
         console.error('Profile error:', data.error);
-        
-        if (data.error.includes('rate limit') || data.error.includes('Rate limit')) {
-          setError('Rate limit exceeded. Please try again later or use a different API key.');
-          toast.error('API rate limit exceeded. Please try again in a few minutes.');
-          setRateLimitError(true);
-          
-          // Also set a modified profile object with temporary error flag
-          const errorProfile = {
-            username: cleanUsername,
-            fullName: '',
-            followersCount: 0,
-            profilePicture: '',
-            temporary_error: true,
-            message: data.error
-          };
-          setProfile(errorProfile as SocialProfile);
-          setProfileData(errorProfile);
-        } else {
-          setError(data.error);
-          toast.error(`Error: ${data.error}`);
-        }
+        setError(data.error);
+        toast.error(`Error: ${data.error}`);
         return null;
       }
       
-      console.log('Profile data received:', data);
+      console.log('Ayrshare profile data received:', data.profile);
       
       if (!data || !data.profile) {
         setError('No profile data returned');
@@ -204,22 +108,40 @@ export function useSocialMediaSearch() {
         return null;
       }
       
+      // Transform Ayrshare data to our SocialProfile format
       const socialProfile: SocialProfile = {
         username: data.profile.username || cleanUsername,
-        fullName: data.profile.fullName || '',
-        followersCount: data.profile.followersCount || 0,
-        followingCount: data.profile.followingCount,
-        postsCount: data.profile.postsCount,
-        profilePicture: data.profile.profilePicture || '',
-        bio: data.profile.bio,
-        engagementRate: data.profile.engagementRate,
+        fullName: data.profile.full_name || '',
+        followersCount: data.profile.follower_count || 0,
+        followingCount: data.profile.following_count || 0,
+        postsCount: data.profile.posts_count || 0,
+        profilePicture: data.profile.profile_picture_url || '',
+        bio: data.profile.bio || '',
+        engagementRate: data.profile.engagement_rate || 0,
         verified: data.profile.verified || false,
-        website: data.profile.website,
-        recentPosts: data.profile.recentPosts || []
+        website: data.profile.website || '',
+        recentPosts: []
       };
       
       setProfile(socialProfile);
-      setProfileData(data.profile);
+      setProfileData({
+        username: data.profile.username,
+        full_name: data.profile.full_name,
+        bio: data.profile.bio,
+        follower_count: data.profile.follower_count,
+        following_count: data.profile.following_count,
+        posts_count: data.profile.posts_count,
+        verified: data.profile.verified,
+        profile_picture_url: data.profile.profile_picture_url,
+        website: data.profile.website,
+        category: data.profile.category,
+        platform: data.profile.platform,
+        engagement_rate: data.profile.engagement_rate,
+        avg_likes: data.profile.avg_likes,
+        avg_comments: data.profile.avg_comments,
+        account_type: data.profile.account_type,
+        location: data.profile.location
+      });
       
       // Fetch search history after successful search
       if (user) {

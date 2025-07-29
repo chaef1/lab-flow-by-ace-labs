@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2, Link, Instagram } from "lucide-react";
 
-export type Platform = 'instagram' | 'tiktok';
+export type Platform = 'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'twitter' | 'linkedin';
 
 interface SearchFormProps {
   platform: Platform;
@@ -24,27 +24,17 @@ export function SearchForm({
   return (
     <div className="space-y-1">
       <div className="text-sm text-muted-foreground mb-2">
-        {platform === 'instagram' ? (
-          <div className="flex items-center">
-            <Link className="h-4 w-4 mr-1" />
-            Enter Instagram username or profile URL
-          </div>
-        ) : (
-          <div className="flex items-center">
-            <Link className="h-4 w-4 mr-1" />
-            Enter TikTok username
-          </div>
-        )}
+        <div className="flex items-center">
+          <Link className="h-4 w-4 mr-1" />
+          Enter {platform} username or profile URL
+        </div>
       </div>
       
       <div className="flex space-x-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={platform === 'instagram' 
-              ? "Username or instagram.com/username" 
-              : "Username"
-            }
+            placeholder={`Username or ${platform}.com/username`}
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
             className="pl-10"
@@ -57,14 +47,12 @@ export function SearchForm({
         </Button>
       </div>
       
-      {platform === 'instagram' && (
-        <div className="mt-2 text-xs text-muted-foreground">
-          <p className="flex items-center">
-            <Link className="h-3 w-3 mr-1" />
-            Example URL: https://www.instagram.com/username
-          </p>
-        </div>
-      )}
+      <div className="mt-2 text-xs text-muted-foreground">
+        <p className="flex items-center">
+          <Link className="h-3 w-3 mr-1" />
+          Example: https://www.{platform}.com/username
+        </p>
+      </div>
     </div>
   );
 }

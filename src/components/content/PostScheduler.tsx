@@ -11,8 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar, Clock, Send, Image, Link, Instagram, Youtube, Linkedin, Twitter, Facebook, Upload, AlertTriangle, Settings } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { hasMetaToken } from '@/lib/storage/token-storage';
-import AuthSelector from '@/components/advertising/AuthSelector';
+import { AyrshareAuth } from './AyrshareAuth';
 
 interface PostSchedulerProps {
   onPostScheduled?: () => void;
@@ -26,31 +25,40 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [shortenLinks, setShortenLinks] = useState(true);
   const [isScheduling, setIsScheduling] = useState(false);
-  const [isMetaAuthenticated, setIsMetaAuthenticated] = useState(false);
+  const [connectedProfiles, setConnectedProfiles] = useState<any[]>([]);
   const [showAuthSetup, setShowAuthSetup] = useState(false);
   const { toast } = useToast();
 
-  // Check authentication status on mount
+  // Check connected profiles on mount
   useEffect(() => {
-    checkAuthStatus();
-    
-    // Listen for auth changes
-    const handleAuthChange = () => {
-      checkAuthStatus();
-    };
-    
-    window.addEventListener('meta_auth_changed', handleAuthChange);
-    return () => window.removeEventListener('meta_auth_changed', handleAuthChange);
+    loadConnectedProfiles();
   }, []);
 
-  const checkAuthStatus = async () => {
+  const loadConnectedProfiles = async () => {
     try {
-      const hasToken = await hasMetaToken();
-      setIsMetaAuthenticated(hasToken);
+      const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
+        body: { action: 'get_profiles' }
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.data) {
+        setConnectedProfiles(data.data.profiles || []);
+      }
     } catch (error) {
-      console.error('Error checking auth status:', error);
-      setIsMetaAuthenticated(false);
+      console.error('Error loading connected profiles:', error);
+      setConnectedProfiles([]);
     }
+  };
+
+  const isAnyPlatformConnected = () => {
+    return connectedProfiles.length > 0;
+  };
+
+  const isPlatformConnected = (platformId: string) => {
+    return connectedProfiles.some(profile => 
+      profile.platform.toLowerCase() === platformId.toLowerCase()
+    );
   };
 
   const platforms = [
@@ -95,10 +103,12 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       return;
     }
 
-    // Check if social media authentication is required
-    const needsMetaAuth = selectedPlatforms.some(p => ['facebook', 'instagram'].includes(p));
+    // Check if any platforms are selected that aren't connected
+    const unconnectedPlatforms = selectedPlatforms.filter(platform => 
+      !isPlatformConnected(platform)
+    );
     
-    if (needsMetaAuth && !isMetaAuthenticated) {
+    if (unconnectedPlatforms.length > 0 && !isAnyPlatformConnected()) {
       toast({
         title: "Authentication required",
         description: "Please connect your social media accounts first",
@@ -214,11 +224,11 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       
       <CardContent className="p-6 space-y-6">
         {/* Authentication Status */}
-        {!isMetaAuthenticated && (
+        {!isAnyPlatformConnected() && (
           <Alert className="border-yellow-200 bg-yellow-50">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription className="flex items-center justify-between">
-              <span>Connect your social media accounts to post to Facebook and Instagram</span>
+              <span>Connect your social media accounts to start posting across platforms</span>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -226,7 +236,7 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
                 className="ml-4"
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Setup Authentication
+                Connect Accounts
               </Button>
             </AlertDescription>
           </Alert>
@@ -238,15 +248,12 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
             <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Social Media Authentication</h2>
+                  <h2 className="text-xl font-semibold">Connect Social Media Accounts</h2>
                   <Button variant="outline" size="sm" onClick={() => setShowAuthSetup(false)}>
                     Close
                   </Button>
                 </div>
-                <AuthSelector 
-                  isConnected={isMetaAuthenticated}
-                  onAuthChange={checkAuthStatus}
-                />
+                <AyrshareAuth onAuthChange={loadConnectedProfiles} />
               </div>
             </div>
           </div>
@@ -265,18 +272,23 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
                   key={platform.id}
                   variant={isSelected ? "default" : "outline"}
                   onClick={() => togglePlatform(platform.id)}
-                  disabled={['facebook', 'instagram'].includes(platform.id) && !isMetaAuthenticated}
+                  disabled={!isPlatformConnected(platform.id) && !isAnyPlatformConnected()}
                   className={`flex flex-col items-center gap-2 p-4 h-auto relative ${
                     isSelected 
                       ? `bg-gradient-to-r ${platform.gradient} text-white border-0` 
                       : 'hover:bg-muted'
-                  } ${['facebook', 'instagram'].includes(platform.id) && !isMetaAuthenticated ? 'opacity-50' : ''}`}
+                  } ${!isPlatformConnected(platform.id) && !isAnyPlatformConnected() ? 'opacity-50' : ''}`}
                 >
                   <Icon className="h-5 w-5" />
                   <span className="text-xs font-medium">{platform.name}</span>
-                  {['facebook', 'instagram'].includes(platform.id) && !isMetaAuthenticated && (
+                  {!isPlatformConnected(platform.id) && !isAnyPlatformConnected() && (
                     <div className="absolute -top-1 -right-1">
                       <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                    </div>
+                  )}
+                  {isPlatformConnected(platform.id) && (
+                    <div className="absolute -top-1 -right-1">
+                      <div className="h-3 w-3 bg-green-500 rounded-full" />
                     </div>
                   )}
                 </Button>

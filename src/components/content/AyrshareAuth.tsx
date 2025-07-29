@@ -1,0 +1,230 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ExternalLink, CheckCircle, XCircle, Unlink, Loader, RefreshCw } from 'lucide-react';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ConnectedProfile {
+  platform: string;
+  username: string;
+  profileKey: string;
+  status: string;
+}
+
+interface AyrshareAuthProps {
+  onAuthChange: () => void;
+}
+
+export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
+  const [connectedProfiles, setConnectedProfiles] = useState<ConnectedProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadProfiles();
+  }, []);
+
+  const loadProfiles = async () => {
+    setIsRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
+        body: { action: 'get_profiles' }
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.data) {
+        const profiles = data.data.profiles || [];
+        setConnectedProfiles(profiles);
+        onAuthChange();
+      }
+    } catch (error: any) {
+      console.error('Error loading profiles:', error);
+      toast({
+        title: "Failed to load connected accounts",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleConnectAccounts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
+        body: { 
+          action: 'get_auth_url',
+          platforms: ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok']
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.data.url) {
+        // Open auth URL in a popup
+        const popup = window.open(
+          data.data.url, 
+          'ayrshare_auth', 
+          'width=600,height=700,scrollbars=yes,resizable=yes'
+        );
+
+        // Check for popup completion
+        const checkClosed = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkClosed);
+            // Refresh profiles after auth
+            setTimeout(() => {
+              loadProfiles();
+            }, 2000);
+          }
+        }, 1000);
+      } else {
+        throw new Error('Failed to get authentication URL');
+      }
+    } catch (error: any) {
+      console.error('Error getting auth URL:', error);
+      toast({
+        title: "Failed to start authentication",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUnlinkProfile = async (profileKey: string, platform: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
+        body: { 
+          action: 'unlink_profile',
+          profileKey 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Account disconnected",
+          description: `${platform} account has been disconnected`
+        });
+        loadProfiles();
+      } else {
+        throw new Error(data.error || 'Failed to unlink profile');
+      }
+    } catch (error: any) {
+      console.error('Error unlinking profile:', error);
+      toast({
+        title: "Failed to disconnect account",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getPlatformColor = (platform: string) => {
+    const colors: Record<string, string> = {
+      facebook: 'bg-blue-100 text-blue-800',
+      instagram: 'bg-pink-100 text-pink-800',
+      twitter: 'bg-sky-100 text-sky-800',
+      linkedin: 'bg-blue-100 text-blue-800',
+      youtube: 'bg-red-100 text-red-800',
+      tiktok: 'bg-gray-100 text-gray-800'
+    };
+    return colors[platform] || 'bg-gray-100 text-gray-800';
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          Social Media Accounts
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadProfiles}
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? (
+              <Loader className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+          </Button>
+        </CardTitle>
+        <CardDescription>
+          Connect your social media accounts to post content across platforms
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {connectedProfiles.length === 0 ? (
+          <Alert>
+            <AlertDescription>
+              No social media accounts connected. Connect your accounts to start posting.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium">Connected Accounts</h3>
+            {connectedProfiles.map((profile, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Badge className={getPlatformColor(profile.platform)}>
+                    {profile.platform}
+                  </Badge>
+                  <span className="font-medium">{profile.username || 'Unknown'}</span>
+                  {profile.status === 'active' ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleUnlinkProfile(profile.profileKey, profile.platform)}
+                >
+                  <Unlink className="h-4 w-4 mr-2" />
+                  Disconnect
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Button
+          onClick={handleConnectAccounts}
+          disabled={isLoading}
+          className="w-full"
+        >
+          {isLoading ? (
+            <>
+              <Loader className="mr-2 h-4 w-4 animate-spin" />
+              Opening Authentication...
+            </>
+          ) : (
+            <>
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Connect Social Media Accounts
+            </>
+          )}
+        </Button>
+
+        <Alert>
+          <AlertDescription className="text-sm">
+            <strong>Note:</strong> You'll be redirected to Ayrshare to authenticate with your social media accounts. 
+            This is secure and allows you to post to multiple platforms from one place.
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
+  );
+}

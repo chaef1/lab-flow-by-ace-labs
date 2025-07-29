@@ -53,6 +53,9 @@ Deno.serve(async (req) => {
 
     // Call Ayrshare brand lookup API
     const ayrshareUrl = 'https://app.ayrshare.com/api/brand'
+    
+    console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platform}`)
+    
     const ayrshareResponse = await fetch(ayrshareUrl, {
       method: 'POST',
       headers: {
@@ -66,20 +69,40 @@ Deno.serve(async (req) => {
       })
     })
 
+    console.log(`Ayrshare API response status: ${ayrshareResponse.status}`)
+
     if (!ayrshareResponse.ok) {
       const errorText = await ayrshareResponse.text()
       console.error('Ayrshare API error:', errorText)
+      console.error('Request headers:', {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ayrshareApiKey ? '[REDACTED]' : '[MISSING]'}`,
+        'User-Agent': 'Supabase-Edge-Function'
+      })
+      console.error('Request body:', JSON.stringify({
+        handle: cleanHandle,
+        platform: platform || 'instagram'
+      }))
       throw new Error(`Ayrshare API error: ${ayrshareResponse.status} - ${errorText}`)
     }
 
     const ayrshareData = await ayrshareResponse.json()
-    console.log('Ayrshare response:', ayrshareData)
+    console.log('Ayrshare response data:', JSON.stringify(ayrshareData, null, 2))
 
-    if (!ayrshareData.success) {
+    if (!ayrshareData || ayrshareData.status === 'error') {
+      const errorMsg = ayrshareData?.message || 'Failed to fetch profile data'
+      console.error('Ayrshare returned error:', errorMsg)
+      throw new Error(errorMsg)
+    }
+
+    if (!ayrshareData.success && ayrshareData.data) {
+      // Some responses might not have success flag but still have data
+      console.log('Response without success flag but has data, proceeding...')
+    } else if (!ayrshareData.success) {
       throw new Error(ayrshareData.message || 'Failed to fetch profile data')
     }
 
-    const profileData = ayrshareData.data
+    const profileData = ayrshareData.data || ayrshareData
 
     // Categorize influencer based on follower count
     const categorizeInfluencer = (followerCount: number): string => {

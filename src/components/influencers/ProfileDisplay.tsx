@@ -41,9 +41,9 @@ export function ProfileDisplay({
   }
 
   return (
-    <div className="mt-6 border-0 rounded-xl p-6 bg-gradient-to-br from-background to-muted/30 shadow-lg">
-        <div className="flex items-center gap-6">
-        <Avatar className="h-20 w-20 ring-4 ring-primary/20">
+    <div className="mt-6 border-0 rounded-xl p-4 sm:p-6 bg-gradient-to-br from-background to-muted/30 shadow-lg">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+        <Avatar className="h-16 w-16 sm:h-20 sm:w-20 ring-4 ring-primary/20 mx-auto sm:mx-0">
           <AvatarImage src={profileData.profile_picture_url} />
           <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-lg font-bold">
             {profileData.full_name?.split(' ').map((n: string) => n[0]).join('') || profileData.username?.substring(0, 2).toUpperCase()}

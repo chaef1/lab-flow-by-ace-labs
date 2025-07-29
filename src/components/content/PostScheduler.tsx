@@ -25,40 +25,16 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [shortenLinks, setShortenLinks] = useState(true);
   const [isScheduling, setIsScheduling] = useState(false);
-  const [connectedProfiles, setConnectedProfiles] = useState<any[]>([]);
   const [showAuthSetup, setShowAuthSetup] = useState(false);
   const { toast } = useToast();
 
-  // Check connected profiles on mount
-  useEffect(() => {
-    loadConnectedProfiles();
-  }, []);
-
-  const loadConnectedProfiles = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
-        body: { action: 'get_profiles' }
-      });
-
-      if (error) throw error;
-
-      if (data.success && data.data) {
-        setConnectedProfiles(data.data.profiles || []);
-      }
-    } catch (error) {
-      console.error('Error loading connected profiles:', error);
-      setConnectedProfiles([]);
-    }
-  };
-
+  // Simplified approach - no profile checking required for basic Ayrshare plans
   const isAnyPlatformConnected = () => {
-    return connectedProfiles.length > 0;
+    return true; // Allow posting - Ayrshare handles authentication internally
   };
 
   const isPlatformConnected = (platformId: string) => {
-    return connectedProfiles.some(profile => 
-      profile.platform.toLowerCase() === platformId.toLowerCase()
-    );
+    return true; // Allow all platforms - Ayrshare will handle auth per platform
   };
 
   const platforms = [
@@ -103,20 +79,8 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       return;
     }
 
-    // Check if any platforms are selected that aren't connected
-    const unconnectedPlatforms = selectedPlatforms.filter(platform => 
-      !isPlatformConnected(platform)
-    );
-    
-    if (unconnectedPlatforms.length > 0 && !isAnyPlatformConnected()) {
-      toast({
-        title: "Authentication required",
-        description: "Please connect your social media accounts first",
-        variant: "destructive"
-      });
-      setShowAuthSetup(true);
-      return;
-    }
+    // Note: With basic Ayrshare plan, we post directly and Ayrshare handles platform authentication
+    // If platforms aren't connected, Ayrshare will return an error with details
 
     setIsScheduling(true);
 
@@ -183,11 +147,21 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
 
     } catch (error: any) {
       console.error('Error scheduling post:', error);
-      toast({
-        title: "Failed to schedule post",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
+      
+      // Check if it's an authentication error from Ayrshare
+      if (error.message.includes('authentication') || error.message.includes('connect')) {
+        toast({
+          title: "Social Media Authentication Required",
+          description: "Please connect your social media accounts in Ayrshare dashboard first",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Failed to schedule post",
+          description: error.message || "An unexpected error occurred",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsScheduling(false);
     }
@@ -223,41 +197,22 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">
-        {/* Authentication Status */}
-        {!isAnyPlatformConnected() && (
-          <Alert className="border-yellow-200 bg-yellow-50">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>Connect your social media accounts to start posting across platforms</span>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowAuthSetup(true)}
-                className="ml-4"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Connect Accounts
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Authentication Setup Modal */}
-        {showAuthSetup && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Connect Social Media Accounts</h2>
-                  <Button variant="outline" size="sm" onClick={() => setShowAuthSetup(false)}>
-                    Close
-                  </Button>
-                </div>
-                <AyrshareAuth onAuthChange={loadConnectedProfiles} />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Ayrshare Authentication Info */}
+        <Alert className="border-blue-200 bg-blue-50">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Social Media Authentication:</strong> Connect your social media accounts directly in your{' '}
+            <a 
+              href="https://app.ayrshare.com/profiles" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              Ayrshare dashboard
+            </a>{' '}
+            to post to different platforms.
+          </AlertDescription>
+        </Alert>
 
         {/* Platform Selection */}
         <div className="space-y-3">
@@ -272,25 +227,14 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
                   key={platform.id}
                   variant={isSelected ? "default" : "outline"}
                   onClick={() => togglePlatform(platform.id)}
-                  disabled={!isPlatformConnected(platform.id) && !isAnyPlatformConnected()}
-                  className={`flex flex-col items-center gap-2 p-4 h-auto relative ${
+                  className={`flex flex-col items-center gap-2 p-4 h-auto ${
                     isSelected 
                       ? `bg-gradient-to-r ${platform.gradient} text-white border-0` 
                       : 'hover:bg-muted'
-                  } ${!isPlatformConnected(platform.id) && !isAnyPlatformConnected() ? 'opacity-50' : ''}`}
+                  }`}
                 >
                   <Icon className="h-5 w-5" />
                   <span className="text-xs font-medium">{platform.name}</span>
-                  {!isPlatformConnected(platform.id) && !isAnyPlatformConnected() && (
-                    <div className="absolute -top-1 -right-1">
-                      <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                    </div>
-                  )}
-                  {isPlatformConnected(platform.id) && (
-                    <div className="absolute -top-1 -right-1">
-                      <div className="h-3 w-3 bg-green-500 rounded-full" />
-                    </div>
-                  )}
                 </Button>
               );
             })}

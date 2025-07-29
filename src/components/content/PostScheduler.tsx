@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,9 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Send, Image, Link, Instagram, Youtube, Linkedin, Twitter, Facebook, Upload } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Calendar, Clock, Send, Image, Link, Instagram, Youtube, Linkedin, Twitter, Facebook, Upload, AlertTriangle, Settings } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { hasMetaToken } from '@/lib/storage/token-storage';
+import AuthSelector from '@/components/advertising/AuthSelector';
 
 interface PostSchedulerProps {
   onPostScheduled?: () => void;
@@ -23,7 +26,32 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [shortenLinks, setShortenLinks] = useState(true);
   const [isScheduling, setIsScheduling] = useState(false);
+  const [isMetaAuthenticated, setIsMetaAuthenticated] = useState(false);
+  const [showAuthSetup, setShowAuthSetup] = useState(false);
   const { toast } = useToast();
+
+  // Check authentication status on mount
+  useEffect(() => {
+    checkAuthStatus();
+    
+    // Listen for auth changes
+    const handleAuthChange = () => {
+      checkAuthStatus();
+    };
+    
+    window.addEventListener('meta_auth_changed', handleAuthChange);
+    return () => window.removeEventListener('meta_auth_changed', handleAuthChange);
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const hasToken = await hasMetaToken();
+      setIsMetaAuthenticated(hasToken);
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      setIsMetaAuthenticated(false);
+    }
+  };
 
   const platforms = [
     { id: 'instagram', name: 'Instagram', icon: Instagram, gradient: 'from-purple-500 to-pink-500' },
@@ -64,6 +92,19 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
         description: "Please select at least one platform",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Check if social media authentication is required
+    const needsMetaAuth = selectedPlatforms.some(p => ['facebook', 'instagram'].includes(p));
+    
+    if (needsMetaAuth && !isMetaAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please connect your social media accounts first",
+        variant: "destructive"
+      });
+      setShowAuthSetup(true);
       return;
     }
 
@@ -172,6 +213,45 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">
+        {/* Authentication Status */}
+        {!isMetaAuthenticated && (
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Connect your social media accounts to post to Facebook and Instagram</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowAuthSetup(true)}
+                className="ml-4"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Setup Authentication
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Authentication Setup Modal */}
+        {showAuthSetup && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Social Media Authentication</h2>
+                  <Button variant="outline" size="sm" onClick={() => setShowAuthSetup(false)}>
+                    Close
+                  </Button>
+                </div>
+                <AuthSelector 
+                  isConnected={isMetaAuthenticated}
+                  onAuthChange={checkAuthStatus}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Platform Selection */}
         <div className="space-y-3">
           <Label className="text-base font-semibold">Select Platforms</Label>
@@ -185,14 +265,20 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
                   key={platform.id}
                   variant={isSelected ? "default" : "outline"}
                   onClick={() => togglePlatform(platform.id)}
-                  className={`flex flex-col items-center gap-2 p-4 h-auto ${
+                  disabled={['facebook', 'instagram'].includes(platform.id) && !isMetaAuthenticated}
+                  className={`flex flex-col items-center gap-2 p-4 h-auto relative ${
                     isSelected 
                       ? `bg-gradient-to-r ${platform.gradient} text-white border-0` 
                       : 'hover:bg-muted'
-                  }`}
+                  } ${['facebook', 'instagram'].includes(platform.id) && !isMetaAuthenticated ? 'opacity-50' : ''}`}
                 >
                   <Icon className="h-5 w-5" />
                   <span className="text-xs font-medium">{platform.name}</span>
+                  {['facebook', 'instagram'].includes(platform.id) && !isMetaAuthenticated && (
+                    <div className="absolute -top-1 -right-1">
+                      <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                    </div>
+                  )}
                 </Button>
               );
             })}

@@ -133,46 +133,91 @@ export function SocialMediaIntegration() {
       if (error) throw error;
 
       if (data.success && data.data.url) {
-        // Open auth URL in a popup
+        // Open auth URL in a properly configured popup that won't redirect parent
         const popup = window.open(
           data.data.url, 
           'ayrshare_auth', 
-          'width=600,height=700,scrollbars=yes,resizable=yes'
+          'width=600,height=700,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,directories=no,status=no'
         );
 
         if (!popup) {
           throw new Error('Popup blocked. Please allow popups for this site.');
         }
 
-        // Check for popup completion with better messaging
+        // Prevent popup from affecting parent window
+        popup.focus();
+
+        // Listen for messages from the popup
+        const messageListener = (event: MessageEvent) => {
+          // Only accept messages from Ayrshare domain
+          if (event.origin !== 'https://profile.ayrshare.com') {
+            return;
+          }
+
+          if (event.data.type === 'AYRSHARE_AUTH_SUCCESS') {
+            window.removeEventListener('message', messageListener);
+            popup.close();
+            
+            toast({
+              title: "Authentication successful",
+              description: "Your account has been connected successfully!",
+            });
+            
+            loadConnectedProfiles();
+          } else if (event.data.type === 'AYRSHARE_AUTH_ERROR') {
+            window.removeEventListener('message', messageListener);
+            popup.close();
+            
+            toast({
+              title: "Authentication failed",
+              description: event.data.message || "There was an error connecting your account.",
+              variant: "destructive"
+            });
+          }
+        };
+
+        window.addEventListener('message', messageListener);
+
+        // Fallback: Check if popup is closed manually
         let checkCount = 0;
-        const maxChecks = 300; // 5 minutes (checking every second)
+        const maxChecks = 300; // 5 minutes
         
         const checkClosed = setInterval(() => {
           checkCount++;
           
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            
-            toast({
-              title: "Authentication window closed",
-              description: "Checking for connected accounts...",
-            });
-            
-            // Refresh profiles after auth
-            setTimeout(() => {
-              loadConnectedProfiles();
-            }, 2000);
-          } else if (checkCount >= maxChecks) {
-            // JWT expired (5 minutes)
-            clearInterval(checkClosed);
-            popup.close();
-            
-            toast({
-              title: "Authentication session expired",
-              description: "Please try connecting your accounts again.",
-              variant: "destructive"
-            });
+          try {
+            // Check if popup is closed
+            if (popup.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              
+              toast({
+                title: "Authentication window closed",
+                description: "Checking for connected accounts...",
+              });
+              
+              // Refresh profiles after popup closes
+              setTimeout(() => {
+                loadConnectedProfiles();
+              }, 2000);
+            } else if (checkCount >= maxChecks) {
+              // Session expired
+              clearInterval(checkClosed);
+              window.removeEventListener('message', messageListener);
+              
+              if (!popup.closed) {
+                popup.close();
+              }
+              
+              toast({
+                title: "Authentication session expired",
+                description: "Please try connecting your accounts again.",
+                variant: "destructive"
+              });
+            }
+          } catch (e) {
+            // Popup might be from different origin, can't access its properties
+            // Continue checking
           }
         }, 1000);
       } else {

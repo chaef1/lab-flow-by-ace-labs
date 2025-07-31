@@ -125,6 +125,10 @@ async function generateJWT(data: any) {
     profileKey: profileKey
   }
 
+  console.log('JWT request - Profile Key:', profileKey)
+  console.log('JWT request - Domain:', ayrshareDomain)
+  console.log('JWT request body (without private key):', { domain: ayrshareDomain, profileKey: profileKey })
+
   console.log('Private key format check:', {
     hasBeginMarker: privateKey.includes('-----BEGIN RSA PRIVATE KEY-----'),
     hasEndMarker: privateKey.includes('-----END RSA PRIVATE KEY-----'),

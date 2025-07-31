@@ -187,12 +187,20 @@ export function SocialMediaIntegration() {
       if (error) throw error;
 
       if (data.success && data.data.url) {
-        // Open auth URL in a properly configured popup that won't redirect parent
+        console.log('🔗 Opening auth popup with URL:', data.data.url);
+        console.log('🔗 Profile key in response:', data.data.profileKey);
+        
+        // Create a unique popup name based on user ID and timestamp to ensure complete isolation
+        const popupName = `ayrshare_auth_${currentUserId}_${Date.now()}`;
+        
+        // Open auth URL in a completely isolated popup with unique name
         const popup = window.open(
           data.data.url, 
-          'ayrshare_auth', 
+          popupName, 
           'width=600,height=700,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,directories=no,status=no'
         );
+
+        console.log('🔗 Popup opened with name:', popupName);
 
         if (!popup) {
           throw new Error('Popup blocked. Please allow popups for this site.');

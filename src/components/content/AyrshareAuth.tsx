@@ -57,9 +57,36 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
   const handleConnectAccounts = async () => {
     setIsLoading(true);
     try {
-      // For business plan, we need to create a user profile key first
-      // For now, we'll use a default profile key - in production you'd get this from user management
-      const profileKey = 'default-profile';
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // First check if user has an Ayrshare profile, if not create one
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('ayrshare_profile_key')
+        .eq('id', user.id)
+        .single();
+
+      let profileKey = profile?.ayrshare_profile_key;
+
+      if (!profileKey) {
+        // Create Ayrshare profile first
+        const { data: createData, error: createError } = await supabase.functions.invoke('ayrshare-auth', {
+          body: { 
+            action: 'create_profile',
+            userId: user.id,
+            userName: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email
+          }
+        });
+
+        if (createError) throw createError;
+
+        if (!createData.success) {
+          throw new Error(createData.error || 'Failed to create Ayrshare profile');
+        }
+
+        profileKey = createData.data.profileKey;
+      }
       
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
         body: { 

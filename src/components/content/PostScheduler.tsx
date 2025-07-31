@@ -45,8 +45,23 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
   const loadProfiles = async () => {
     setIsLoadingProfiles(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get user's profile key
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('ayrshare_profile_key')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.ayrshare_profile_key) return;
+
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
-        body: { action: 'get_profiles' }
+        body: { 
+          action: 'get_profiles',
+          profileKey: profile.ayrshare_profile_key
+        }
       });
 
       if (error) throw error;
@@ -154,8 +169,19 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
         scheduleDatetime = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
       }
 
-      // Call Ayrshare API with default profile key
-      const profileKey = connectedProfiles.length > 0 ? connectedProfiles[0].profileKey : 'default-profile';
+      // Get user's profile key for posting
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('ayrshare_profile_key')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.ayrshare_profile_key) {
+        throw new Error('No Ayrshare profile found. Please connect your social media accounts first.');
+      }
       
       const { data, error } = await supabase.functions.invoke('ayrshare-post-schedule', {
         body: {
@@ -165,7 +191,7 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
           scheduleDate: scheduleDatetime,
           mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
           shortenLinks,
-          profileKey
+          profileKey: profile.ayrshare_profile_key
         }
       });
 

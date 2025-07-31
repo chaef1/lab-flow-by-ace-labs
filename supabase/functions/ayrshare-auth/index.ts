@@ -20,6 +20,8 @@ Deno.serve(async (req) => {
     console.log(`Ayrshare auth action: ${action}`)
 
     switch (action) {
+      case 'create_profile':
+        return await createProfile(requestData)
       case 'generate_jwt':
         return await generateJWT(requestData)
       case 'get_auth_url':
@@ -49,12 +51,60 @@ Deno.serve(async (req) => {
   }
 })
 
+async function createProfile(data: any) {
+  const { supabase, userId, userName } = data
+  
+  console.log('Creating Ayrshare profile for user:', userId)
+
+  const ayrshareUrl = 'https://api.ayrshare.com/api/profiles'
+  
+  const requestBody = {
+    name: userName || `User ${userId}`
+  }
+
+  const response = await fetch(ayrshareUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${ayrshareApiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  })
+
+  const responseData = await response.json()
+  console.log('Profile creation response:', responseData)
+
+  if (!response.ok) {
+    throw new Error(`Ayrshare API error: ${response.status} - ${JSON.stringify(responseData)}`)
+  }
+
+  // Store the profile key in our database
+  if (responseData.profileKey && userId) {
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey)
+    await supabaseClient
+      .from('profiles')
+      .update({ ayrshare_profile_key: responseData.profileKey })
+      .eq('id', userId)
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      data: responseData
+    }),
+    {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    }
+  )
+}
+
 async function generateJWT(data: any) {
   const { profileKey } = data
   
   console.log('Generating JWT for profile:', profileKey)
 
-  const ayrshareUrl = 'https://app.ayrshare.com/api/generateJWT'
+  const ayrshareUrl = 'https://api.ayrshare.com/api/profiles/generateJWT'
   
   const requestBody = {
     domain: ayrshareDomain,

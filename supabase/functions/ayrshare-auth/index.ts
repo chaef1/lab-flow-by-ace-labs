@@ -175,7 +175,7 @@ async function getAuthUrl(data: any) {
 async function getProfiles(profileKey?: string) {
   console.log('Getting connected profiles for profile:', profileKey)
 
-  const ayrshareUrl = 'https://app.ayrshare.com/api/profiles'
+  const ayrshareUrl = 'https://api.ayrshare.com/api/profiles'
   
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${ayrshareApiKey}`
@@ -198,10 +198,21 @@ async function getProfiles(profileKey?: string) {
     throw new Error(`Ayrshare API error: ${response.status} - ${JSON.stringify(responseData)}`)
   }
 
+  // Transform the response to match our expected format
+  const transformedData = {
+    profiles: responseData.profiles?.map((profile: any) => ({
+      platform: profile.platform || 'unknown',
+      username: profile.username || profile.name || profile.title,
+      profileKey: profileKey,
+      status: profile.status || 'active',
+      refId: profile.refId
+    })) || []
+  }
+
   return new Response(
     JSON.stringify({
       success: true,
-      data: responseData
+      data: transformedData
     }),
     {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -213,7 +224,7 @@ async function getProfiles(profileKey?: string) {
 async function getProfileStatus(profileKey?: string) {
   console.log('Getting profile status for profile:', profileKey)
 
-  const ayrshareUrl = 'https://app.ayrshare.com/api/user'
+  const ayrshareUrl = 'https://api.ayrshare.com/api/user'
   
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${ayrshareApiKey}`
@@ -250,7 +261,7 @@ async function getProfileStatus(profileKey?: string) {
 async function unlinkProfile(profileKey: string) {
   console.log('Unlinking profile:', profileKey)
 
-  const ayrshareUrl = 'https://app.ayrshare.com/api/profiles/unlink'
+  const ayrshareUrl = 'https://api.ayrshare.com/api/profiles/unlink'
   
   const response = await fetch(ayrshareUrl, {
     method: 'DELETE',

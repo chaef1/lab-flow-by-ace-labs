@@ -281,8 +281,14 @@ export function SocialMediaIntegration() {
 
         <Alert>
           <AlertDescription className="text-sm">
-            <strong>Security Note:</strong> Your social media credentials are never stored in our system. 
-            Authentication is handled securely through Ayrshare's OAuth integration with each platform.
+            <strong>How it works:</strong> Click "Connect" to authenticate with each platform through Ayrshare's secure integration. 
+            Once connected, you can schedule posts across all linked platforms from the Content Scheduler.
+          </AlertDescription>
+        </Alert>
+
+        <Alert>
+          <AlertDescription className="text-sm">
+            <strong>Setup Required:</strong> If authentication fails, please check that your Ayrshare private key is properly configured with the correct RSA format including header/footer lines.
           </AlertDescription>
         </Alert>
       </CardContent>

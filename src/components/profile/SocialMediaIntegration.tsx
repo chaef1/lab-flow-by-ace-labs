@@ -12,6 +12,7 @@ interface ConnectedProfile {
   username: string;
   profileKey: string;
   status: string;
+  activeSocialAccounts?: string[];
 }
 
 export function SocialMediaIntegration() {
@@ -70,6 +71,7 @@ export function SocialMediaIntegration() {
 
       if (data.success && data.data) {
         const profiles = data.data.profiles || [];
+        console.log('Connected profiles loaded:', profiles);
         setConnectedProfiles(profiles);
       }
     } catch (error: any) {
@@ -277,9 +279,14 @@ export function SocialMediaIntegration() {
   };
 
   const getConnectedProfile = (platformId: string) => {
-    return connectedProfiles.find(profile => 
-      profile.platform.toLowerCase() === platformId.toLowerCase()
-    );
+    return connectedProfiles.find(profile => {
+      // Check if the profile has activeSocialAccounts array (new format)
+      if (profile.activeSocialAccounts && Array.isArray(profile.activeSocialAccounts)) {
+        return profile.activeSocialAccounts.includes(platformId.toLowerCase());
+      }
+      // Fallback to platform field (old format)
+      return profile.platform.toLowerCase() === platformId.toLowerCase();
+    });
   };
 
   return (

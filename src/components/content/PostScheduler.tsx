@@ -18,6 +18,7 @@ interface ConnectedProfile {
   username: string;
   profileKey: string;
   status: string;
+  activeSocialAccounts?: string[];
 }
 
 interface PostSchedulerProps {
@@ -86,10 +87,16 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
   };
 
   const isPlatformConnected = (platformId: string) => {
-    return connectedProfiles.some(profile => 
-      profile.platform.toLowerCase() === platformId.toLowerCase() && 
-      profile.status === 'active'
-    );
+    return connectedProfiles.some(profile => {
+      if (profile.status !== 'active') return false;
+      
+      // Check if the profile has activeSocialAccounts array (new format)
+      if (profile.activeSocialAccounts && Array.isArray(profile.activeSocialAccounts)) {
+        return profile.activeSocialAccounts.includes(platformId.toLowerCase());
+      }
+      // Fallback to platform field (old format)
+      return profile.platform.toLowerCase() === platformId.toLowerCase();
+    });
   };
 
   const platforms = [

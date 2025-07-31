@@ -59,6 +59,7 @@ async function createProfile(data: any) {
   const ayrshareUrl = 'https://api.ayrshare.com/api/profiles'
   
   const requestBody = {
+    title: userName || `User ${userId}`,
     name: userName || `User ${userId}`
   }
 

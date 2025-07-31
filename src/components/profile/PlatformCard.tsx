@@ -16,6 +16,7 @@ interface ConnectedProfile {
   username: string;
   profileKey: string;
   status: string;
+  activeSocialAccounts?: string[];
 }
 
 interface PlatformCardProps {

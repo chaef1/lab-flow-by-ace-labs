@@ -278,15 +278,43 @@ export function SocialMediaIntegration() {
     }
   };
 
-  const getConnectedProfile = (platformId: string) => {
-    return connectedProfiles.find(profile => {
-      // Check if the profile has activeSocialAccounts array (new format)
-      if (profile.activeSocialAccounts && Array.isArray(profile.activeSocialAccounts)) {
-        return profile.activeSocialAccounts.includes(platformId.toLowerCase());
+  const getConnectedProfile = (platformId: string): ConnectedProfile | undefined => {
+    console.log('Checking connection for platform:', platformId);
+    console.log('Available profiles:', connectedProfiles);
+    
+    const mainProfile = connectedProfiles.find(profile => profile.status === 'active');
+    if (!mainProfile) {
+      console.log('No active profile found');
+      return undefined;
+    }
+    
+    console.log('Main profile:', mainProfile);
+    
+    // Check if the platform is in activeSocialAccounts array
+    if (mainProfile.activeSocialAccounts && Array.isArray(mainProfile.activeSocialAccounts)) {
+      const isConnected = mainProfile.activeSocialAccounts.includes(platformId.toLowerCase());
+      console.log(`Platform ${platformId} connected:`, isConnected);
+      
+      if (isConnected) {
+        // Return a synthetic profile for this platform
+        return {
+          platform: platformId,
+          username: mainProfile.username,
+          profileKey: mainProfile.profileKey,
+          status: mainProfile.status,
+          activeSocialAccounts: mainProfile.activeSocialAccounts
+        };
       }
-      // Fallback to platform field (old format)
-      return profile.platform.toLowerCase() === platformId.toLowerCase();
-    });
+    }
+    
+    // Fallback to platform field matching (old format)
+    const platformProfile = connectedProfiles.find(profile => 
+      profile.platform.toLowerCase() === platformId.toLowerCase() && 
+      profile.status === 'active'
+    );
+    
+    console.log(`Platform ${platformId} fallback match:`, !!platformProfile);
+    return platformProfile;
   };
 
   return (

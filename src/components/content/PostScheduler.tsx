@@ -8,10 +8,18 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Calendar, Clock, Send, Image, Link, Instagram, Youtube, Linkedin, Twitter, Facebook, Upload, AlertTriangle, Settings } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Calendar, Clock, Send, Image, Link, Instagram, Youtube, Linkedin, Twitter, Facebook, Upload, AlertTriangle, Settings, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AyrshareAuth } from './AyrshareAuth';
+
+interface ConnectedProfile {
+  platform: string;
+  username: string;
+  profileKey: string;
+  status: string;
+}
 
 interface PostSchedulerProps {
   onPostScheduled?: () => void;
@@ -26,15 +34,42 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
   const [shortenLinks, setShortenLinks] = useState(true);
   const [isScheduling, setIsScheduling] = useState(false);
   const [showAuthSetup, setShowAuthSetup] = useState(false);
+  const [connectedProfiles, setConnectedProfiles] = useState<ConnectedProfile[]>([]);
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
   const { toast } = useToast();
 
-  // Simplified approach - no profile checking required for basic Ayrshare plans
+  useEffect(() => {
+    loadProfiles();
+  }, []);
+
+  const loadProfiles = async () => {
+    setIsLoadingProfiles(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
+        body: { action: 'get_profiles' }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setConnectedProfiles(data.profiles || []);
+      }
+    } catch (error) {
+      console.error('Error loading profiles:', error);
+    } finally {
+      setIsLoadingProfiles(false);
+    }
+  };
+
   const isAnyPlatformConnected = () => {
-    return true; // Allow posting - Ayrshare handles authentication internally
+    return connectedProfiles.length > 0;
   };
 
   const isPlatformConnected = (platformId: string) => {
-    return true; // Allow all platforms - Ayrshare will handle auth per platform
+    return connectedProfiles.some(profile => 
+      profile.platform.toLowerCase() === platformId.toLowerCase() && 
+      profile.status === 'active'
+    );
   };
 
   const platforms = [
@@ -79,8 +114,16 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       return;
     }
 
-    // Note: With basic Ayrshare plan, we post directly and Ayrshare handles platform authentication
-    // If platforms aren't connected, Ayrshare will return an error with details
+    // Check if selected platforms are connected
+    const unconnectedPlatforms = selectedPlatforms.filter(platform => !isPlatformConnected(platform));
+    if (unconnectedPlatforms.length > 0) {
+      toast({
+        title: "Platforms not connected",
+        description: `Please connect: ${unconnectedPlatforms.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsScheduling(true);
 
@@ -197,22 +240,69 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">
-        {/* Ayrshare Authentication Info */}
-        <Alert className="border-blue-200 bg-blue-50">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Social Media Authentication:</strong> Connect your social media accounts directly in your{' '}
-            <a 
-              href="https://app.ayrshare.com/profiles" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline"
-            >
-              Ayrshare dashboard
-            </a>{' '}
-            to post to different platforms.
-          </AlertDescription>
-        </Alert>
+        {/* Connected Accounts Status */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-semibold">Connected Accounts</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadProfiles}
+                disabled={isLoadingProfiles}
+                className="h-8"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingProfiles ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8">
+                    <Settings className="h-3 w-3 mr-1" />
+                    Manage
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Manage Social Media Accounts</DialogTitle>
+                    <DialogDescription>
+                      Connect and manage your social media accounts for posting
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AyrshareAuth onAuthChange={loadProfiles} />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+          
+          {isLoadingProfiles ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              Loading connected accounts...
+            </div>
+          ) : connectedProfiles.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {connectedProfiles.map((profile, index) => (
+                <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                  {profile.status === 'active' ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                  <span className="text-sm font-medium">{profile.platform}</span>
+                  <span className="text-xs text-muted-foreground">@{profile.username}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Alert className="border-orange-200 bg-orange-50">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                No connected accounts found. Use the "Manage" button above to connect your social media accounts.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
 
         {/* Platform Selection */}
         <div className="space-y-3">
@@ -221,20 +311,31 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
             {platforms.map((platform) => {
               const Icon = platform.icon;
               const isSelected = selectedPlatforms.includes(platform.id);
+              const isConnected = isPlatformConnected(platform.id);
               
               return (
                 <Button
                   key={platform.id}
                   variant={isSelected ? "default" : "outline"}
                   onClick={() => togglePlatform(platform.id)}
-                  className={`flex flex-col items-center gap-2 p-4 h-auto ${
+                  className={`relative flex flex-col items-center gap-2 p-4 h-auto ${
                     isSelected 
                       ? `bg-gradient-to-r ${platform.gradient} text-white border-0` 
                       : 'hover:bg-muted'
-                  }`}
+                  } ${!isConnected ? 'opacity-60' : ''}`}
                 >
-                  <Icon className="h-5 w-5" />
+                  <div className="relative">
+                    <Icon className="h-5 w-5" />
+                    {isConnected ? (
+                      <CheckCircle className="absolute -top-1 -right-1 h-3 w-3 text-green-500 bg-white rounded-full" />
+                    ) : (
+                      <XCircle className="absolute -top-1 -right-1 h-3 w-3 text-red-500 bg-white rounded-full" />
+                    )}
+                  </div>
                   <span className="text-xs font-medium">{platform.name}</span>
+                  {!isConnected && (
+                    <span className="text-xs opacity-75">Not connected</span>
+                  )}
                 </Button>
               );
             })}

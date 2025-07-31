@@ -30,8 +30,9 @@ import {
 import { Badge } from '@/components/ui/badge';
 import DocumentUpload from '@/components/profile/DocumentUpload';
 import ContractsList from '@/components/profile/ContractsList';
+import { SocialMediaIntegration } from '@/components/profile/SocialMediaIntegration';
 import DashboardLayout from '@/components/layout/Dashboard';
-import { Upload, Building, FileCheck, Settings, UserCog, File, Edit, ArrowLeft, Camera } from 'lucide-react';
+import { Upload, Building, FileCheck, Settings, UserCog, File, Edit, ArrowLeft, Camera, Share2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const Profile = () => {
@@ -214,9 +215,12 @@ const Profile = () => {
           onValueChange={setActiveTab}
         >
           <div className="bg-card rounded-lg shadow-sm p-1">
-            <TabsList className="grid grid-cols-1 md:grid-cols-4 gap-2 p-1">
+            <TabsList className="grid grid-cols-1 md:grid-cols-5 gap-2 p-1">
               <TabsTrigger value="general" className="flex gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Settings className="h-4 w-4" /> General
+              </TabsTrigger>
+              <TabsTrigger value="social" className="flex gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Share2 className="h-4 w-4" /> Social Media
               </TabsTrigger>
               <TabsTrigger value="documents" className="flex gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Upload className="h-4 w-4" /> Documents
@@ -366,6 +370,10 @@ const Profile = () => {
                 </CardFooter>
               )}
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="social" className="space-y-4 animate-fadeIn">
+            <SocialMediaIntegration />
           </TabsContent>
           
           <TabsContent value="documents" className="space-y-4 animate-fadeIn">

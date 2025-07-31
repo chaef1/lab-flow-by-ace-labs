@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ExternalLink, CheckCircle, XCircle, Unlink, Loader, RefreshCw } from 'lucide-react';
+import { Loader, RefreshCw, Instagram, Youtube, Linkedin, Twitter, Facebook, AlertTriangle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PlatformCard } from './PlatformCard';
 
 interface ConnectedProfile {
   platform: string;
@@ -14,22 +14,27 @@ interface ConnectedProfile {
   status: string;
 }
 
-interface AyrshareAuthProps {
-  onAuthChange: () => void;
-}
-
-export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
+export function SocialMediaIntegration() {
   const [connectedProfiles, setConnectedProfiles] = useState<ConnectedProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
 
+  const platforms = [
+    { id: 'instagram', name: 'Instagram', icon: Instagram, gradient: 'from-purple-500 to-pink-500' },
+    { id: 'facebook', name: 'Facebook', icon: Facebook, gradient: 'from-blue-500 to-blue-600' },
+    { id: 'twitter', name: 'Twitter', icon: Twitter, gradient: 'from-sky-400 to-blue-500' },
+    { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, gradient: 'from-blue-600 to-blue-700' },
+    { id: 'youtube', name: 'YouTube', icon: Youtube, gradient: 'from-red-500 to-red-600' },
+    { id: 'tiktok', name: 'TikTok', icon: () => <div className="text-sm font-bold">♪</div>, gradient: 'from-black to-gray-800' }
+  ];
+
   useEffect(() => {
-    loadProfiles();
+    loadConnectedProfiles();
   }, []);
 
-  const loadProfiles = async () => {
-    setIsRefreshing(true);
+  const loadConnectedProfiles = async () => {
+    setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -66,7 +71,6 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
       if (data.success && data.data) {
         const profiles = data.data.profiles || [];
         setConnectedProfiles(profiles);
-        onAuthChange();
       }
     } catch (error: any) {
       console.error('Error loading profiles:', error);
@@ -76,12 +80,12 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
         variant: "destructive"
       });
     } finally {
-      setIsRefreshing(false);
+      setIsLoading(false);
     }
   };
 
-  const handleConnectAccounts = async () => {
-    setIsLoading(true);
+  const handleConnectPlatform = async (platformId: string) => {
+    setIsConnecting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
@@ -157,7 +161,7 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
             
             // Refresh profiles after auth
             setTimeout(() => {
-              loadProfiles();
+              loadConnectedProfiles();
             }, 2000);
           } else if (checkCount >= maxChecks) {
             // JWT expired (5 minutes)
@@ -175,18 +179,18 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
         throw new Error('Failed to get authentication URL');
       }
     } catch (error: any) {
-      console.error('Error getting auth URL:', error);
+      console.error('Error connecting platform:', error);
       toast({
         title: "Failed to start authentication",
         description: error.message,
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsConnecting(false);
     }
   };
 
-  const handleUnlinkProfile = async (profileKey: string, platform: string) => {
+  const handleDisconnectPlatform = async (profileKey: string, platform: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
         body: { 
@@ -202,7 +206,7 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
           title: "Account disconnected",
           description: `${platform} account has been disconnected`
         });
-        loadProfiles();
+        loadConnectedProfiles();
       } else {
         throw new Error(data.error || 'Failed to unlink profile');
       }
@@ -216,99 +220,69 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
     }
   };
 
-  const getPlatformColor = (platform: string) => {
-    const colors: Record<string, string> = {
-      facebook: 'bg-blue-100 text-blue-800',
-      instagram: 'bg-pink-100 text-pink-800',
-      twitter: 'bg-sky-100 text-sky-800',
-      linkedin: 'bg-blue-100 text-blue-800',
-      youtube: 'bg-red-100 text-red-800',
-      tiktok: 'bg-gray-100 text-gray-800'
-    };
-    return colors[platform] || 'bg-gray-100 text-gray-800';
+  const getConnectedProfile = (platformId: string) => {
+    return connectedProfiles.find(profile => 
+      profile.platform.toLowerCase() === platformId.toLowerCase()
+    );
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          Social Media Accounts
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Social Media Integration</CardTitle>
+            <CardDescription>
+              Connect your social media accounts to enable cross-platform posting
+            </CardDescription>
+          </div>
           <Button
             variant="outline"
             size="sm"
-            onClick={loadProfiles}
-            disabled={isRefreshing}
+            onClick={loadConnectedProfiles}
+            disabled={isLoading}
           >
-            {isRefreshing ? (
+            {isLoading ? (
               <Loader className="h-4 w-4 animate-spin" />
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
           </Button>
-        </CardTitle>
-        <CardDescription>
-          Connect your social media accounts to post content across platforms
-        </CardDescription>
+        </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
-        {connectedProfiles.length === 0 ? (
+      <CardContent className="space-y-6">
+        {connectedProfiles.length === 0 && !isLoading && (
           <Alert>
+            <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              No social media accounts connected. Connect your accounts to start posting.
+              Connect your social media accounts to start posting across platforms. 
+              Each platform requires separate authentication through their secure login process.
             </AlertDescription>
           </Alert>
-        ) : (
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium">Connected Accounts</h3>
-            {connectedProfiles.map((profile, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Badge className={getPlatformColor(profile.platform)}>
-                    {profile.platform}
-                  </Badge>
-                  <span className="font-medium">{profile.username || 'Unknown'}</span>
-                  {profile.status === 'active' ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-red-500" />
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleUnlinkProfile(profile.profileKey, profile.platform)}
-                >
-                  <Unlink className="h-4 w-4 mr-2" />
-                  Disconnect
-                </Button>
-              </div>
-            ))}
-          </div>
         )}
 
-        <Button
-          onClick={handleConnectAccounts}
-          disabled={isLoading}
-          className="w-full"
-        >
-          {isLoading ? (
-            <>
-              <Loader className="mr-2 h-4 w-4 animate-spin" />
-              Opening Authentication...
-            </>
-          ) : (
-            <>
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Connect Social Media Accounts
-            </>
-          )}
-        </Button>
+        <div className="grid gap-4">
+          {platforms.map((platform) => {
+            const connectedProfile = getConnectedProfile(platform.id);
+            
+            return (
+              <PlatformCard
+                key={platform.id}
+                platform={platform}
+                connectedProfile={connectedProfile}
+                onConnect={handleConnectPlatform}
+                onDisconnect={handleDisconnectPlatform}
+                isConnecting={isConnecting}
+              />
+            );
+          })}
+        </div>
 
         <Alert>
           <AlertDescription className="text-sm">
-            <strong>Note:</strong> You'll be redirected to Ayrshare to authenticate with your social media accounts. 
-            This is secure and allows you to post to multiple platforms from one place.
+            <strong>Security Note:</strong> Your social media credentials are never stored in our system. 
+            Authentication is handled securely through Ayrshare's OAuth integration with each platform.
           </AlertDescription>
         </Alert>
       </CardContent>

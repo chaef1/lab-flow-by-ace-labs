@@ -9,10 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, Clock, Send, Image, Link, Instagram, Youtube, Linkedin, Twitter, Facebook, Upload, AlertTriangle, Settings, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, Clock, Send, Image, Link, Instagram, Youtube, Linkedin, Twitter, Facebook, Upload, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { AyrshareAuth } from './AyrshareAuth';
 
 interface ConnectedProfile {
   platform: string;
@@ -33,7 +32,6 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [shortenLinks, setShortenLinks] = useState(true);
   const [isScheduling, setIsScheduling] = useState(false);
-  const [showAuthSetup, setShowAuthSetup] = useState(false);
   const [connectedProfiles, setConnectedProfiles] = useState<ConnectedProfile[]>([]);
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
   const { toast } = useToast();
@@ -235,7 +233,7 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       if (error.message.includes('authentication') || error.message.includes('connect')) {
         toast({
           title: "Social Media Authentication Required",
-          description: "Please connect your social media accounts in Ayrshare dashboard first",
+          description: "Please go to your Profile → Social Media tab to connect your accounts first",
           variant: "destructive"
         });
       } else {
@@ -280,69 +278,15 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">
-        {/* Connected Accounts Status */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-base font-semibold">Connected Accounts</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadProfiles}
-                disabled={isLoadingProfiles}
-                className="h-8"
-              >
-                <RefreshCw className={`h-3 w-3 mr-1 ${isLoadingProfiles ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8">
-                    <Settings className="h-3 w-3 mr-1" />
-                    Manage
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Manage Social Media Accounts</DialogTitle>
-                    <DialogDescription>
-                      Connect and manage your social media accounts for posting
-                    </DialogDescription>
-                  </DialogHeader>
-                  <AyrshareAuth onAuthChange={loadProfiles} />
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-          
-          {isLoadingProfiles ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Loading connected accounts...
-            </div>
-          ) : connectedProfiles.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {connectedProfiles.map((profile, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                  {profile.status === 'active' ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-red-500" />
-                  )}
-                  <span className="text-sm font-medium">{profile.platform}</span>
-                  <span className="text-xs text-muted-foreground">@{profile.username}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Alert className="border-orange-200 bg-orange-50">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                No connected accounts found. Use the "Manage" button above to connect your social media accounts.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
+        {/* Connected Accounts Status - Simplified */}
+        {!isAnyPlatformConnected() && (
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No social media accounts connected. Go to your <strong>Profile</strong> to connect accounts before posting.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Platform Selection */}
         <div className="space-y-3">

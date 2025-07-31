@@ -173,8 +173,8 @@ async function getAuthUrl(data: any) {
     throw new Error('Failed to generate JWT')
   }
 
-  const jwt = jwtData.data.jwt
-  const ssoUrl = `https://profile.ayrshare.com/social-accounts?domain=${ayrshareDomain}&jwt=${jwt}`
+  const jwt = jwtData.data.token || jwtData.data.jwt
+  const ssoUrl = `https://profile.ayrshare.com?domain=${ayrshareDomain}&jwt=${jwt}`
 
   return new Response(
     JSON.stringify({

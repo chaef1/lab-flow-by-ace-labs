@@ -196,10 +196,21 @@ export function SocialMediaIntegration() {
                 description: "Checking for connected accounts...",
               });
               
-              // Refresh profiles after popup closes
-              setTimeout(() => {
-                loadConnectedProfiles();
-              }, 2000);
+              // Refresh profiles after popup closes with multiple attempts
+              let attempts = 0;
+              const maxAttempts = 3;
+              
+              const checkForNewConnection = async () => {
+                attempts++;
+                await loadConnectedProfiles();
+                
+                // If still no new connections after a few seconds, try again
+                if (attempts < maxAttempts) {
+                  setTimeout(checkForNewConnection, 3000);
+                }
+              };
+              
+              setTimeout(checkForNewConnection, 2000);
             } else if (checkCount >= maxChecks) {
               // Session expired
               clearInterval(checkClosed);

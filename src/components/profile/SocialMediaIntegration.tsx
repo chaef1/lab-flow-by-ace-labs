@@ -37,7 +37,14 @@ export function SocialMediaIntegration() {
   // Add effect to reload profiles when user changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_OUT') {
+        // Immediately clear connected profiles when user signs out
+        setConnectedProfiles([]);
+        setIsLoading(false);
+      } else if (event === 'SIGNED_IN') {
+        // Load profiles for the new user
         loadConnectedProfiles();
       }
     });

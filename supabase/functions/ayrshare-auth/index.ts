@@ -4,6 +4,8 @@ import { corsHeaders } from '../_shared/cors.ts'
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')!
+const ayrsharePrivateKey = Deno.env.get('AYRSHARE_PRIVATE_KEY')!
+const ayrshareDomain = Deno.env.get('AYRSHARE_DOMAIN')!
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -18,12 +20,14 @@ Deno.serve(async (req) => {
     console.log(`Ayrshare auth action: ${action}`)
 
     switch (action) {
+      case 'generate_jwt':
+        return await generateJWT(requestData)
       case 'get_auth_url':
         return await getAuthUrl(requestData)
       case 'get_profiles':
-        return await getProfiles()
+        return await getProfiles(requestData.profileKey)
       case 'get_profile_status':
-        return await getProfileStatus()
+        return await getProfileStatus(requestData.profileKey)
       case 'unlink_profile':
         return await unlinkProfile(requestData.profileKey)
       default:
@@ -45,15 +49,17 @@ Deno.serve(async (req) => {
   }
 })
 
-async function getAuthUrl(data: any) {
-  const { platforms } = data
+async function generateJWT(data: any) {
+  const { profileKey } = data
   
-  console.log('Getting auth URL for platforms:', platforms)
+  console.log('Generating JWT for profile:', profileKey)
 
-  const ayrshareUrl = 'https://app.ayrshare.com/api/profiles/generateAuthURL'
+  const ayrshareUrl = 'https://app.ayrshare.com/api/generateJWT'
   
   const requestBody = {
-    platforms: platforms || ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok']
+    domain: ayrshareDomain,
+    privateKey: ayrsharePrivateKey,
+    profileKey: profileKey
   }
 
   const response = await fetch(ayrshareUrl, {
@@ -66,7 +72,7 @@ async function getAuthUrl(data: any) {
   })
 
   const responseData = await response.json()
-  console.log('Ayrshare auth URL response:', responseData)
+  console.log('JWT generation response:', responseData)
 
   if (!response.ok) {
     throw new Error(`Ayrshare API error: ${response.status} - ${JSON.stringify(responseData)}`)
@@ -84,16 +90,54 @@ async function getAuthUrl(data: any) {
   )
 }
 
-async function getProfiles() {
-  console.log('Getting connected profiles')
+async function getAuthUrl(data: any) {
+  const { profileKey } = data
+  
+  console.log('Getting auth URL for profile:', profileKey)
+
+  // First generate JWT
+  const jwtResponse = await generateJWT({ profileKey })
+  const jwtData = await jwtResponse.json()
+  
+  if (!jwtData.success) {
+    throw new Error('Failed to generate JWT')
+  }
+
+  const jwt = jwtData.data.jwt
+  const ssoUrl = `https://profile.ayrshare.com/social-accounts?domain=${ayrshareDomain}&jwt=${jwt}`
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      data: {
+        url: ssoUrl,
+        jwt: jwt
+      }
+    }),
+    {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    }
+  )
+}
+
+async function getProfiles(profileKey?: string) {
+  console.log('Getting connected profiles for profile:', profileKey)
 
   const ayrshareUrl = 'https://app.ayrshare.com/api/profiles'
   
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${ayrshareApiKey}`
+  }
+
+  // Add profile key if provided
+  if (profileKey) {
+    headers['Profile-Key'] = profileKey
+  }
+
   const response = await fetch(ayrshareUrl, {
     method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${ayrshareApiKey}`
-    }
+    headers
   })
 
   const responseData = await response.json()
@@ -115,16 +159,22 @@ async function getProfiles() {
   )
 }
 
-async function getProfileStatus() {
-  console.log('Getting profile status')
+async function getProfileStatus(profileKey?: string) {
+  console.log('Getting profile status for profile:', profileKey)
 
   const ayrshareUrl = 'https://app.ayrshare.com/api/user'
   
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${ayrshareApiKey}`
+  }
+
+  if (profileKey) {
+    headers['Profile-Key'] = profileKey
+  }
+
   const response = await fetch(ayrshareUrl, {
     method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${ayrshareApiKey}`
-    }
+    headers
   })
 
   const responseData = await response.json()
@@ -155,7 +205,8 @@ async function unlinkProfile(profileKey: string) {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${ayrshareApiKey}`
+      'Authorization': `Bearer ${ayrshareApiKey}`,
+      'Profile-Key': profileKey
     },
     body: JSON.stringify({ profileKey })
   })

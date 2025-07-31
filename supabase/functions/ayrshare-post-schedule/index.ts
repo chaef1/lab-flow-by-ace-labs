@@ -21,9 +21,9 @@ Deno.serve(async (req) => {
       case 'schedule_post':
         return await schedulePost(requestData)
       case 'get_scheduled_posts':
-        return await getScheduledPosts()
+        return await getScheduledPosts(requestData.profileKey)
       case 'delete_scheduled_post':
-        return await deleteScheduledPost(requestData.postId)
+        return await deleteScheduledPost(requestData.postId, requestData.profileKey)
       case 'get_analytics':
         return await getAnalytics(requestData)
       default:
@@ -79,17 +79,19 @@ async function schedulePost(data: any) {
     requestBody.shortenLinks = true
   }
 
-  // Add profile key if provided (for multiple accounts)
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${ayrshareApiKey}`
+  }
+
+  // Add profile key header if provided (for multiple accounts)
   if (profileKey) {
-    requestBody.profileKey = profileKey
+    headers['Profile-Key'] = profileKey
   }
 
   const response = await fetch(ayrshareUrl, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${ayrshareApiKey}`
-    },
+    headers,
     body: JSON.stringify(requestBody)
   })
 
@@ -112,16 +114,22 @@ async function schedulePost(data: any) {
   )
 }
 
-async function getScheduledPosts() {
-  console.log('Getting scheduled posts')
+async function getScheduledPosts(profileKey?: string) {
+  console.log('Getting scheduled posts for profile:', profileKey)
 
   const ayrshareUrl = 'https://app.ayrshare.com/api/post'
   
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${ayrshareApiKey}`
+  }
+
+  if (profileKey) {
+    headers['Profile-Key'] = profileKey
+  }
+
   const response = await fetch(ayrshareUrl, {
     method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${ayrshareApiKey}`
-    }
+    headers
   })
 
   const responseData = await response.json()
@@ -143,16 +151,22 @@ async function getScheduledPosts() {
   )
 }
 
-async function deleteScheduledPost(postId: string) {
+async function deleteScheduledPost(postId: string, profileKey?: string) {
   console.log('Deleting scheduled post:', postId)
 
   const ayrshareUrl = `https://app.ayrshare.com/api/post/${postId}`
   
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${ayrshareApiKey}`
+  }
+
+  if (profileKey) {
+    headers['Profile-Key'] = profileKey
+  }
+
   const response = await fetch(ayrshareUrl, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${ayrshareApiKey}`
-    }
+    headers
   })
 
   const responseData = await response.json()
@@ -175,9 +189,9 @@ async function deleteScheduledPost(postId: string) {
 }
 
 async function getAnalytics(data: any) {
-  const { platforms, startDate, endDate } = data
+  const { platforms, startDate, endDate, profileKey } = data
   
-  console.log('Getting analytics:', { platforms, startDate, endDate })
+  console.log('Getting analytics:', { platforms, startDate, endDate, profileKey })
 
   const ayrshareUrl = 'https://app.ayrshare.com/api/analytics/post'
   
@@ -186,11 +200,17 @@ async function getAnalytics(data: any) {
   if (startDate) params.append('startDate', startDate)
   if (endDate) params.append('endDate', endDate)
 
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${ayrshareApiKey}`
+  }
+
+  if (profileKey) {
+    headers['Profile-Key'] = profileKey
+  }
+
   const response = await fetch(`${ayrshareUrl}?${params}`, {
     method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${ayrshareApiKey}`
-    }
+    headers
   })
 
   const responseData = await response.json()

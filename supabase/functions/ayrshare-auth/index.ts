@@ -105,13 +105,32 @@ async function generateJWT(data: any) {
   
   console.log('Generating JWT for profile:', profileKey)
 
+  // Clean and format the private key properly
+  let privateKey = ayrsharePrivateKey.trim()
+  
+  // Ensure proper line breaks if they're missing
+  if (!privateKey.includes('\n')) {
+    privateKey = privateKey
+      .replace('-----BEGIN RSA PRIVATE KEY-----', '-----BEGIN RSA PRIVATE KEY-----\n')
+      .replace('-----END RSA PRIVATE KEY-----', '\n-----END RSA PRIVATE KEY-----')
+      .replace(/(.{64})/g, '$1\n')
+      .replace(/\n\n/g, '\n') // Remove double line breaks
+  }
+
   const ayrshareUrl = 'https://api.ayrshare.com/api/profiles/generateJWT'
   
   const requestBody = {
     domain: ayrshareDomain,
-    privateKey: ayrsharePrivateKey,
+    privateKey: privateKey,
     profileKey: profileKey
   }
+
+  console.log('Private key format check:', {
+    hasBeginMarker: privateKey.includes('-----BEGIN RSA PRIVATE KEY-----'),
+    hasEndMarker: privateKey.includes('-----END RSA PRIVATE KEY-----'),
+    hasLineBreaks: privateKey.includes('\n'),
+    length: privateKey.length
+  })
 
   const response = await fetch(ayrshareUrl, {
     method: 'POST',
@@ -125,7 +144,7 @@ async function generateJWT(data: any) {
   const responseData = await response.json()
   console.log('JWT generation response:', responseData)
 
-  if (!response.ok) {
+  if (!response.ok || responseData.status === 'error') {
     throw new Error(`Ayrshare API error: ${response.status} - ${JSON.stringify(responseData)}`)
   }
 

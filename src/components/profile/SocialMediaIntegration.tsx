@@ -19,6 +19,7 @@ export function SocialMediaIntegration() {
   const [connectedProfiles, setConnectedProfiles] = useState<ConnectedProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const platforms = [
@@ -39,20 +40,31 @@ export function SocialMediaIntegration() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Auth state changed:', event, 'User ID:', session?.user?.id, 'Email:', session?.user?.email);
       
+      const newUserId = session?.user?.id || null;
+      
+      // If user changed, force complete reset
+      if (currentUserId !== newUserId) {
+        console.log('🔄 User ID changed from', currentUserId, 'to', newUserId, '- forcing complete reset');
+        setCurrentUserId(newUserId);
+        setConnectedProfiles([]); // Clear immediately
+        setIsLoading(false);
+      }
+      
       if (event === 'SIGNED_OUT') {
         console.log('🔄 User signed out - clearing connected profiles immediately');
-        // Immediately clear connected profiles when user signs out
         setConnectedProfiles([]);
+        setCurrentUserId(null);
         setIsLoading(false);
-      } else if (event === 'SIGNED_IN') {
-        console.log('🔄 User signed in - loading profiles for new user');
-        // Load profiles for the new user
-        loadConnectedProfiles();
+      } else if (event === 'SIGNED_IN' && newUserId) {
+        console.log('🔄 User signed in - loading profiles for user:', newUserId);
+        setCurrentUserId(newUserId);
+        // Small delay to ensure auth state is fully settled
+        setTimeout(() => loadConnectedProfiles(), 100);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [currentUserId]);
 
   const loadConnectedProfiles = async () => {
     setIsLoading(true);

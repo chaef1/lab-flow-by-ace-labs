@@ -174,14 +174,22 @@ async function getAuthUrl(data: any) {
   }
 
   const jwt = jwtData.data.token || jwtData.data.jwt
-  const ssoUrl = `https://profile.ayrshare.com?domain=${ayrshareDomain}&jwt=${jwt}`
+  
+  // Add cache-busting parameters to ensure fresh authentication
+  const timestamp = Date.now()
+  const randomParam = Math.random().toString(36).substring(7)
+  const ssoUrl = `https://profile.ayrshare.com?domain=${ayrshareDomain}&jwt=${jwt}&t=${timestamp}&r=${randomParam}`
+
+  console.log('Generated auth URL with cache busting for profile:', profileKey, 'URL:', ssoUrl)
 
   return new Response(
     JSON.stringify({
       success: true,
       data: {
         url: ssoUrl,
-        jwt: jwt
+        jwt: jwt,
+        profileKey: profileKey, // Include profile key for debugging
+        timestamp: timestamp
       }
     }),
     {

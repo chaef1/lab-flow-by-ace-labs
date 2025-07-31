@@ -52,7 +52,7 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       if (error) throw error;
 
       if (data.success) {
-        setConnectedProfiles(data.profiles || []);
+        setConnectedProfiles(data.data.profiles || []);
       }
     } catch (error) {
       console.error('Error loading profiles:', error);
@@ -154,7 +154,9 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
         scheduleDatetime = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
       }
 
-      // Call Ayrshare API
+      // Call Ayrshare API with default profile key
+      const profileKey = connectedProfiles.length > 0 ? connectedProfiles[0].profileKey : 'default-profile';
+      
       const { data, error } = await supabase.functions.invoke('ayrshare-post-schedule', {
         body: {
           action: 'schedule_post',
@@ -162,7 +164,8 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
           platforms: selectedPlatforms,
           scheduleDate: scheduleDatetime,
           mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
-          shortenLinks
+          shortenLinks,
+          profileKey
         }
       });
 

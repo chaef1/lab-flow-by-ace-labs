@@ -57,10 +57,14 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
   const handleConnectAccounts = async () => {
     setIsLoading(true);
     try {
+      // For business plan, we need to create a user profile key first
+      // For now, we'll use a default profile key - in production you'd get this from user management
+      const profileKey = 'default-profile';
+      
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
         body: { 
           action: 'get_auth_url',
-          platforms: ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok']
+          profileKey: profileKey
         }
       });
 

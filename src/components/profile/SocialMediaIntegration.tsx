@@ -37,13 +37,15 @@ export function SocialMediaIntegration() {
   // Add effect to reload profiles when user changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
+      console.log('🔄 Auth state changed:', event, 'User ID:', session?.user?.id, 'Email:', session?.user?.email);
       
       if (event === 'SIGNED_OUT') {
+        console.log('🔄 User signed out - clearing connected profiles immediately');
         // Immediately clear connected profiles when user signs out
         setConnectedProfiles([]);
         setIsLoading(false);
       } else if (event === 'SIGNED_IN') {
+        console.log('🔄 User signed in - loading profiles for new user');
         // Load profiles for the new user
         loadConnectedProfiles();
       }
@@ -56,7 +58,10 @@ export function SocialMediaIntegration() {
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('🔍 loadConnectedProfiles - Current user:', user?.id, user?.email);
+      
       if (!user) {
+        console.log('🔍 No user found, clearing profiles');
         setConnectedProfiles([]);
         return;
       }
@@ -64,9 +69,11 @@ export function SocialMediaIntegration() {
       // Get user's profile key
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('ayrshare_profile_key')
+        .select('ayrshare_profile_key, first_name, last_name')
         .eq('id', user.id)
         .maybeSingle();
+
+      console.log('🔍 Profile query result:', { profile, profileError, userId: user.id });
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
@@ -74,9 +81,12 @@ export function SocialMediaIntegration() {
       }
 
       if (!profile?.ayrshare_profile_key) {
+        console.log('🔍 No ayrshare profile key found for user', user.id);
         setConnectedProfiles([]);
         return;
       }
+
+      console.log('🔍 Using profile key:', profile.ayrshare_profile_key, 'for user:', profile.first_name, profile.last_name);
 
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
         body: { 
@@ -85,11 +95,13 @@ export function SocialMediaIntegration() {
         }
       });
 
+      console.log('🔍 Ayrshare response:', data);
+
       if (error) throw error;
 
       if (data.success && data.data) {
         const profiles = data.data.profiles || [];
-        console.log('Connected profiles loaded:', profiles);
+        console.log('🔍 Setting connected profiles for user', user.id, ':', profiles);
         setConnectedProfiles(profiles);
       }
     } catch (error: any) {

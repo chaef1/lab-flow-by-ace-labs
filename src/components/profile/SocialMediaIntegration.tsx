@@ -132,14 +132,17 @@ export function SocialMediaIntegration() {
     setIsConnecting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('🔗 Connecting platform for user:', user?.id, user?.email);
       if (!user) throw new Error('User not authenticated');
 
       // First check if user has an Ayrshare profile, if not create one
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('ayrshare_profile_key')
+        .select('ayrshare_profile_key, first_name, last_name')
         .eq('id', user.id)
         .maybeSingle();
+
+      console.log('🔗 Profile data for connection:', { profile, userId: user.id });
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
@@ -147,8 +150,10 @@ export function SocialMediaIntegration() {
       }
 
       let profileKey = profile?.ayrshare_profile_key;
+      console.log('🔗 Using profile key for auth URL:', profileKey);
 
       if (!profileKey) {
+        console.log('🔗 No profile key found, creating new Ayrshare profile for user:', user.id);
         // Create Ayrshare profile first
         const { data: createData, error: createError } = await supabase.functions.invoke('ayrshare-auth', {
           body: { 
@@ -165,7 +170,10 @@ export function SocialMediaIntegration() {
         }
 
         profileKey = createData.data.profileKey;
+        console.log('🔗 Created new profile key:', profileKey);
       }
+      
+      console.log('🔗 Requesting auth URL with profile key:', profileKey, 'for user:', profile?.first_name, profile?.last_name);
       
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
         body: { 
@@ -173,6 +181,8 @@ export function SocialMediaIntegration() {
           profileKey: profileKey
         }
       });
+
+      console.log('🔗 Auth URL response:', data);
 
       if (error) throw error;
 

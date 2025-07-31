@@ -49,13 +49,20 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       if (!user) return;
 
       // Get user's profile key
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('ayrshare_profile_key')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (!profile?.ayrshare_profile_key) return;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return;
+      }
+
+      if (!profile?.ayrshare_profile_key) {
+        return;
+      }
 
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
         body: { 
@@ -173,11 +180,15 @@ export function PostScheduler({ onPostScheduled }: PostSchedulerProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('ayrshare_profile_key')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (profileError) {
+        throw new Error('Failed to fetch user profile');
+      }
 
       if (!profile?.ayrshare_profile_key) {
         throw new Error('No Ayrshare profile found. Please connect your social media accounts first.');

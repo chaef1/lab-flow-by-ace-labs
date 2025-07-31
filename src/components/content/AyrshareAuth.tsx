@@ -31,8 +31,34 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
   const loadProfiles = async () => {
     setIsRefreshing(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setConnectedProfiles([]);
+        return;
+      }
+
+      // Get user's profile key
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('ayrshare_profile_key')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw new Error('Failed to fetch user profile');
+      }
+
+      if (!profile?.ayrshare_profile_key) {
+        setConnectedProfiles([]);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
-        body: { action: 'get_profiles' }
+        body: { 
+          action: 'get_profiles',
+          profileKey: profile.ayrshare_profile_key
+        }
       });
 
       if (error) throw error;
@@ -61,11 +87,16 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
       if (!user) throw new Error('User not authenticated');
 
       // First check if user has an Ayrshare profile, if not create one
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('ayrshare_profile_key')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw new Error('Failed to fetch user profile');
+      }
 
       let profileKey = profile?.ayrshare_profile_key;
 
@@ -105,14 +136,39 @@ export function AyrshareAuth({ onAuthChange }: AyrshareAuthProps) {
           'width=600,height=700,scrollbars=yes,resizable=yes'
         );
 
-        // Check for popup completion
+        if (!popup) {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
+
+        // Check for popup completion with better messaging
+        let checkCount = 0;
+        const maxChecks = 300; // 5 minutes (checking every second)
+        
         const checkClosed = setInterval(() => {
-          if (popup?.closed) {
+          checkCount++;
+          
+          if (popup.closed) {
             clearInterval(checkClosed);
+            
+            toast({
+              title: "Authentication window closed",
+              description: "Checking for connected accounts...",
+            });
+            
             // Refresh profiles after auth
             setTimeout(() => {
               loadProfiles();
             }, 2000);
+          } else if (checkCount >= maxChecks) {
+            // JWT expired (5 minutes)
+            clearInterval(checkClosed);
+            popup.close();
+            
+            toast({
+              title: "Authentication session expired",
+              description: "Please try connecting your accounts again.",
+              variant: "destructive"
+            });
           }
         }, 1000);
       } else {

@@ -34,6 +34,17 @@ export function SocialMediaIntegration() {
     loadConnectedProfiles();
   }, []);
 
+  // Add effect to reload profiles when user changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        loadConnectedProfiles();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const loadConnectedProfiles = async () => {
     setIsLoading(true);
     try {

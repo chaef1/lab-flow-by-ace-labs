@@ -77,6 +77,9 @@ export function ProfileDisplay({
       <Tabs defaultValue="profile" className="mt-8">
         <TabsList className="mb-6 bg-muted/50">
           <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-white">Profile</TabsTrigger>
+          {profileData.analytics && (
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-white">Analytics</TabsTrigger>
+          )}
           {profileData.posts && profileData.posts.length > 0 && (
             <TabsTrigger value="posts" className="data-[state=active]:bg-primary data-[state=active]:text-white">Posts</TabsTrigger>
           )}
@@ -126,6 +129,100 @@ export function ProfileDisplay({
             )}
           </div>
         </TabsContent>
+
+        {profileData.analytics && (
+          <TabsContent value="analytics">
+            <div className="space-y-6">
+              {/* Engagement Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+                  <div className="text-green-600 text-sm font-medium">Engagement Rate</div>
+                  <div className="font-bold text-xl text-green-800">
+                    {profileData.analytics.engagement?.rate?.toFixed(2) || '0'}%
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                  <div className="text-blue-600 text-sm font-medium">Avg Likes</div>
+                  <div className="font-bold text-xl text-blue-800">
+                    {profileData.analytics.engagement?.avgLikes?.toLocaleString() || '0'}
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                  <div className="text-purple-600 text-sm font-medium">Avg Comments</div>
+                  <div className="font-bold text-xl text-purple-800">
+                    {profileData.analytics.engagement?.avgComments?.toLocaleString() || '0'}
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200">
+                  <div className="text-orange-600 text-sm font-medium">Avg Shares</div>
+                  <div className="font-bold text-xl text-orange-800">
+                    {profileData.analytics.engagement?.avgShares?.toLocaleString() || '0'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Authenticity Score */}
+              {profileData.analytics.authenticity && (
+                <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+                  <h4 className="font-medium text-indigo-800 mb-3">Authenticity Analysis</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-indigo-600">
+                        {profileData.analytics.authenticity.score?.toFixed(0) || '0'}
+                      </div>
+                      <div className="text-sm text-indigo-700">Authenticity Score</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-red-600">
+                        {profileData.analytics.authenticity.fakeFollowers?.toFixed(1) || '0'}%
+                      </div>
+                      <div className="text-sm text-red-700">Fake Followers</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-yellow-600">
+                        {profileData.analytics.authenticity.botComments?.toFixed(1) || '0'}%
+                      </div>
+                      <div className="text-sm text-yellow-700">Bot Comments</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Demographics */}
+              {profileData.analytics.demographics && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {profileData.analytics.demographics.ageGroups && (
+                    <div className="p-4 bg-muted/30 rounded-xl">
+                      <h4 className="font-medium text-muted-foreground mb-3">Age Demographics</h4>
+                      <div className="space-y-2">
+                        {Object.entries(profileData.analytics.demographics.ageGroups).map(([age, percentage]: [string, any]) => (
+                          <div key={age} className="flex justify-between items-center">
+                            <span className="text-sm font-medium">{age}</span>
+                            <span className="text-sm text-muted-foreground">{percentage.toFixed(1)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {profileData.analytics.demographics.genders && (
+                    <div className="p-4 bg-muted/30 rounded-xl">
+                      <h4 className="font-medium text-muted-foreground mb-3">Gender Demographics</h4>
+                      <div className="space-y-2">
+                        {Object.entries(profileData.analytics.demographics.genders).map(([gender, percentage]: [string, any]) => (
+                          <div key={gender} className="flex justify-between items-center">
+                            <span className="text-sm font-medium capitalize">{gender}</span>
+                            <span className="text-sm text-muted-foreground">{percentage.toFixed(1)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        )}
         
         {profileData.posts && profileData.posts.length > 0 && (
           <TabsContent value="posts">

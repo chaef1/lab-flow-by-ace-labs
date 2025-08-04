@@ -77,32 +77,53 @@ export function useSocialMediaSearch() {
         ]);
       }
       
-      // Use Ayrshare for all platform searches
-      const { data, error: functionError } = await supabase.functions.invoke('ayrshare-brand-lookup', {
+      // First get the public profile data
+      const { data: profileData, error: profileError } = await supabase.functions.invoke('ayrshare-brand-lookup', {
         body: { 
           handle: cleanUsername,
           platform: platform
         },
       });
       
-      if (functionError) {
-        console.error('Ayrshare function error:', functionError);
-        setError(functionError.message);
-        toast.error(`Failed to fetch profile: ${functionError.message}`);
+      if (profileError) {
+        console.error('Ayrshare profile function error:', profileError);
+        setError(profileError.message);
+        toast.error(`Failed to fetch profile: ${profileError.message}`);
         return null;
       }
       
-      // Check for errors in the response
-      if (!data.success) {
-        console.error('Profile error:', data.error);
-        setError(data.error);
-        toast.error(`Error: ${data.error}`);
+      if (!profileData.success) {
+        console.error('Profile error:', profileData.error);
+        setError(profileData.error);
+        toast.error(`Error: ${profileData.error}`);
         return null;
       }
       
-      console.log('Ayrshare profile data received:', data.profile);
+      // Then get analytics data for the profile
+      let analyticsData = null;
+      try {
+        const { data: analytics, error: analyticsError } = await supabase.functions.invoke('ayrshare-analytics', {
+          body: { 
+            action: 'profile_analysis',
+            platform: platform,
+            username: cleanUsername,
+            timeRange: '30d'
+          },
+        });
+        
+        if (!analyticsError && analytics.success) {
+          analyticsData = analytics.data;
+          console.log('Analytics data received:', analyticsData);
+        } else {
+          console.log('Analytics data not available or error:', analyticsError?.message);
+        }
+      } catch (analyticsErr) {
+        console.log('Analytics fetch failed, continuing with profile data only:', analyticsErr);
+      }
       
-      if (!data || !data.profile) {
+      console.log('Ayrshare profile data received:', profileData.profile);
+      
+      if (!profileData || !profileData.profile) {
         setError('No profile data returned');
         toast.error('No profile found or API error occurred');
         return null;
@@ -110,37 +131,43 @@ export function useSocialMediaSearch() {
       
       // Transform Ayrshare data to our SocialProfile format
       const socialProfile: SocialProfile = {
-        username: data.profile.username || cleanUsername,
-        fullName: data.profile.full_name || '',
-        followersCount: data.profile.follower_count || 0,
-        followingCount: data.profile.following_count || 0,
-        postsCount: data.profile.posts_count || 0,
-        profilePicture: data.profile.profile_picture_url || '',
-        bio: data.profile.bio || '',
-        engagementRate: data.profile.engagement_rate || 0,
-        verified: data.profile.verified || false,
-        website: data.profile.website || '',
+        username: profileData.profile.username || cleanUsername,
+        fullName: profileData.profile.full_name || '',
+        followersCount: profileData.profile.follower_count || 0,
+        followingCount: profileData.profile.following_count || 0,
+        postsCount: profileData.profile.posts_count || 0,
+        profilePicture: profileData.profile.profile_picture_url || '',
+        bio: profileData.profile.bio || '',
+        engagementRate: profileData.profile.engagement_rate || analyticsData?.engagement?.rate || 0,
+        verified: profileData.profile.verified || false,
+        website: profileData.profile.website || '',
         recentPosts: []
       };
       
       setProfile(socialProfile);
       setProfileData({
-        username: data.profile.username,
-        full_name: data.profile.full_name,
-        bio: data.profile.bio,
-        follower_count: data.profile.follower_count,
-        following_count: data.profile.following_count,
-        posts_count: data.profile.posts_count,
-        verified: data.profile.verified,
-        profile_picture_url: data.profile.profile_picture_url,
-        website: data.profile.website,
-        category: data.profile.category,
-        platform: data.profile.platform,
-        engagement_rate: data.profile.engagement_rate,
-        avg_likes: data.profile.avg_likes,
-        avg_comments: data.profile.avg_comments,
-        account_type: data.profile.account_type,
-        location: data.profile.location
+        username: profileData.profile.username,
+        full_name: profileData.profile.full_name,
+        bio: profileData.profile.bio,
+        follower_count: profileData.profile.follower_count,
+        following_count: profileData.profile.following_count,
+        posts_count: profileData.profile.posts_count,
+        verified: profileData.profile.verified,
+        profile_picture_url: profileData.profile.profile_picture_url,
+        website: profileData.profile.website,
+        category: profileData.profile.category,
+        platform: profileData.profile.platform,
+        engagement_rate: profileData.profile.engagement_rate || analyticsData?.engagement?.rate || 0,
+        avg_likes: profileData.profile.avg_likes || analyticsData?.engagement?.avgLikes || 0,
+        avg_comments: profileData.profile.avg_comments || analyticsData?.engagement?.avgComments || 0,
+        account_type: profileData.profile.account_type,
+        location: profileData.profile.location,
+        // Add analytics data if available
+        analytics: analyticsData ? {
+          engagement: analyticsData.engagement,
+          authenticity: analyticsData.authenticity,
+          demographics: analyticsData.demographics
+        } : null
       });
       
       // Fetch search history after successful search

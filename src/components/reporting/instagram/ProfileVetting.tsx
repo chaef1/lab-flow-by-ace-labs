@@ -35,6 +35,8 @@ const ProfileVetting = () => {
         throw new Error('User not authenticated');
       }
 
+      console.log('Fetching profile for user:', user.id);
+
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('ayrshare_profile_key')
@@ -42,12 +44,17 @@ const ProfileVetting = () => {
         .maybeSingle();
 
       if (profileError) {
+        console.error('Profile fetch error:', profileError);
         throw new Error('Failed to fetch user profile');
       }
 
+      console.log('Profile data:', profile);
+
       if (!profile?.ayrshare_profile_key) {
-        throw new Error('No Ayrshare account connected. Please connect your social media accounts first.');
+        throw new Error('No Ayrshare profile key found. Please set up your Ayrshare integration first.');
       }
+
+      console.log('Using profile key:', profile.ayrshare_profile_key.substring(0, 10) + '...');
 
       // Call Ayrshare API for profile vetting
       const { data, error } = await supabase.functions.invoke('ayrshare-analytics', {
@@ -58,6 +65,8 @@ const ProfileVetting = () => {
           profileKey: profile.ayrshare_profile_key
         }
       });
+
+      console.log('Ayrshare response:', { data, error });
 
       if (error) {
         throw new Error(error.message || 'Failed to analyze profile with Ayrshare');

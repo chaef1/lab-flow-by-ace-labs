@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Loader2, Link, Instagram, Youtube, Linkedin, Twitter, Facebook } from "lucide-react";
 
-export type Platform = 'instagram' | 'tiktok' | 'youtube' | 'facebook' | 'twitter' | 'linkedin';
+export type Platform = 'instagram' | 'tiktok' | 'facebook';
 
 interface SearchFormProps {
   platform: Platform;
@@ -24,9 +24,6 @@ export function SearchForm({
   const getPlatformIcon = () => {
     switch (platform) {
       case 'instagram': return <Instagram className="h-4 w-4 mr-2 text-purple-500" />;
-      case 'youtube': return <Youtube className="h-4 w-4 mr-2 text-red-500" />;
-      case 'linkedin': return <Linkedin className="h-4 w-4 mr-2 text-blue-600" />;
-      case 'twitter': return <Twitter className="h-4 w-4 mr-2 text-sky-500" />;
       case 'facebook': return <Facebook className="h-4 w-4 mr-2 text-blue-500" />;
       case 'tiktok': return <div className="h-4 w-4 mr-2 text-black font-bold text-xs flex items-center justify-center">♪</div>;
       default: return <Link className="h-4 w-4 mr-2" />;
@@ -36,9 +33,6 @@ export function SearchForm({
   const getPlatformGradient = () => {
     switch (platform) {
       case 'instagram': return 'from-purple-500 to-pink-500';
-      case 'youtube': return 'from-red-500 to-red-600';
-      case 'linkedin': return 'from-blue-600 to-blue-700';
-      case 'twitter': return 'from-sky-400 to-blue-500';
       case 'facebook': return 'from-blue-500 to-blue-600';
       case 'tiktok': return 'from-black to-gray-800';
       default: return 'from-primary to-secondary';

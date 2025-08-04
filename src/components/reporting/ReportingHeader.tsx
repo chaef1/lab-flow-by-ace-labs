@@ -63,6 +63,7 @@ const ReportingHeader = ({
           <SelectContent>
             <SelectItem value="all">All Platforms</SelectItem>
             <SelectItem value="instagram">Instagram</SelectItem>
+            <SelectItem value="facebook">Facebook</SelectItem>
             <SelectItem value="tiktok">TikTok</SelectItem>
           </SelectContent>
         </Select>

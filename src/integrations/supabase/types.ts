@@ -194,6 +194,48 @@ export type Database = {
           },
         ]
       }
+      campaign_influencers: {
+        Row: {
+          added_at: string
+          added_by: string
+          campaign_id: string
+          id: string
+          influencer_id: string
+          status: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          campaign_id: string
+          id?: string
+          influencer_id: string
+          status?: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          campaign_id?: string
+          id?: string
+          influencer_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_influencers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_influencers_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           client_id: string
@@ -462,6 +504,72 @@ export type Database = {
           type?: string
           uploaded_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      influencer_pool_members: {
+        Row: {
+          added_at: string
+          added_by: string
+          id: string
+          influencer_id: string
+          pool_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          id?: string
+          influencer_id: string
+          pool_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          id?: string
+          influencer_id?: string
+          pool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "influencer_pool_members_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "influencer_pool_members_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "influencer_pools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      influencer_pools: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSocialMediaSearch } from "@/hooks/useSocialMediaSearch";
 import { TrendingUp, History, Instagram, Youtube, Linkedin, Twitter, Facebook } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InfluencerCardModal } from "./InfluencerCardModal";
 import { SearchForm } from "./SearchForm";
@@ -14,6 +14,7 @@ import { ProfileDisplay } from "./ProfileDisplay";
 import { SearchHistory } from "./SearchHistory";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import InfluencerAssignmentDialog from "./InfluencerAssignmentDialog";
 
 type Platform = 'instagram' | 'tiktok' | 'facebook';
 
@@ -39,6 +40,8 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
   const { toast } = useToast();
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [savedProfileData, setSavedProfileData] = useState<any>(null);
+  const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
+  const [addedInfluencerData, setAddedInfluencerData] = useState<any>(null);
 
   const handleSearch = () => {
     searchProfile(platform, username);
@@ -116,37 +119,23 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         
       if (influencerError) throw influencerError;
 
-      // Store the saved profile data for the modal
-      const savedData = {
+      // Store the added influencer data for assignment
+      setAddedInfluencerData({
         id: newId,
-        first_name: profileData.full_name?.split(' ')[0] || '',
-        last_name: profileData.full_name?.split(' ').slice(1).join(' ') || '',
-        bio: profileData.bio || '',
-        follower_count: profileData.follower_count || 0,
-        engagement_rate: profileData.engagement_rate || 0,
-        categories: [],
-        avatar_url: profileData.profile_picture_url || '',
         username: profileData.username,
-        platform: platform,
-        instagram_handle: platform === 'instagram' ? profileData.username : null,
-        tiktok_handle: platform === 'tiktok' ? profileData.username : null,
-        is_mock_data: false
-      };
-      
-      setSavedProfileData(savedData);
-      setIsCardModalOpen(true);
-      
-      toast({
-        title: "Influencer added",
-        description: "Successfully added influencer to your database",
+        full_name: profileData.full_name,
+        profile_picture_url: profileData.profile_picture_url,
+        follower_count: profileData.follower_count,
+        platform: platform
       });
       
-      setUsername('');
-      clearProfile();
+      toast({
+        title: "Influencer added to database",
+        description: "Now assign them to a campaign or pool",
+      });
       
-      if (onAddInfluencer) {
-        onAddInfluencer(profileData);
-      }
+      // Open assignment dialog instead of card modal
+      setIsAssignmentDialogOpen(true);
       
     } catch (error: any) {
       console.error("Error adding influencer:", error);
@@ -155,6 +144,16 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleAssignmentComplete = () => {
+    setUsername('');
+    clearProfile();
+    setAddedInfluencerData(null);
+    
+    if (onAddInfluencer) {
+      onAddInfluencer(profileData);
     }
   };
 
@@ -273,7 +272,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
               onClick={handleAddInfluencer}
             >
               <TrendingUp className="mr-2 h-5 w-5" /> 
-              Add to Influencer Database
+              Add to Database
             </Button>
           </CardFooter>
         )}
@@ -284,6 +283,14 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         open={isCardModalOpen}
         onOpenChange={setIsCardModalOpen}
         influencerData={savedProfileData}
+      />
+
+      {/* Assignment Dialog */}
+      <InfluencerAssignmentDialog
+        open={isAssignmentDialogOpen}
+        onOpenChange={setIsAssignmentDialogOpen}
+        influencerData={addedInfluencerData}
+        onAssignmentComplete={handleAssignmentComplete}
       />
     </>
   );

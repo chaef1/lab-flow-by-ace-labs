@@ -13,7 +13,22 @@ Deno.serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const { action, timeRange, platform, username, profileKey } = await req.json()
+    
+    let requestBody
+    try {
+      requestBody = await req.json()
+    } catch (e) {
+      console.error('Failed to parse request JSON:', e)
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Invalid JSON in request body' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    
+    const { action, timeRange, platform, username, profileKey } = requestBody
 
     console.log('Ayrshare Analytics request:', { action, timeRange, platform, username })
 
@@ -24,9 +39,12 @@ Deno.serve(async (req) => {
       'Authorization': `Bearer ${ayrshareApiKey}`
     }
 
-    // Add profile key to headers if provided
+    // Add profile key to headers if provided - this is critical for user-specific data
     if (profileKey) {
       headers['Profile-Key'] = profileKey
+      console.log('Using Profile-Key header:', profileKey.substring(0, 8) + '...')
+    } else {
+      console.log('Warning: No profile key provided - this may result in generic data or errors')
     }
 
     switch (action) {
@@ -83,9 +101,16 @@ Deno.serve(async (req) => {
 
     const responseText = await response.text()
     console.log('Ayrshare API response status:', response.status)
-    console.log('Ayrshare API response:', responseText)
+    console.log('Ayrshare API response:', responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''))
 
     if (!response.ok) {
+      // Log more details for debugging
+      console.error('Ayrshare API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: responseText
+      })
       throw new Error(`Ayrshare API error: ${response.status} - ${responseText}`)
     }
 
@@ -94,7 +119,14 @@ Deno.serve(async (req) => {
       data = JSON.parse(responseText)
     } catch (e) {
       console.error('Failed to parse response as JSON:', e)
+      console.error('Raw response:', responseText)
       throw new Error('Invalid JSON response from Ayrshare API')
+    }
+
+    // Check if Ayrshare returned an error in the response
+    if (data.status === 'error') {
+      console.error('Ayrshare returned error:', data)
+      throw new Error(data.message || 'Ayrshare API returned an error')
     }
 
     // Transform the data based on action type

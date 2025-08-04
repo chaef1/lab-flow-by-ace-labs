@@ -29,11 +29,33 @@ const ProfileVetting = () => {
     setProfileData(null);
     
     try {
+      // Get user's profile key
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('ayrshare_profile_key')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        throw new Error('Failed to fetch user profile');
+      }
+
+      if (!profile?.ayrshare_profile_key) {
+        throw new Error('No Ayrshare account connected. Please connect your social media accounts first.');
+      }
+
       // Call Ayrshare API for profile vetting
       const { data, error } = await supabase.functions.invoke('ayrshare-analytics', {
         body: { 
           action: 'profile_analysis',
-          username: username.replace('@', '')
+          username: username.replace('@', ''),
+          platform: 'instagram',
+          profileKey: profile.ayrshare_profile_key
         }
       });
 

@@ -52,16 +52,16 @@ Deno.serve(async (req) => {
     console.log(`Cleaned handle: ${cleanHandle}`)
 
     // Call Ayrshare brand lookup API for external profiles
-    const ayrshareUrl = 'https://api.ayrshare.com/api/brand/byUser'
+    const ayrshareUrl = 'https://app.ayrshare.com/api/brand/byUser'
     
     console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platform}`)
+    console.log(`Using API key prefix: ${ayrshareApiKey?.substring(0, 10)}...`)
     
     const ayrshareResponse = await fetch(ayrshareUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${ayrshareApiKey}`,
-        'Accept-Encoding': 'deflate, gzip, br',
         'User-Agent': 'Supabase-Edge-Function'
       },
       body: JSON.stringify({

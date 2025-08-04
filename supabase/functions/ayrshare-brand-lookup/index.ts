@@ -51,12 +51,28 @@ Deno.serve(async (req) => {
 
     console.log(`Cleaned handle: ${cleanHandle}`)
 
-    // Call Ayrshare brand lookup API for external profiles
-    // Build query parameters based on platform
     const platformParam = platform || 'instagram'
     const params = new URLSearchParams()
     params.append('platforms[0]', platformParam)
-    params.append(`${platformParam}User`, cleanHandle)
+    
+    // Use correct parameter name based on platform
+    switch (platformParam.toLowerCase()) {
+      case 'instagram':
+        params.append('instagramUser', cleanHandle)
+        break
+      case 'tiktok':
+        params.append('tiktokUser', cleanHandle)
+        break
+      case 'facebook':
+        params.append('facebookUser', cleanHandle)
+        break
+      case 'twitter':
+      case 'x':
+        params.append('twitterUser', cleanHandle)
+        break
+      default:
+        params.append('instagramUser', cleanHandle) // Default to Instagram
+    }
     
     const ayrshareUrl = `https://api.ayrshare.com/api/brand/byUser?${params.toString()}`
     
@@ -89,7 +105,6 @@ Deno.serve(async (req) => {
     console.log('Ayrshare response data:', JSON.stringify(ayrshareData, null, 2))
 
     // Extract platform-specific data from the response
-    const platformParam = platform || 'instagram'
     const platformData = ayrshareData[platformParam]
     
     if (!platformData) {
@@ -112,22 +127,66 @@ Deno.serve(async (req) => {
     if (platformParam === 'instagram') {
       transformedProfile = {
         username: platformData.username || cleanHandle,
-        full_name: platformData.full_name || platformData.displayName || '',
-        bio: platformData.biography || platformData.description || '',
-        follower_count: platformData.followers_count || platformData.followersCount || 0,
-        following_count: platformData.following_count || platformData.followingCount || 0,
-        engagement_rate: platformData.engagement_rate || 0,
-        verified: platformData.is_verified || platformData.verified || false,
-        profile_picture_url: platformData.profile_pic_url || platformData.picture?.data?.url || '',
-        website: platformData.external_url || platformData.website || '',
-        category: categorizeInfluencer(platformData.followers_count || platformData.followersCount || 0),
+        full_name: platformData.name || '',
+        bio: platformData.biography || '',
+        follower_count: platformData.followersCount || 0,
+        following_count: platformData.followsCount || 0,
+        engagement_rate: 0, // Brand endpoint doesn't provide engagement data
+        verified: false, // Brand endpoint doesn't provide verification status for Instagram
+        profile_picture_url: platformData.profilePictureUrl || '',
+        website: platformData.website || '',
+        category: categorizeInfluencer(platformData.followersCount || 0),
         platform: platformParam,
-        posts_count: platformData.media_count || platformData.posts || 0,
+        posts_count: platformData.mediaCount || 0,
         avg_likes: 0,
         avg_comments: 0,
         last_post_date: null,
-        account_type: platformData.account_type || 'personal',
-        location: ''
+        account_type: 'public', // Brand endpoint only returns public accounts
+        location: '',
+        id: platformData.id,
+        ig_id: platformData.igId
+      }
+    } else if (platformParam === 'tiktok') {
+      transformedProfile = {
+        username: platformData.username || platformData.handle || cleanHandle,
+        full_name: platformData.displayName || platformData.name || '',
+        bio: platformData.description || platformData.biography || '',
+        follower_count: platformData.followersCount || platformData.fans || 0,
+        following_count: platformData.followingCount || platformData.following || 0,
+        engagement_rate: 0,
+        verified: platformData.verified || false,
+        profile_picture_url: platformData.avatar || platformData.profilePictureUrl || '',
+        website: platformData.website || '',
+        category: categorizeInfluencer(platformData.followersCount || platformData.fans || 0),
+        platform: platformParam,
+        posts_count: platformData.videoCount || platformData.videos || 0,
+        avg_likes: 0,
+        avg_comments: 0,
+        last_post_date: null,
+        account_type: 'public',
+        location: '',
+        id: platformData.id
+      }
+    } else if (platformParam === 'facebook') {
+      transformedProfile = {
+        username: platformData.username || cleanHandle,
+        full_name: platformData.name || '',
+        bio: platformData.description || platformData.about || '',
+        follower_count: platformData.followersCount || platformData.fanCount || 0,
+        following_count: 0, // Facebook pages don't have following count
+        engagement_rate: 0,
+        verified: platformData.verificationStatus === 'blue_verified',
+        profile_picture_url: platformData.picture?.data?.url || '',
+        website: platformData.website || '',
+        category: categorizeInfluencer(platformData.followersCount || platformData.fanCount || 0),
+        platform: platformParam,
+        posts_count: 0, // Not provided in brand endpoint
+        avg_likes: 0,
+        avg_comments: 0,
+        last_post_date: null,
+        account_type: 'public',
+        location: platformData.location?.city || '',
+        id: platformData.id
       }
     } else {
       // Generic transformation for other platforms

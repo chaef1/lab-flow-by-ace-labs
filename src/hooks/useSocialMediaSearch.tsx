@@ -77,7 +77,7 @@ export function useSocialMediaSearch() {
         ]);
       }
       
-      // First get the public profile data
+      // Get profile data from brand lookup (public data only)
       const { data: profileData, error: profileError } = await supabase.functions.invoke('ayrshare-brand-lookup', {
         body: { 
           handle: cleanUsername,
@@ -99,28 +99,6 @@ export function useSocialMediaSearch() {
         return null;
       }
       
-      // Then get analytics data for the profile
-      let analyticsData = null;
-      try {
-        const { data: analytics, error: analyticsError } = await supabase.functions.invoke('ayrshare-analytics', {
-          body: { 
-            action: 'profile_analysis',
-            platform: platform,
-            username: cleanUsername,
-            timeRange: '30d'
-          },
-        });
-        
-        if (!analyticsError && analytics.success) {
-          analyticsData = analytics.data;
-          console.log('Analytics data received:', analyticsData);
-        } else {
-          console.log('Analytics data not available or error:', analyticsError?.message);
-        }
-      } catch (analyticsErr) {
-        console.log('Analytics fetch failed, continuing with profile data only:', analyticsErr);
-      }
-      
       console.log('Ayrshare profile data received:', profileData.profile);
       
       if (!profileData || !profileData.profile) {
@@ -138,7 +116,7 @@ export function useSocialMediaSearch() {
         postsCount: profileData.profile.posts_count || 0,
         profilePicture: profileData.profile.profile_picture_url || '',
         bio: profileData.profile.bio || '',
-        engagementRate: profileData.profile.engagement_rate || analyticsData?.engagement?.rate || 0,
+        engagementRate: profileData.profile.engagement_rate || 0,
         verified: profileData.profile.verified || false,
         website: profileData.profile.website || '',
         recentPosts: []
@@ -157,17 +135,11 @@ export function useSocialMediaSearch() {
         website: profileData.profile.website,
         category: profileData.profile.category,
         platform: profileData.profile.platform,
-        engagement_rate: profileData.profile.engagement_rate || analyticsData?.engagement?.rate || 0,
-        avg_likes: profileData.profile.avg_likes || analyticsData?.engagement?.avgLikes || 0,
-        avg_comments: profileData.profile.avg_comments || analyticsData?.engagement?.avgComments || 0,
+        engagement_rate: profileData.profile.engagement_rate || 0,
+        avg_likes: profileData.profile.avg_likes || 0,
+        avg_comments: profileData.profile.avg_comments || 0,
         account_type: profileData.profile.account_type,
-        location: profileData.profile.location,
-        // Add analytics data if available
-        analytics: analyticsData ? {
-          engagement: analyticsData.engagement,
-          authenticity: analyticsData.authenticity,
-          demographics: analyticsData.demographics
-        } : null
+        location: profileData.profile.location
       });
       
       // Fetch search history after successful search

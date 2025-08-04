@@ -69,14 +69,15 @@ Deno.serve(async (req) => {
         if (!username) {
           throw new Error('Username is required for profile analysis')
         }
-        // Use social analytics for profile analysis since /brand doesn't exist
-        apiUrl += '/analytics/social'
-        payload = {
-          platforms: ['instagram'],
-          lastDays: 30,
-          username: username // Pass username for profile-specific data
-        }
-        break
+        // For profile analysis of external users, use the brand endpoint instead
+        // since /analytics requires connected accounts with Profile-Key
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Profile analysis requires connected social accounts. Use brand lookup for external profiles.'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
 
       case 'hashtag_search':
         if (!username) { // Using username field for hashtag in this case

@@ -646,15 +646,7 @@ export type Database = {
           website?: string | null
           youtube_handle?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_influencers_profile"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       instagram_webhook_events: {
         Row: {

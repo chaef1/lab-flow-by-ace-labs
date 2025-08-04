@@ -51,8 +51,8 @@ Deno.serve(async (req) => {
 
     console.log(`Cleaned handle: ${cleanHandle}`)
 
-    // Call Ayrshare brand lookup API
-    const ayrshareUrl = 'https://app.ayrshare.com/api/brand'
+    // Call Ayrshare analytics API for social profiles
+    const ayrshareUrl = 'https://api.ayrshare.com/api/analytics/social'
     
     console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platform}`)
     
@@ -64,8 +64,9 @@ Deno.serve(async (req) => {
         'User-Agent': 'Supabase-Edge-Function'
       },
       body: JSON.stringify({
-        handle: cleanHandle,
-        platform: platform || 'instagram' // Default to Instagram if no platform specified
+        platforms: [platform || 'instagram'],
+        lastDays: 30,
+        username: cleanHandle
       })
     })
 

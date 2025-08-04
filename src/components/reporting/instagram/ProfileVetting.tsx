@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 
 const ProfileVetting = () => {
   const [username, setUsername] = useState('');
@@ -28,22 +29,23 @@ const ProfileVetting = () => {
     setProfileData(null);
     
     try {
-      // Call Meta API for profile vetting
-      const response = await fetch('/api/meta/profile-analysis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username }),
+      // Call Ayrshare API for profile vetting
+      const { data, error } = await supabase.functions.invoke('ayrshare-analytics', {
+        body: { 
+          action: 'profile_analysis',
+          username: username.replace('@', '')
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to analyze profile: ${response.status} ${response.statusText}`);
+      if (error) {
+        throw new Error(error.message || 'Failed to analyze profile with Ayrshare');
       }
 
-      const profileData = await response.json();
-      setProfileData(profileData);
+      if (!data.success) {
+        throw new Error(data.error || 'Ayrshare API returned an error');
+      }
+
+      setProfileData(data.data);
       
       toast({
         title: "Profile analysis complete",
@@ -53,7 +55,7 @@ const ProfileVetting = () => {
       console.error('Profile analysis error:', error);
       toast({
         title: "API Error - Profile Analysis Failed",
-        description: error.message || "Unable to fetch profile data. Please check your Meta API connection and Instagram permissions.",
+        description: error.message || "Unable to fetch profile data from Ayrshare. Please check your Ayrshare API connection.",
         variant: "destructive"
       });
       setProfileData(null);

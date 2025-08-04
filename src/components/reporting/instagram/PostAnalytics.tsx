@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PostAnalyticsProps {
   timeRange: string;
@@ -16,22 +17,24 @@ const PostAnalytics = ({ timeRange }: PostAnalyticsProps) => {
   useEffect(() => {
     const fetchPostAnalytics = async () => {
       try {
-        const response = await fetch('/api/meta/post-analytics', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ timeRange }),
+        const { data, error } = await supabase.functions.invoke('ayrshare-analytics', {
+          body: { 
+            action: 'post_analytics',
+            timeRange: timeRange,
+            platform: 'instagram'
+          }
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to fetch post analytics: ${response.status} ${response.statusText}`);
+        if (error) {
+          throw new Error(error.message || 'Failed to fetch post analytics from Ayrshare');
         }
 
-        const data = await response.json();
-        setPosts(data.posts || []);
-        setMetrics(data.metrics || {
+        if (!data.success) {
+          throw new Error(data.error || 'Ayrshare API returned an error');
+        }
+
+        setPosts(data.data.posts || []);
+        setMetrics(data.data.metrics || {
           totalPosts: 0,
           avgEngagement: 0,
           totalReach: 0,
@@ -47,7 +50,7 @@ const PostAnalytics = ({ timeRange }: PostAnalyticsProps) => {
           totalReach: 0,
           totalImpressions: 0,
           chartData: [],
-          error: error.message || "Unable to fetch post analytics. Please check your Meta API connection and Instagram insights permissions."
+          error: error.message || "Unable to fetch post analytics from Ayrshare. Please check your Ayrshare API connection."
         });
       }
     };

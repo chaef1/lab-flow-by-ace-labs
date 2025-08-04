@@ -76,6 +76,9 @@ url = ""
 # Port to use for Functions server.
 port = 54321
 
+[functions.ayrshare-analytics]
+verify_jwt = true
+
 [analytics]
 enabled = false
 port = 54327

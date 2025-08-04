@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 
 const HashtagSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<any>(null);
   const { toast } = useToast();
 
   const handleSearch = async () => {
@@ -24,25 +25,26 @@ const HashtagSearch = () => {
     }
 
     setIsLoading(true);
-    setResults([]);
+    setResults(null);
     
     try {
-      // Call Meta API for hashtag search
-      const response = await fetch('/api/meta/hashtag-search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ hashtag: searchTerm }),
+      // Call Ayrshare API for hashtag search
+      const { data, error } = await supabase.functions.invoke('ayrshare-analytics', {
+        body: { 
+          action: 'hashtag_search',
+          username: searchTerm // Using username field for hashtag
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to search hashtag: ${response.status} ${response.statusText}`);
+      if (error) {
+        throw new Error(error.message || 'Failed to search hashtag with Ayrshare');
       }
 
-      const data = await response.json();
-      setResults([data]);
+      if (!data.success) {
+        throw new Error(data.error || 'Ayrshare API returned an error');
+      }
+
+      setResults(data.data);
       
       toast({
         title: "Hashtag analysis complete",
@@ -52,10 +54,10 @@ const HashtagSearch = () => {
       console.error('Hashtag search error:', error);
       toast({
         title: "API Error - Hashtag Search Failed",
-        description: error.message || "Unable to fetch hashtag data. Please check your Meta API connection and permissions.",
+        description: error.message || "Unable to fetch hashtag data from Ayrshare. Please check your Ayrshare API connection.",
         variant: "destructive"
       });
-      setResults([]);
+      setResults(null);
     } finally {
       setIsLoading(false);
     }
@@ -98,14 +100,14 @@ const HashtagSearch = () => {
         </CardContent>
       </Card>
 
-      {results.length > 0 && (
+      {results && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Posts</p>
-                  <p className="text-2xl font-bold">{results[0].postCount.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{results.totalPosts.toLocaleString()}</p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-primary" />
               </div>
@@ -117,7 +119,7 @@ const HashtagSearch = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Avg Engagement</p>
-                  <p className="text-2xl font-bold">{results[0].engagement}%</p>
+                  <p className="text-2xl font-bold">{results.avgEngagement}%</p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-green-500" />
               </div>
@@ -129,7 +131,7 @@ const HashtagSearch = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Top Posts</p>
-                  <p className="text-2xl font-bold">{results[0].topPosts}</p>
+                  <p className="text-2xl font-bold">{results.topPosts?.length || 0}</p>
                 </div>
                 <Users className="h-8 w-8 text-blue-500" />
               </div>
@@ -141,8 +143,8 @@ const HashtagSearch = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Difficulty</p>
-                  <Badge variant={results[0].difficulty === 'easy' ? 'default' : results[0].difficulty === 'medium' ? 'secondary' : 'destructive'}>
-                    {results[0].difficulty}
+                  <Badge variant={results.difficulty === 'Low' || results.difficulty === 'Very Low' ? 'default' : 'destructive'}>
+                    {results.difficulty}
                   </Badge>
                 </div>
                 <Hash className="h-8 w-8 text-purple-500" />
@@ -152,7 +154,7 @@ const HashtagSearch = () => {
         </div>
       )}
 
-      {results.length > 0 && (
+      {results && (
         <Card>
           <CardHeader>
             <CardTitle>Hashtag Performance Details</CardTitle>
@@ -165,25 +167,21 @@ const HashtagSearch = () => {
                   <TableHead>Posts</TableHead>
                   <TableHead>Engagement Rate</TableHead>
                   <TableHead>Competition</TableHead>
-                  <TableHead>Trend</TableHead>
+                  <TableHead>Top Posts</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {results.map((result, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">#{result.hashtag}</TableCell>
-                    <TableCell>{result.postCount.toLocaleString()}</TableCell>
-                    <TableCell>{result.engagement}%</TableCell>
-                    <TableCell>
-                      <Badge variant={result.difficulty === 'easy' ? 'default' : result.difficulty === 'medium' ? 'secondary' : 'destructive'}>
-                        {result.difficulty}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <TrendingUp className={`h-4 w-4 ${result.trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
-                    </TableCell>
-                  </TableRow>
-                ))}
+                <TableRow>
+                  <TableCell className="font-medium">#{results.hashtag || searchTerm}</TableCell>
+                  <TableCell>{results.totalPosts.toLocaleString()}</TableCell>
+                  <TableCell>{results.avgEngagement}%</TableCell>
+                  <TableCell>
+                    <Badge variant={results.difficulty === 'Low' || results.difficulty === 'Very Low' ? 'default' : 'destructive'}>
+                      {results.difficulty}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{results.topPosts?.length || 0}</TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </CardContent>

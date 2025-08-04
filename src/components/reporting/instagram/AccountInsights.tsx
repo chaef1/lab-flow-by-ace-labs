@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AccountInsightsProps {
   timeRange: string;
@@ -15,25 +16,27 @@ const AccountInsights = ({ timeRange }: AccountInsightsProps) => {
   useEffect(() => {
     const fetchAccountInsights = async () => {
       try {
-        const response = await fetch('/api/meta/account-insights', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ timeRange }),
+        const { data, error } = await supabase.functions.invoke('ayrshare-analytics', {
+          body: { 
+            action: 'account_insights',
+            timeRange: timeRange,
+            platform: 'instagram'
+          }
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to fetch account insights: ${response.status} ${response.statusText}`);
+        if (error) {
+          throw new Error(error.message || 'Failed to fetch account insights from Ayrshare');
         }
 
-        const data = await response.json();
-        setInsights(data);
+        if (!data.success) {
+          throw new Error(data.error || 'Ayrshare API returned an error');
+        }
+
+        setInsights(data.data);
       } catch (error: any) {
         console.error('Account insights error:', error);
         setInsights({
-          error: error.message || "Unable to fetch account insights. Please check your Meta API connection and Instagram insights permissions."
+          error: error.message || "Unable to fetch account insights from Ayrshare. Please check your Ayrshare API connection."
         });
       }
     };

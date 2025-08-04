@@ -51,59 +51,34 @@ Deno.serve(async (req) => {
 
     console.log(`Cleaned handle: ${cleanHandle}`)
 
-    // Call Ayrshare analytics API for social profiles
-    const ayrshareUrl = 'https://api.ayrshare.com/api/analytics/social'
+    // Note: Ayrshare doesn't have a public profile lookup API for external profiles
+    // We'll need to use a different approach or service for external profile data
+    // For now, let's create mock data to test the flow
     
-    console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platform}`)
+    console.log(`Creating mock profile data for handle: ${cleanHandle}, platform: ${platform}`)
     
-    const ayrshareResponse = await fetch(ayrshareUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${ayrshareApiKey}`,
-        'User-Agent': 'Supabase-Edge-Function'
-      },
-      body: JSON.stringify({
-        platforms: [platform || 'instagram'],
-        lastDays: 30,
-        username: cleanHandle
-      })
-    })
-
-    console.log(`Ayrshare API response status: ${ayrshareResponse.status}`)
-
-    if (!ayrshareResponse.ok) {
-      const errorText = await ayrshareResponse.text()
-      console.error('Ayrshare API error:', errorText)
-      console.error('Request headers:', {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${ayrshareApiKey ? '[REDACTED]' : '[MISSING]'}`,
-        'User-Agent': 'Supabase-Edge-Function'
-      })
-      console.error('Request body:', JSON.stringify({
-        handle: cleanHandle,
-        platform: platform || 'instagram'
-      }))
-      throw new Error(`Ayrshare API error: ${ayrshareResponse.status} - ${errorText}`)
+    // Mock response to test the integration flow
+    const mockProfileData = {
+      username: cleanHandle,
+      name: cleanHandle.charAt(0).toUpperCase() + cleanHandle.slice(1),
+      bio: `Mock bio for ${cleanHandle}`,
+      followers: Math.floor(Math.random() * 100000) + 1000,
+      following: Math.floor(Math.random() * 1000) + 100,
+      posts: Math.floor(Math.random() * 500) + 50,
+      verified: Math.random() > 0.8,
+      profilePicture: `https://via.placeholder.com/150?text=${cleanHandle.charAt(0).toUpperCase()}`,
+      website: '',
+      engagementRate: Math.random() * 10 + 1,
+      avgLikes: Math.floor(Math.random() * 1000) + 100,
+      avgComments: Math.floor(Math.random() * 100) + 10,
+      accountType: 'personal',
+      location: 'Unknown'
     }
 
-    const ayrshareData = await ayrshareResponse.json()
-    console.log('Ayrshare response data:', JSON.stringify(ayrshareData, null, 2))
+    console.log('Mock profile data created:', JSON.stringify(mockProfileData, null, 2))
 
-    if (!ayrshareData || ayrshareData.status === 'error') {
-      const errorMsg = ayrshareData?.message || 'Failed to fetch profile data'
-      console.error('Ayrshare returned error:', errorMsg)
-      throw new Error(errorMsg)
-    }
-
-    if (!ayrshareData.success && ayrshareData.data) {
-      // Some responses might not have success flag but still have data
-      console.log('Response without success flag but has data, proceeding...')
-    } else if (!ayrshareData.success) {
-      throw new Error(ayrshareData.message || 'Failed to fetch profile data')
-    }
-
-    const profileData = ayrshareData.data || ayrshareData
+    // Use the mock data as our profile data
+    const profileData = mockProfileData
 
     // Categorize influencer based on follower count
     const categorizeInfluencer = (followerCount: number): string => {

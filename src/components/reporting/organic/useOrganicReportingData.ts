@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useOrganicReportingData = (timeRange: string, platform: string) => {
   const [data, setData] = useState<{
@@ -32,20 +33,18 @@ export const useOrganicReportingData = (timeRange: string, platform: string) => 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/organic/reporting', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ timeRange, platform }),
+        // Use existing Ayrshare analytics function instead of non-existent endpoint
+        const { data, error } = await supabase.functions.invoke('ayrshare-analytics', {
+          body: { 
+            action: 'account_insights',
+            timeRange: timeRange.replace('d', ''),
+            platform: platform.toLowerCase()
+          }
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `Failed to fetch organic reporting data: ${response.status} ${response.statusText}`);
+        if (error) {
+          throw new Error(error.message || 'Failed to fetch organic reporting data');
         }
-
-        const data = await response.json();
         setData(data);
       } catch (error: any) {
         console.error('Organic reporting error:', error);

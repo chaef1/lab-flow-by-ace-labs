@@ -47,6 +47,9 @@ const InfluencerProfile = () => {
         .from('influencers')
         .select(`
           id,
+          username,
+          full_name,
+          profile_picture_url,
           bio,
           categories,
           follower_count,
@@ -55,12 +58,7 @@ const InfluencerProfile = () => {
           tiktok_handle,
           youtube_handle,
           rate_per_post,
-          portfolio_images,
-          profiles:id (
-            first_name,
-            last_name,
-            avatar_url
-          )
+          portfolio_images
         `)
         .eq('id', id)
         .single();
@@ -69,9 +67,9 @@ const InfluencerProfile = () => {
       
       return {
         id: data.id,
-        first_name: data.profiles?.first_name,
-        last_name: data.profiles?.last_name,
-        avatar_url: data.profiles?.avatar_url,
+        first_name: data.full_name?.split(' ')[0] || data.username || '',
+        last_name: data.full_name?.split(' ').slice(1).join(' ') || '',
+        avatar_url: data.profile_picture_url,
         bio: data.bio,
         categories: data.categories,
         follower_count: data.follower_count,

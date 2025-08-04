@@ -52,22 +52,24 @@ Deno.serve(async (req) => {
     console.log(`Cleaned handle: ${cleanHandle}`)
 
     // Call Ayrshare brand lookup API for external profiles
-    const ayrshareUrl = 'https://app.ayrshare.com/api/brand/byUser'
+    // Build query parameters based on platform
+    const platformParam = platform || 'instagram'
+    const params = new URLSearchParams()
+    params.append('platforms[0]', platformParam)
+    params.append(`${platformParam}User`, cleanHandle)
     
-    console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platform}`)
+    const ayrshareUrl = `https://api.ayrshare.com/api/brand/byUser?${params.toString()}`
+    
+    console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platformParam}`)
+    console.log(`Request URL: ${ayrshareUrl}`)
     console.log(`Using API key prefix: ${ayrshareApiKey?.substring(0, 10)}...`)
     
     const ayrshareResponse = await fetch(ayrshareUrl, {
-      method: 'POST',
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${ayrshareApiKey}`,
         'User-Agent': 'Supabase-Edge-Function'
-      },
-      body: JSON.stringify({
-        user: cleanHandle,
-        platform: platform || 'instagram'
-      })
+      }
     })
 
     console.log(`Ayrshare API response status: ${ayrshareResponse.status}`)
@@ -75,30 +77,25 @@ Deno.serve(async (req) => {
     if (!ayrshareResponse.ok) {
       const errorText = await ayrshareResponse.text()
       console.error('Ayrshare API error:', errorText)
+      console.error('Request URL:', ayrshareUrl)
       console.error('Request headers:', {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${ayrshareApiKey ? '[REDACTED]' : '[MISSING]'}`,
-        'Accept-Encoding': 'deflate, gzip, br',
         'User-Agent': 'Supabase-Edge-Function'
       })
-      console.error('Request body:', JSON.stringify({
-        user: cleanHandle,
-        platform: platform || 'instagram'
-      }))
       throw new Error(`Ayrshare API error: ${ayrshareResponse.status} - ${errorText}`)
     }
 
     const ayrshareData = await ayrshareResponse.json()
     console.log('Ayrshare response data:', JSON.stringify(ayrshareData, null, 2))
 
-    if (!ayrshareData || ayrshareData.status === 'error') {
-      const errorMsg = ayrshareData?.message || 'Failed to fetch profile data'
-      console.error('Ayrshare returned error:', errorMsg)
-      throw new Error(errorMsg)
+    // Extract platform-specific data from the response
+    const platformParam = platform || 'instagram'
+    const platformData = ayrshareData[platformParam]
+    
+    if (!platformData) {
+      throw new Error(`No data found for platform: ${platformParam}`)
     }
-
-    const profileData = ayrshareData
-
+    
     // Categorize influencer based on follower count
     const categorizeInfluencer = (followerCount: number): string => {
       if (followerCount >= 1000000) return 'Celebrity/Elite'
@@ -109,25 +106,50 @@ Deno.serve(async (req) => {
       return 'Emerging'
     }
 
-    // Transform Ayrshare data to our format
-    const transformedProfile = {
-      username: profileData.username || cleanHandle,
-      full_name: profileData.name || '',
-      bio: profileData.bio || '',
-      follower_count: profileData.followers || 0,
-      following_count: profileData.following || 0,
-      engagement_rate: profileData.engagementRate || 0,
-      verified: profileData.verified || false,
-      profile_picture_url: profileData.profilePicture || '',
-      website: profileData.website || '',
-      category: categorizeInfluencer(profileData.followers || 0),
-      platform: platform || 'instagram',
-      posts_count: profileData.posts || 0,
-      avg_likes: profileData.avgLikes || 0,
-      avg_comments: profileData.avgComments || 0,
-      last_post_date: profileData.lastPostDate || null,
-      account_type: profileData.accountType || 'personal',
-      location: profileData.location || ''
+    // Transform Ayrshare data to our format based on platform
+    let transformedProfile
+    
+    if (platformParam === 'instagram') {
+      transformedProfile = {
+        username: platformData.username || cleanHandle,
+        full_name: platformData.full_name || platformData.displayName || '',
+        bio: platformData.biography || platformData.description || '',
+        follower_count: platformData.followers_count || platformData.followersCount || 0,
+        following_count: platformData.following_count || platformData.followingCount || 0,
+        engagement_rate: platformData.engagement_rate || 0,
+        verified: platformData.is_verified || platformData.verified || false,
+        profile_picture_url: platformData.profile_pic_url || platformData.picture?.data?.url || '',
+        website: platformData.external_url || platformData.website || '',
+        category: categorizeInfluencer(platformData.followers_count || platformData.followersCount || 0),
+        platform: platformParam,
+        posts_count: platformData.media_count || platformData.posts || 0,
+        avg_likes: 0,
+        avg_comments: 0,
+        last_post_date: null,
+        account_type: platformData.account_type || 'personal',
+        location: ''
+      }
+    } else {
+      // Generic transformation for other platforms
+      transformedProfile = {
+        username: platformData.username || platformData.handle || cleanHandle,
+        full_name: platformData.displayName || platformData.name || '',
+        bio: platformData.description || platformData.bio || '',
+        follower_count: platformData.followersCount || platformData.followers_count || 0,
+        following_count: platformData.followingCount || platformData.following_count || 0,
+        engagement_rate: 0,
+        verified: platformData.verified || false,
+        profile_picture_url: platformData.avatar || platformData.picture?.data?.url || '',
+        website: platformData.website || '',
+        category: categorizeInfluencer(platformData.followersCount || platformData.followers_count || 0),
+        platform: platformParam,
+        posts_count: 0,
+        avg_likes: 0,
+        avg_comments: 0,
+        last_post_date: null,
+        account_type: 'personal',
+        location: platformData.location?.city || ''
+      }
     }
 
     // Store search in database

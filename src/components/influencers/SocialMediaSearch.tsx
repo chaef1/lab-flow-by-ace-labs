@@ -62,33 +62,13 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     if (!profileData) return;
     
     try {
-      // Check if user already exists with the handle based on platform
-      let existingInfluencer = null;
-      if (platform === 'instagram') {
-        const { data } = await supabase
-          .from('influencers')
-          .select('id')
-          .eq('username', profileData.username)
-          .eq('platform', 'instagram')
-          .maybeSingle();
-        existingInfluencer = data;
-      } else if (platform === 'tiktok') {
-        const { data } = await supabase
-          .from('influencers')
-          .select('id')
-          .eq('username', profileData.username)
-          .eq('platform', 'tiktok')
-          .maybeSingle();
-        existingInfluencer = data;
-      } else if (platform === 'facebook') {
-        const { data } = await supabase
-          .from('influencers')
-          .select('id')
-          .eq('username', profileData.username)
-          .eq('platform', 'facebook')
-          .maybeSingle();
-        existingInfluencer = data;
-      }
+      // Check if influencer already exists with the handle based on platform
+      const { data: existingInfluencer } = await supabase
+        .from('influencers')
+        .select('id')
+        .eq('username', profileData.username)
+        .eq('platform', platform)
+        .maybeSingle();
       
       if (existingInfluencer) {
         toast({
@@ -99,23 +79,10 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         return;
       }
       
-      // Generate a new UUID for the profile/influencer
+      // Generate a new UUID for the influencer
       const newId = crypto.randomUUID();
       
-      // Create a new profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: newId,
-          first_name: profileData.full_name?.split(' ')[0] || '',
-          last_name: profileData.full_name?.split(' ').slice(1).join(' ') || '',
-          avatar_url: profileData.profile_picture_url || '',
-          role: 'influencer'
-        });
-        
-      if (profileError) throw profileError;
-      
-      // Now create the influencer with the new schema
+      // Create the influencer record with all the new schema fields
       const influencerData: any = {
         id: newId,
         username: profileData.username,
@@ -139,6 +106,8 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         influencerData.instagram_handle = profileData.username;
       } else if (platform === 'tiktok') {
         influencerData.tiktok_handle = profileData.username;
+      } else if (platform === 'facebook') {
+        influencerData.facebook_handle = profileData.username;
       }
       
       const { error: influencerError } = await supabase

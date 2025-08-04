@@ -43,11 +43,13 @@ const Influencers = () => {
   const { data: influencers, isLoading, error, refetch } = useQuery({
     queryKey: ['influencers'],
     queryFn: async () => {
-      // Join influencers table with profiles to get names and avatar
+      // Get influencers with profile data
       const { data, error } = await supabase
         .from('influencers')
         .select(`
           id,
+          username,
+          full_name,
           bio,
           categories,
           follower_count,
@@ -55,6 +57,14 @@ const Influencers = () => {
           instagram_handle,
           tiktok_handle,
           youtube_handle,
+          profile_picture_url,
+          verified,
+          website,
+          location,
+          account_type,
+          avg_likes,
+          avg_comments,
+          platform,
           profiles:id (
             first_name,
             last_name,
@@ -69,9 +79,9 @@ const Influencers = () => {
       // Format the data to match the Influencer interface
       return data?.map(item => ({
         id: item.id,
-        first_name: item.profiles?.first_name,
-        last_name: item.profiles?.last_name,
-        avatar_url: item.profiles?.avatar_url,
+        first_name: item.profiles?.first_name || item.full_name?.split(' ')[0] || '',
+        last_name: item.profiles?.last_name || item.full_name?.split(' ').slice(1).join(' ') || '',
+        avatar_url: item.profiles?.avatar_url || item.profile_picture_url,
         bio: item.bio,
         categories: item.categories,
         follower_count: item.follower_count,
@@ -190,7 +200,7 @@ const Influencers = () => {
                     <Plus className="mr-2 h-4 w-4" /> Add Influencer
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Influencer</DialogTitle>
                     <DialogDescription>

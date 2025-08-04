@@ -32,10 +32,11 @@ Deno.serve(async (req) => {
 
     console.log('Ayrshare Analytics request:', { action, timeRange, platform, username })
 
-    let apiUrl = 'https://app.ayrshare.com/api'
+    let apiUrl = 'https://api.ayrshare.com/api'
     let payload: any = {}
     let headers: any = {
       'Content-Type': 'application/json',
+      'Accept-Encoding': 'deflate, gzip, br',
       'Authorization': `Bearer ${ayrshareApiKey}`
     }
 
@@ -68,10 +69,12 @@ Deno.serve(async (req) => {
         if (!username) {
           throw new Error('Username is required for profile analysis')
         }
-        apiUrl += '/brand'
+        // Use social analytics for profile analysis since /brand doesn't exist
+        apiUrl += '/analytics/social'
         payload = {
-          platform: 'instagram', // Default to Instagram for profile analysis
-          handle: username
+          platforms: ['instagram'],
+          lastDays: 30,
+          username: username // Pass username for profile-specific data
         }
         break
 
@@ -79,10 +82,12 @@ Deno.serve(async (req) => {
         if (!username) { // Using username field for hashtag in this case
           throw new Error('Hashtag is required for hashtag search')
         }
-        apiUrl += '/analytics/hashtag'
+        // For hashtag analysis, we'll use post analytics with hashtag filtering
+        apiUrl += '/analytics/post'
         payload = {
-          hashtag: username.startsWith('#') ? username : `#${username}`,
-          platform: 'instagram'
+          platforms: ['instagram'],
+          lastDays: 30,
+          hashtag: username.startsWith('#') ? username : `#${username}`
         }
         break
 
@@ -124,9 +129,9 @@ Deno.serve(async (req) => {
     }
 
     // Check if Ayrshare returned an error in the response
-    if (data.status === 'error') {
+    if (data.status === 'error' || (data.action && data.status === 'error')) {
       console.error('Ayrshare returned error:', data)
-      throw new Error(data.message || 'Ayrshare API returned an error')
+      throw new Error(data.message || data.details || 'Ayrshare API returned an error')
     }
 
     // Transform the data based on action type
@@ -208,40 +213,38 @@ function transformPostAnalytics(data: any) {
 }
 
 function transformProfileAnalysis(data: any) {
-  if (!data.profile) {
-    throw new Error('No profile data returned from Ayrshare')
-  }
-
-  const profile = data.profile
+  // Transform analytics data for profile analysis
+  // Since we're using social analytics, adapt the response
+  const analytics = data.analytics || data
   
   return {
-    username: profile.username || '',
-    displayName: profile.full_name || '',
-    bio: profile.bio || '',
-    avatar: profile.profile_picture_url || '',
-    verified: profile.verified || false,
-    followers: profile.follower_count || 0,
-    following: profile.following_count || 0,
-    posts: profile.posts_count || 0,
+    username: analytics.username || '',
+    displayName: analytics.displayName || analytics.full_name || '',
+    bio: analytics.bio || '',
+    avatar: analytics.avatar || analytics.profile_picture_url || '',
+    verified: analytics.verified || false,
+    followers: analytics.followers || analytics.follower_count || 0,
+    following: analytics.following || analytics.following_count || 0,
+    posts: analytics.posts || analytics.posts_count || 0,
     engagement: {
-      rate: profile.engagement_rate || 0,
-      avgLikes: profile.avg_likes || 0,
-      avgComments: profile.avg_comments || 0,
-      avgShares: profile.avg_shares || 0
+      rate: analytics.engagement_rate || analytics.engagementRate || 0,
+      avgLikes: analytics.avg_likes || analytics.avgLikes || 0,
+      avgComments: analytics.avg_comments || analytics.avgComments || 0,
+      avgShares: analytics.avg_shares || analytics.avgShares || 0
     },
     authenticity: {
-      score: calculateAuthenticityScore(profile),
+      score: calculateAuthenticityScore(analytics),
       fakeFollowers: Math.random() * 10, // Placeholder - would need real analysis
       botComments: Math.random() * 5
     },
     demographics: {
-      ageGroups: {
+      ageGroups: analytics.demographics?.ageGroups || {
         '18-24': Math.random() * 30,
         '25-34': Math.random() * 40,
         '35-44': Math.random() * 20,
         '45+': Math.random() * 10
       },
-      genders: {
+      genders: analytics.demographics?.genders || {
         female: Math.random() * 100,
         male: 100 - (Math.random() * 100)
       }
@@ -250,12 +253,17 @@ function transformProfileAnalysis(data: any) {
 }
 
 function transformHashtagSearch(data: any) {
+  // Transform post analytics data for hashtag search
+  const posts = data.posts || []
+  const totalPosts = posts.length || 0
+  const avgEngagement = posts.reduce((sum: number, post: any) => sum + (post.engagement || 0), 0) / totalPosts || 0
+  
   return {
     hashtag: data.hashtag || '',
-    totalPosts: data.totalPosts || 0,
-    avgEngagement: data.avgEngagement || 0,
-    topPosts: data.topPosts || [],
-    difficulty: calculateHashtagDifficulty(data.totalPosts || 0)
+    totalPosts: totalPosts,
+    avgEngagement: avgEngagement,
+    topPosts: posts.slice(0, 10) || [],
+    difficulty: calculateHashtagDifficulty(totalPosts)
   }
 }
 

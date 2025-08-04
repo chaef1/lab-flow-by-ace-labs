@@ -41,28 +41,28 @@ export function ProfileDisplay({
   }
 
   return (
-    <div className="mt-6 border-0 rounded-xl p-4 sm:p-6 bg-gradient-to-br from-background to-muted/30 shadow-lg">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-        <Avatar className="h-16 w-16 sm:h-20 sm:w-20 ring-4 ring-primary/20 mx-auto sm:mx-0">
+    <div className="mt-6 border-0 rounded-xl p-6 sm:p-8 bg-gradient-to-br from-background to-muted/30 shadow-lg">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-8">
+        <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-primary/20 mx-auto sm:mx-0">
           <AvatarImage src={profileData.profile_picture_url} />
           <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white text-lg font-bold">
             {profileData.full_name?.split(' ').map((n: string) => n[0]).join('') || profileData.username?.substring(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="font-bold text-xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+        <div className="flex-1 text-center sm:text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+            <h3 className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               {profileData.full_name || profileData.username}
             </h3>
             {profileData.verified && (
-              <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
+              <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 mx-auto sm:mx-0 w-fit">
                 <UserCheck className="h-3 w-3 mr-1" /> Verified
               </Badge>
             )}
           </div>
           
-          <div className="flex items-center text-muted-foreground mb-2">
+          <div className="flex items-center justify-center sm:justify-start text-muted-foreground mb-3">
             <PlatformIcon platform={platform} />
             <span className="font-medium">@{profileData.username}</span>
           </div>
@@ -74,49 +74,49 @@ export function ProfileDisplay({
       </div>
       
       
-      <Tabs defaultValue="profile" className="mt-8">
-        <TabsList className="mb-6 bg-muted/50">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-white">Profile</TabsTrigger>
+      <Tabs defaultValue="profile" className="mt-10">
+        <TabsList className="mb-8 bg-muted/50 w-full justify-start">
+          <TabsTrigger value="profile" className="data-[state=active]:bg-primary data-[state=active]:text-white px-6 py-2">Profile</TabsTrigger>
           {profileData.analytics && (
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-white">Analytics</TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-white px-6 py-2">Analytics</TabsTrigger>
           )}
           {profileData.posts && profileData.posts.length > 0 && (
-            <TabsTrigger value="posts" className="data-[state=active]:bg-primary data-[state=active]:text-white">Posts</TabsTrigger>
+            <TabsTrigger value="posts" className="data-[state=active]:bg-primary data-[state=active]:text-white px-6 py-2">Posts</TabsTrigger>
           )}
         </TabsList>
         
-        <TabsContent value="profile">
-          <div className="grid grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-              <div className="text-blue-600 text-sm font-medium">Followers</div>
-              <div className="font-bold text-xl text-blue-800">{profileData.follower_count?.toLocaleString() || '0'}</div>
+        <TabsContent value="profile" className="mt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
+            <div className="text-center p-5 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+              <div className="text-blue-600 text-sm font-medium mb-1">Followers</div>
+              <div className="font-bold text-2xl text-blue-800">{profileData.follower_count?.toLocaleString() || '0'}</div>
             </div>
-            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
-              <div className="text-green-600 text-sm font-medium">Following</div>
-              <div className="font-bold text-xl text-green-800">{profileData.following_count?.toLocaleString() || '0'}</div>
+            <div className="text-center p-5 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border border-green-200">
+              <div className="text-green-600 text-sm font-medium mb-1">Following</div>
+              <div className="font-bold text-2xl text-green-800">{profileData.following_count?.toLocaleString() || '0'}</div>
             </div>
-            <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
-              <div className="text-purple-600 text-sm font-medium">Posts</div>
-              <div className="font-bold text-xl text-purple-800">{profileData.posts_count?.toLocaleString() || '0'}</div>
+            <div className="text-center p-5 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+              <div className="text-purple-600 text-sm font-medium mb-1">Posts</div>
+              <div className="font-bold text-2xl text-purple-800">{profileData.posts_count?.toLocaleString() || '0'}</div>
             </div>
           </div>
           
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
               <Star className="h-5 w-5 text-amber-500" />
               <span className="font-semibold text-amber-800">
                 {profileData.engagement_rate || '0'}% Engagement Rate
               </span>
             </div>
             
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <h4 className="font-medium text-sm text-muted-foreground mb-2">Biography</h4>
+            <div className="p-5 bg-muted/30 rounded-lg">
+              <h4 className="font-medium text-sm text-muted-foreground mb-3">Biography</h4>
               <p className="text-sm leading-relaxed">{profileData.bio || 'No bio available'}</p>
             </div>
             
             {profileData.website && (
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <h4 className="font-medium text-sm text-blue-600 mb-1">Website</h4>
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-sm text-blue-600 mb-2">Website</h4>
                 <a 
                   href={profileData.website.startsWith('http') ? profileData.website : `https://${profileData.website}`}
                   target="_blank"

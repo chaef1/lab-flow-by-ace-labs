@@ -467,45 +467,75 @@ export type Database = {
       }
       influencers: {
         Row: {
+          account_type: string | null
+          avg_comments: number | null
+          avg_likes: number | null
           bio: string | null
           categories: string[] | null
           created_at: string | null
           engagement_rate: number | null
           follower_count: number | null
+          full_name: string | null
           id: string
           instagram_handle: string | null
+          location: string | null
+          platform: string
           portfolio_images: string[] | null
+          profile_picture_url: string | null
           rate_per_post: number | null
           tiktok_handle: string | null
           updated_at: string | null
+          username: string | null
+          verified: boolean | null
+          website: string | null
           youtube_handle: string | null
         }
         Insert: {
+          account_type?: string | null
+          avg_comments?: number | null
+          avg_likes?: number | null
           bio?: string | null
           categories?: string[] | null
           created_at?: string | null
           engagement_rate?: number | null
           follower_count?: number | null
+          full_name?: string | null
           id: string
           instagram_handle?: string | null
+          location?: string | null
+          platform?: string
           portfolio_images?: string[] | null
+          profile_picture_url?: string | null
           rate_per_post?: number | null
           tiktok_handle?: string | null
           updated_at?: string | null
+          username?: string | null
+          verified?: boolean | null
+          website?: string | null
           youtube_handle?: string | null
         }
         Update: {
+          account_type?: string | null
+          avg_comments?: number | null
+          avg_likes?: number | null
           bio?: string | null
           categories?: string[] | null
           created_at?: string | null
           engagement_rate?: number | null
           follower_count?: number | null
+          full_name?: string | null
           id?: string
           instagram_handle?: string | null
+          location?: string | null
+          platform?: string
           portfolio_images?: string[] | null
+          profile_picture_url?: string | null
           rate_per_post?: number | null
           tiktok_handle?: string | null
           updated_at?: string | null
+          username?: string | null
+          verified?: boolean | null
+          website?: string | null
           youtube_handle?: string | null
         }
         Relationships: [

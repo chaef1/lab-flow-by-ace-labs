@@ -68,18 +68,26 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         const { data } = await supabase
           .from('influencers')
           .select('id')
-          .eq('instagram_handle', profileData.username)
+          .eq('username', profileData.username)
+          .eq('platform', 'instagram')
           .maybeSingle();
         existingInfluencer = data;
       } else if (platform === 'tiktok') {
         const { data } = await supabase
           .from('influencers')
           .select('id')
-          .eq('tiktok_handle', profileData.username)
+          .eq('username', profileData.username)
+          .eq('platform', 'tiktok')
           .maybeSingle();
         existingInfluencer = data;
       } else if (platform === 'facebook') {
-        // Add facebook handle check when needed
+        const { data } = await supabase
+          .from('influencers')
+          .select('id')
+          .eq('username', profileData.username)
+          .eq('platform', 'facebook')
+          .maybeSingle();
+        existingInfluencer = data;
       }
       
       if (existingInfluencer) {
@@ -98,31 +106,39 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
-          id: newId, // Use the generated UUID
+          id: newId,
           first_name: profileData.full_name?.split(' ')[0] || '',
           last_name: profileData.full_name?.split(' ').slice(1).join(' ') || '',
-          avatar_url: profileData.profile_pic_url || '',
+          avatar_url: profileData.profile_picture_url || '',
           role: 'influencer'
         });
         
       if (profileError) throw profileError;
       
-      // Now create the influencer with the same ID
+      // Now create the influencer with the new schema
       const influencerData: any = {
-        id: newId, // Use the same ID for the influencer
-        bio: profileData.biography || '',
+        id: newId,
+        username: profileData.username,
+        full_name: profileData.full_name || '',
+        bio: profileData.bio || '',
         follower_count: profileData.follower_count || 0,
         engagement_rate: profileData.engagement_rate || 0,
+        profile_picture_url: profileData.profile_picture_url || '',
+        verified: profileData.verified || false,
+        website: profileData.website || '',
+        location: profileData.location || '',
+        account_type: profileData.account_type || '',
+        avg_likes: profileData.avg_likes || 0,
+        avg_comments: profileData.avg_comments || 0,
+        platform: platform,
         categories: [],
       };
       
-      // Add the right social handle based on platform
+      // Add legacy social handles for backward compatibility
       if (platform === 'instagram') {
         influencerData.instagram_handle = profileData.username;
       } else if (platform === 'tiktok') {
         influencerData.tiktok_handle = profileData.username;
-      } else if (platform === 'facebook') {
-        // Add facebook handle when needed
       }
       
       const { error: influencerError } = await supabase
@@ -136,11 +152,13 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         id: newId,
         first_name: profileData.full_name?.split(' ')[0] || '',
         last_name: profileData.full_name?.split(' ').slice(1).join(' ') || '',
-        bio: profileData.biography || '',
+        bio: profileData.bio || '',
         follower_count: profileData.follower_count || 0,
         engagement_rate: profileData.engagement_rate || 0,
         categories: [],
-        avatar_url: profileData.profile_pic_url || '',
+        avatar_url: profileData.profile_picture_url || '',
+        username: profileData.username,
+        platform: platform,
         instagram_handle: platform === 'instagram' ? profileData.username : null,
         tiktok_handle: platform === 'tiktok' ? profileData.username : null,
         is_mock_data: false
@@ -182,13 +200,13 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
             Search for influencers across all major social media platforms
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6">
+        <CardContent className="p-6 sm:p-8">
           <Tabs defaultValue="search" value={searchTab} onValueChange={(v) => setSearchTab(v as 'search' | 'history')}>
-            <TabsList className="mb-4 sm:mb-6 bg-muted/30 w-full sm:w-auto">
-              <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm">
+            <TabsList className="mb-6 sm:mb-8 bg-muted/30 w-full sm:w-auto">
+              <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm px-4 py-2">
                 Profile Search
               </TabsTrigger>
-              <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm">
+              <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-white text-sm px-4 py-2">
                 <History className="mr-2 h-4 w-4" />
                 History
               </TabsTrigger>
@@ -196,18 +214,18 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
             
             <TabsContent value="search">
               <Tabs defaultValue="instagram" value={platform} onValueChange={handlePlatformChange}>
-                <TabsList className="grid grid-cols-3 mb-4 sm:mb-6 h-auto p-1 bg-muted/50 gap-1">
-                  <TabsTrigger value="instagram" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 rounded-md text-xs">
-                    <Instagram className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="text-xs">Instagram</span>
+                <TabsList className="grid grid-cols-3 mb-6 sm:mb-8 h-auto p-2 bg-muted/50 gap-2">
+                  <TabsTrigger value="instagram" className="flex flex-col sm:flex-row items-center gap-2 p-3 sm:p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0 data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 rounded-lg text-sm">
+                    <Instagram className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-sm font-medium">Instagram</span>
                   </TabsTrigger>
-                  <TabsTrigger value="tiktok" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-black to-gray-800 text-white border-0 data-[state=active]:from-gray-900 data-[state=active]:to-black rounded-md text-xs">
-                    <div className="h-3 w-3 sm:h-4 sm:w-4 text-white font-bold text-xs flex items-center justify-center">♪</div>
-                    <span className="text-xs">TikTok</span>
+                  <TabsTrigger value="tiktok" className="flex flex-col sm:flex-row items-center gap-2 p-3 sm:p-4 bg-gradient-to-r from-black to-gray-800 text-white border-0 data-[state=active]:from-gray-900 data-[state=active]:to-black rounded-lg text-sm">
+                    <div className="h-4 w-4 sm:h-5 sm:w-5 text-white font-bold text-sm flex items-center justify-center">♪</div>
+                    <span className="text-sm font-medium">TikTok</span>
                   </TabsTrigger>
-                  <TabsTrigger value="facebook" className="flex flex-col sm:flex-row items-center gap-1 p-2 sm:p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 rounded-md text-xs">
-                    <Facebook className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="text-xs">Facebook</span>
+                  <TabsTrigger value="facebook" className="flex flex-col sm:flex-row items-center gap-2 p-3 sm:p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 rounded-lg text-sm">
+                    <Facebook className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-sm font-medium">Facebook</span>
                   </TabsTrigger>
                 </TabsList>
                 
@@ -280,9 +298,12 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         </CardContent>
         
         {profileData && !profileData.temporary_error && searchTab === 'search' && (
-          <CardFooter>
-            <Button className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white" onClick={handleAddInfluencer}>
-              <TrendingUp className="mr-2 h-4 w-4" /> 
+          <CardFooter className="p-6 sm:p-8 pt-0">
+            <Button 
+              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white h-12 text-lg font-medium" 
+              onClick={handleAddInfluencer}
+            >
+              <TrendingUp className="mr-2 h-5 w-5" /> 
               Add to Influencer Database
             </Button>
           </CardFooter>

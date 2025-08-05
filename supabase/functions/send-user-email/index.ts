@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const MAILCHIMP_API_KEY = Deno.env.get("MAILCHIMP_API_KEY");
+const MAILCHIMP_SERVER = MAILCHIMP_API_KEY?.split("-")[1]; // Extract server from API key
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,20 +25,37 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, subject, message, name }: EmailUserRequest = await req.json();
 
-    const emailResponse = await resend.emails.send({
-      from: "Ace Labs <onboarding@resend.dev>", // Update with your domain
-      to: [email],
-      subject: subject,
-      html: `
-        <h1>Hello ${name}!</h1>
-        <p>${message.replace(/\n/g, '<br>')}</p>
-        <p>Best regards,<br>Ace Labs Team</p>
-      `,
+    // Send email using Mailchimp Transactional API
+    const emailResponse = await fetch(`https://${MAILCHIMP_SERVER}.api.mailchimp.com/3.0/messages/send`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${MAILCHIMP_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: {
+          from_email: "noreply@acelabs.com",
+          from_name: "Ace Labs",
+          to: [{
+            email: email,
+            name: name,
+            type: "to"
+          }],
+          subject: subject,
+          html: `
+            <h1>Hello ${name}!</h1>
+            <p>${message.replace(/\n/g, '<br>')}</p>
+            <p>Best regards,<br>Ace Labs Team</p>
+          `,
+        }
+      })
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    const responseData = await emailResponse.json();
 
-    return new Response(JSON.stringify(emailResponse), {
+    console.log("Email sent successfully:", responseData);
+
+    return new Response(JSON.stringify(responseData), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

@@ -8,6 +8,10 @@ type Profile = Database['public']['Tables']['profiles']['Row'];
 export interface User extends Profile {
   email?: string;
   project_count?: number;
+  name?: string;
+  avatar?: string;
+  status?: string;
+  projects?: number;
 }
 
 export const useUsers = () => {
@@ -72,6 +76,99 @@ export const useInviteUser = () => {
     },
     onError: (error: any) => {
       toast.error(`Failed to invite user: ${error.message}`);
+    }
+  });
+};
+
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ userId, firstName, lastName, role }: {
+      userId: string;
+      firstName?: string;
+      lastName?: string;
+      role: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          role: role as any
+        })
+        .eq('id', userId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('User updated successfully!');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to update user: ${error.message}`);
+    }
+  });
+};
+
+export const useDeactivateUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ userId, deactivate }: {
+      userId: string;
+      deactivate: boolean;
+    }) => {
+      // Note: This would typically update a status field in profiles table
+      // For now, we'll use the admin API to disable/enable the user
+      const { data, error } = deactivate 
+        ? await supabase.auth.admin.updateUserById(userId, { ban_duration: 'none' })
+        : await supabase.auth.admin.updateUserById(userId, { ban_duration: '24h' });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data;
+    },
+    onSuccess: (_, { deactivate }) => {
+      toast.success(`User ${deactivate ? 'deactivated' : 'activated'} successfully!`);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to update user status: ${error.message}`);
+    }
+  });
+};
+
+export const useEmailUser = () => {
+  return useMutation({
+    mutationFn: async ({ email, subject, message, name }: {
+      email: string;
+      subject: string;
+      message: string;
+      name: string;
+    }) => {
+      // This will call your email edge function
+      const { data, error } = await supabase.functions.invoke('send-user-email', {
+        body: { email, subject, message, name }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Email sent successfully!');
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to send email: ${error.message}`);
     }
   });
 };

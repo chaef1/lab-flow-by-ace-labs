@@ -29,8 +29,11 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { useUsers, type User } from "@/hooks/useUsers";
+import { useUsers, useDeactivateUser, type User } from "@/hooks/useUsers";
 import { InviteUserDialog } from "@/components/users/InviteUserDialog";
+import { ViewUserDialog } from "@/components/users/ViewUserDialog";
+import { EditUserDialog } from "@/components/users/EditUserDialog";
+import { EmailUserDialog } from "@/components/users/EmailUserDialog";
 
 const roleBadgeColors = {
   'admin': 'bg-ace-500/10 text-ace-500',
@@ -43,15 +46,20 @@ const roleBadgeColors = {
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  
   const { data: users = [], isLoading, error } = useUsers();
+  const deactivateUserMutation = useDeactivateUser();
 
   // Transform and filter users data
   const transformedUsers = users.map((user: User) => ({
-    id: user.id,
+    ...user,
     name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown User',
     email: user.email || '',
     avatar: user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${user.first_name?.[0] || 'U'}${user.last_name?.[0] || 'U'}`,
-    role: user.role,
     status: 'active', // Since we don't have status in profiles table yet
     projects: user.project_count || 0,
   }));
@@ -73,7 +81,14 @@ const Users = () => {
   const agencies = filteredUsers.filter(user => user.role === 'agency');
   const influencers = filteredUsers.filter(user => user.role === 'influencer');
 
-  const UsersTable = ({ users }) => (
+  const handleDeactivateUser = async (user: User) => {
+    await deactivateUserMutation.mutateAsync({
+      userId: user.id,
+      deactivate: user.status === 'active'
+    });
+  };
+
+  const UsersTable = ({ users }: { users: User[] }) => (
     <Table>
       <TableHeader>
         <TableRow>
@@ -124,17 +139,34 @@ const Users = () => {
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View Profile</DropdownMenuItem>
-                    <DropdownMenuItem>Edit User</DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Mail className="mr-2 h-4 w-4" /> Email User
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive">
-                      {user.status === 'active' ? 'Deactivate' : 'Activate'} User
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
+                   <DropdownMenuContent align="end">
+                     <DropdownMenuItem onClick={() => {
+                       setSelectedUser(user);
+                       setViewDialogOpen(true);
+                     }}>
+                       View Profile
+                     </DropdownMenuItem>
+                     <DropdownMenuItem onClick={() => {
+                       setSelectedUser(user);
+                       setEditDialogOpen(true);
+                     }}>
+                       Edit User
+                     </DropdownMenuItem>
+                     <DropdownMenuItem onClick={() => {
+                       setSelectedUser(user);
+                       setEmailDialogOpen(true);
+                     }}>
+                       <Mail className="mr-2 h-4 w-4" /> Email User
+                     </DropdownMenuItem>
+                     <DropdownMenuSeparator />
+                     <DropdownMenuItem 
+                       className="text-destructive"
+                       onClick={() => handleDeactivateUser(user)}
+                       disabled={deactivateUserMutation.isPending}
+                     >
+                       {user.status === 'active' ? 'Deactivate' : 'Activate'} User
+                     </DropdownMenuItem>
+                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
             </TableRow>
@@ -254,6 +286,24 @@ const Users = () => {
             <UsersTable users={influencers} />
           </TabsContent>
         </Tabs>
+        
+        <ViewUserDialog 
+          user={selectedUser}
+          open={viewDialogOpen}
+          onOpenChange={setViewDialogOpen}
+        />
+        
+        <EditUserDialog 
+          user={selectedUser}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+        />
+        
+        <EmailUserDialog 
+          user={selectedUser}
+          open={emailDialogOpen}
+          onOpenChange={setEmailDialogOpen}
+        />
       </div>
     </Dashboard>
   );

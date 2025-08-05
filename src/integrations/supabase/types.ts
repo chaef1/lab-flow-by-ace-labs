@@ -245,6 +245,7 @@ export type Database = {
           end_date: string | null
           id: string
           name: string
+          organization_id: string | null
           start_date: string | null
           status: string
           total_budget: number | null
@@ -258,6 +259,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           name: string
+          organization_id?: string | null
           start_date?: string | null
           status?: string
           total_budget?: number | null
@@ -271,6 +273,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string
+          organization_id?: string | null
           start_date?: string | null
           status?: string
           total_budget?: number | null
@@ -282,6 +285,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -587,6 +597,7 @@ export type Database = {
           id: string
           instagram_handle: string | null
           location: string | null
+          organization_id: string | null
           platform: string
           portfolio_images: string[] | null
           profile_picture_url: string | null
@@ -611,6 +622,7 @@ export type Database = {
           id: string
           instagram_handle?: string | null
           location?: string | null
+          organization_id?: string | null
           platform?: string
           portfolio_images?: string[] | null
           profile_picture_url?: string | null
@@ -635,6 +647,7 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           location?: string | null
+          organization_id?: string | null
           platform?: string
           portfolio_images?: string[] | null
           profile_picture_url?: string | null
@@ -646,7 +659,15 @@ export type Database = {
           website?: string | null
           youtube_handle?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "influencers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       instagram_webhook_events: {
         Row: {
@@ -678,6 +699,30 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -686,6 +731,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          organization_id: string
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
         }
@@ -696,6 +742,7 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          organization_id: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
@@ -706,10 +753,19 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          organization_id?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_assignments: {
         Row: {
@@ -771,6 +827,7 @@ export type Database = {
           due_date: string | null
           id: string
           members: Json | null
+          organization_id: string | null
           shoot_date: string | null
           status: Database["public"]["Enums"]["project_status"]
           title: string
@@ -787,6 +844,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           members?: Json | null
+          organization_id?: string | null
           shoot_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           title: string
@@ -803,6 +861,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           members?: Json | null
+          organization_id?: string | null
           shoot_date?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           title?: string
@@ -824,11 +883,19 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       social_media_searches: {
         Row: {
           id: string
+          organization_id: string | null
           platform: string
           timestamp: string
           user_id: string
@@ -836,6 +903,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          organization_id?: string | null
           platform: string
           timestamp?: string
           user_id: string
@@ -843,12 +911,21 @@ export type Database = {
         }
         Update: {
           id?: string
+          organization_id?: string | null
           platform?: string
           timestamp?: string
           user_id?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "social_media_searches_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -989,6 +1066,14 @@ export type Database = {
           webhook_fields: string[]
         }
         Returns: Json
+      }
+      get_user_organization_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      is_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
     }
     Enums: {

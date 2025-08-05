@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, MoreHorizontal, Plus, Mail } from "lucide-react";
+import { Search, MoreHorizontal, Mail, Loader } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -29,133 +29,49 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { toast } from "sonner";
-
-// Sample users data
-const usersData = [
-  {
-    id: "1",
-    name: "Alex Smith",
-    email: "alex@agency.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=AS",
-    role: "admin",
-    status: "active",
-    projects: 5,
-  },
-  {
-    id: "2",
-    name: "Jamie Lee",
-    email: "jamie@agency.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=JL",
-    role: "admin",
-    status: "active",
-    projects: 3,
-  },
-  {
-    id: "3",
-    name: "Robin Banks",
-    email: "robin@agency.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=RB",
-    role: "creator",
-    status: "active",
-    projects: 2,
-  },
-  {
-    id: "4",
-    name: "Sam Jordan",
-    email: "sam@agency.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=SJ",
-    role: "creator",
-    status: "inactive",
-    projects: 0,
-  },
-  {
-    id: "5",
-    name: "Taylor Kim",
-    email: "taylor@agency.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=TK",
-    role: "creator",
-    status: "active",
-    projects: 4,
-  },
-  {
-    id: "6",
-    name: "Jordan Patel",
-    email: "jordan@agency.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=JP",
-    role: "creator",
-    status: "active",
-    projects: 1,
-  },
-  {
-    id: "7",
-    name: "Morgan Liu",
-    email: "morgan@beachside.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=ML",
-    role: "client",
-    status: "active",
-    projects: 1,
-  },
-  {
-    id: "8",
-    name: "Casey Wong",
-    email: "casey@techgadgets.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=CW",
-    role: "client",
-    status: "active",
-    projects: 1,
-  },
-  {
-    id: "9",
-    name: "Riley Parker",
-    email: "riley@morningbrew.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=RP",
-    role: "client",
-    status: "inactive",
-    projects: 1,
-  },
-  {
-    id: "10",
-    name: "Avery Johnson",
-    email: "avery@hometownbakery.com",
-    avatar: "https://api.dicebear.com/7.x/initials/svg?seed=AJ",
-    role: "client",
-    status: "active",
-    projects: 1,
-  },
-];
+import { useUsers, type User } from "@/hooks/useUsers";
+import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 
 const roleBadgeColors = {
-  'admin': 'bg-agency-100 text-agency-800',
-  'creator': 'bg-purple-100 text-purple-800',
-  'client': 'bg-blue-100 text-blue-800',
+  'admin': 'bg-ace-500/10 text-ace-500',
+  'brand': 'bg-blue-500/10 text-blue-500',
+  'creator': 'bg-purple-500/10 text-purple-500',
+  'agency': 'bg-orange-500/10 text-orange-500',
+  'influencer': 'bg-pink-500/10 text-pink-500',
 };
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const { data: users = [], isLoading, error } = useUsers();
 
-  // Filter users based on search term, role, and status
-  const filteredUsers = usersData.filter((user) => {
+  // Transform and filter users data
+  const transformedUsers = users.map((user: User) => ({
+    id: user.id,
+    name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown User',
+    email: user.email || '',
+    avatar: user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${user.first_name?.[0] || 'U'}${user.last_name?.[0] || 'U'}`,
+    role: user.role,
+    status: 'active', // Since we don't have status in profiles table yet
+    projects: user.project_count || 0,
+  }));
+
+  const filteredUsers = transformedUsers.filter((user) => {
     const matchesSearch = 
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
       
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
     
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole;
   });
 
   // Group users by role
   const admins = filteredUsers.filter(user => user.role === 'admin');
+  const brands = filteredUsers.filter(user => user.role === 'brand');
   const creators = filteredUsers.filter(user => user.role === 'creator');
-  const clients = filteredUsers.filter(user => user.role === 'client');
-
-  const handleInviteUser = () => {
-    toast.success("Invitation sent successfully!");
-  };
+  const agencies = filteredUsers.filter(user => user.role === 'agency');
+  const influencers = filteredUsers.filter(user => user.role === 'influencer');
 
   const UsersTable = ({ users }) => (
     <Table>
@@ -228,6 +144,26 @@ const Users = () => {
     </Table>
   );
 
+  if (isLoading) {
+    return (
+      <Dashboard title="User Management" subtitle="Manage agency staff, clients, and creators">
+        <div className="flex items-center justify-center h-32">
+          <Loader className="h-6 w-6 animate-spin" />
+        </div>
+      </Dashboard>
+    );
+  }
+
+  if (error) {
+    return (
+      <Dashboard title="User Management" subtitle="Manage agency staff, clients, and creators">
+        <div className="text-center py-6 text-muted-foreground">
+          Error loading users. Please try again.
+        </div>
+      </Dashboard>
+    );
+  }
+
   return (
     <Dashboard title="User Management" subtitle="Manage agency staff, clients, and creators">
       <div className="space-y-6">
@@ -249,25 +185,15 @@ const Users = () => {
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
+                <SelectItem value="brand">Brands</SelectItem>
                 <SelectItem value="creator">Creators</SelectItem>
-                <SelectItem value="client">Clients</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="agency">Agencies</SelectItem>
+                <SelectItem value="influencer">Influencers</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <Button className="sm:w-auto" onClick={handleInviteUser}>
-            <Plus className="mr-2 h-4 w-4" /> Invite User
-          </Button>
+          <InviteUserDialog />
         </div>
 
         <Tabs defaultValue="all" className="space-y-6">
@@ -278,18 +204,28 @@ const Users = () => {
               </span>
             </TabsTrigger>
             <TabsTrigger value="admins">
-              Admins <span className="ml-1 text-xs bg-agency-100 text-agency-800 px-2 py-0.5 rounded-full">
+              Admins <span className="ml-1 text-xs bg-ace-500/10 text-ace-500 px-2 py-0.5 rounded-full">
                 {admins.length}
               </span>
             </TabsTrigger>
+            <TabsTrigger value="brands">
+              Brands <span className="ml-1 text-xs bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full">
+                {brands.length}
+              </span>
+            </TabsTrigger>
             <TabsTrigger value="creators">
-              Creators <span className="ml-1 text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+              Creators <span className="ml-1 text-xs bg-purple-500/10 text-purple-500 px-2 py-0.5 rounded-full">
                 {creators.length}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="clients">
-              Clients <span className="ml-1 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                {clients.length}
+            <TabsTrigger value="agencies">
+              Agencies <span className="ml-1 text-xs bg-orange-500/10 text-orange-500 px-2 py-0.5 rounded-full">
+                {agencies.length}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="influencers">
+              Influencers <span className="ml-1 text-xs bg-pink-500/10 text-pink-500 px-2 py-0.5 rounded-full">
+                {influencers.length}
               </span>
             </TabsTrigger>
           </TabsList>
@@ -302,12 +238,20 @@ const Users = () => {
             <UsersTable users={admins} />
           </TabsContent>
           
+          <TabsContent value="brands">
+            <UsersTable users={brands} />
+          </TabsContent>
+          
           <TabsContent value="creators">
             <UsersTable users={creators} />
           </TabsContent>
           
-          <TabsContent value="clients">
-            <UsersTable users={clients} />
+          <TabsContent value="agencies">
+            <UsersTable users={agencies} />
+          </TabsContent>
+          
+          <TabsContent value="influencers">
+            <UsersTable users={influencers} />
           </TabsContent>
         </Tabs>
       </div>

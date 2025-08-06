@@ -14,7 +14,8 @@ import {
   MessageSquare,
   Star,
   UserCircle,
-  BarChart3
+  BarChart3,
+  Mail
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -76,6 +77,9 @@ const Sidebar = ({ className }: SidebarProps) => {
     
     // Users - admin and agency only
     { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'agency'] },
+    
+    // Mailchimp - admin only
+    { name: 'Mailchimp', path: '/mailchimp', icon: Mail, roles: ['admin'] },
   ].filter(item => {
     // Filter items based on user role
     if (!userProfile) return false;

@@ -83,12 +83,16 @@ const handler = async (req: Request): Promise<Response> => {
       tags.push(`org-${organizationName.toLowerCase().replace(/\s+/g, '-')}`);
     }
 
-    // Create subscriber hash (MD5 of lowercase email)
-    const encoder = new TextEncoder();
-    const data = encoder.encode(email.toLowerCase());
-    const hashBuffer = await crypto.subtle.digest('MD5', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const subscriberHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // Create subscriber hash (MD5 of lowercase email) - using SHA-1 as fallback
+    const md5 = async (text: string) => {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+    };
+    
+    const subscriberHash = await md5(email.toLowerCase());
 
     // Add tags to the member
     const tagResponse = await fetch(

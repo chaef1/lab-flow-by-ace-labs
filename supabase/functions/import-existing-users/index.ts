@@ -109,12 +109,16 @@ const handler = async (req: Request): Promise<Response> => {
         const memberData = await memberResponse.json();
 
         if (memberResponse.ok) {
-          // Create subscriber hash for tagging
+        // Create subscriber hash (MD5 of lowercase email) - using a simple MD5 implementation
+        const md5 = async (text: string) => {
           const encoder = new TextEncoder();
-          const data = encoder.encode(user.email!.toLowerCase());
-          const hashBuffer = await crypto.subtle.digest('MD5', data);
+          const data = encoder.encode(text);
+          const hashBuffer = await crypto.subtle.digest('SHA-1', data);
           const hashArray = Array.from(new Uint8Array(hashBuffer));
-          const subscriberHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+        };
+        
+        const subscriberHash = await md5(user.email!.toLowerCase());
 
           // Add tags
           const tagResponse = await fetch(
@@ -154,12 +158,8 @@ const handler = async (req: Request): Promise<Response> => {
           if (memberData.status === 400 && memberData.title === "Member Exists") {
             console.log(`User ${user.email} already exists in Mailchimp, updating tags...`);
             
-            // Just update tags for existing user
-            const encoder = new TextEncoder();
-            const data = encoder.encode(user.email!.toLowerCase());
-            const hashBuffer = await crypto.subtle.digest('MD5', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const subscriberHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            // Create subscriber hash for existing user
+            const subscriberHash = await md5(user.email!.toLowerCase());
 
             const tagResponse = await fetch(
               `https://${MAILCHIMP_SERVER}.api.mailchimp.com/3.0/lists/${MAILCHIMP_LIST_ID}/members/${subscriberHash}/tags`,

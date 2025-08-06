@@ -23,6 +23,7 @@ import Campaigns from "./pages/Campaigns";
 import SubmitContent from "./pages/SubmitContent";
 import AdvertisingManager from "./pages/AdvertisingManager";
 import ContentScheduler from "./pages/ContentScheduler";
+import MailchimpIntegration from "./pages/MailchimpIntegration";
 
 // Set up React Query with default error handling
 const queryClient = new QueryClient({
@@ -68,6 +69,7 @@ const App = () => (
             
             {/* Admin only routes */}
             <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
+            <Route path="/mailchimp" element={<ProtectedRoute allowedRoles={['admin']}><MailchimpIntegration /></ProtectedRoute>} />
             
             {/* Influencer only routes */}
             <Route path="/campaigns" element={<ProtectedRoute allowedRoles={['influencer']}><Campaigns /></ProtectedRoute>} />

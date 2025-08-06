@@ -25,40 +25,14 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, subject, message, name }: EmailUserRequest = await req.json();
 
-    // Send email using Mailchimp Transactional API (Mandrill)
-    const emailResponse = await fetch('https://mandrillapp.com/api/1.0/messages/send.json', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        key: MAILCHIMP_API_KEY,
-        message: {
-          from_email: "noreply@acelabs.com",
-          from_name: "Ace Labs",
-          to: [{
-            email: email,
-            name: name,
-            type: "to"
-          }],
-          subject: subject,
-          html: `
-            <h1>Hello ${name}!</h1>
-            <p>${message.replace(/\n/g, '<br>')}</p>
-            <p>Best regards,<br>Ace Labs Team</p>
-          `,
-          auto_text: true,
-          auto_html: false
-        }
-      })
-    });
-
-    const responseData = await emailResponse.json();
-
-    console.log("Email sent successfully:", responseData);
-
-    return new Response(JSON.stringify(responseData), {
-      status: 200,
+    // Note: Regular Mailchimp API is designed for marketing campaigns, not individual emails
+    // For individual user emails, we should use Resend or another transactional service
+    // This is a placeholder - recommend switching to Resend for individual emails
+    
+    return new Response(JSON.stringify({ 
+      error: "Regular Mailchimp API is for campaigns, not individual emails. Please use Resend for transactional emails." 
+    }), {
+      status: 400,
       headers: {
         "Content-Type": "application/json",
         ...corsHeaders,

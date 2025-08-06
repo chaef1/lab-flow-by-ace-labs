@@ -39,11 +39,11 @@ export function InfluencerCard({
   const handle = influencer.instagram_handle || influencer.tiktok_handle || influencer.username;
 
   return (
-    <div className="modern-card swipe-card p-4 md:p-6 swipeable">
-      <div className="flex items-start gap-3 md:gap-4">
-        <Avatar className="h-14 w-14 md:h-16 md:w-16 border-2 border-primary/20 shadow-md">
+    <Card className="p-6 hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary/20">
+      <div className="flex items-start gap-4">
+        <Avatar className="h-16 w-16 border-2 border-primary/10">
           <AvatarImage src={influencer.profile_picture_url || undefined} />
-          <AvatarFallback className="gradient-primary text-white font-semibold">
+          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
             {displayName.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -152,6 +152,6 @@ export function InfluencerCard({
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

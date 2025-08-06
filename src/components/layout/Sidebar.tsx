@@ -95,12 +95,12 @@ const Sidebar = ({ className }: SidebarProps) => {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center justify-between px-4 py-3 md:py-4">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <Link to="/dashboard" className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-xl">A</span>
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="font-bold text-xl text-foreground">Ace Labs</span>
+          <span className="font-semibold text-lg text-foreground">Ace Labs</span>
         </Link>
         {isMobile && (
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>

@@ -7,7 +7,7 @@
 
 @layer base {
   :root {
-    --background: 250 252 255;
+    --background: 250 250 252;
     --foreground: 15 23% 25%;
 
     --card: 0 0% 100%;
@@ -18,9 +18,8 @@
 
     --primary: 14 100% 57%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 14 100% 52%;
 
-    --secondary: 220 14% 96%;
+    --secondary: 220 14% 98%;
     --secondary-foreground: 15 23% 25%;
 
     --muted: 220 14% 96%;
@@ -36,21 +35,11 @@
     --input: 220 13% 91%;
     --ring: 14 100% 57%;
 
-    --radius: 12px;
+    --radius: 8px;
     
-    /* Gradient system */
-    --gradient-primary: linear-gradient(135deg, hsl(14 100% 57%), hsl(22 100% 62%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 14% 99%));
-    --gradient-hover: linear-gradient(135deg, hsl(14 100% 52%), hsl(22 100% 57%));
-    
-    /* Shadows */
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px 0 hsl(0 0% 0% / 0.06);
-    --shadow-hover: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.06);
-    --shadow-focus: 0 0 0 3px hsl(14 100% 57% / 0.12);
-    
-    /* Mobile-friendly spacing */
-    --spacing-mobile: 1rem;
-    --spacing-desktop: 1.5rem;
+    /* Clean shadows like StoryClash */
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    --shadow-hover: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 213 47% 26%;

@@ -126,50 +126,50 @@ const DashboardOverview = () => {
         {/* Stats Cards */}
         <div className="px-4 md:px-6 mb-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <div className="modern-card swipe-card p-4 touch-target">
+            <div className="bg-white border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Active Projects</p>
-                  <p className="text-xl md:text-2xl font-bold text-foreground">12</p>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Active Projects</p>
+                  <p className="text-2xl font-semibold text-foreground">12</p>
                 </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Activity size={16} className="text-primary md:w-5 md:h-5" />
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Activity size={20} className="text-primary" />
                 </div>
               </div>
             </div>
             
-            <div className="modern-card swipe-card p-4 touch-target">
+            <div className="bg-white border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Pending Approvals</p>
-                  <p className="text-xl md:text-2xl font-bold text-foreground">7</p>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Pending Approvals</p>
+                  <p className="text-2xl font-semibold text-foreground">7</p>
                 </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <Clock size={16} className="text-accent md:w-5 md:h-5" />
+                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Clock size={20} className="text-amber-600" />
                 </div>
               </div>
             </div>
             
-            <div className="modern-card swipe-card p-4 touch-target">
+            <div className="bg-white border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Completed</p>
-                  <p className="text-xl md:text-2xl font-bold text-foreground">24</p>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Completed</p>
+                  <p className="text-2xl font-semibold text-foreground">24</p>
                 </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle size={16} className="text-green-600 md:w-5 md:h-5" />
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle size={20} className="text-green-600" />
                 </div>
               </div>
             </div>
             
-            <div className="modern-card swipe-card p-4 touch-target">
+            <div className="bg-white border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Overdue</p>
-                  <p className="text-xl md:text-2xl font-bold text-foreground">2</p>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Overdue</p>
+                  <p className="text-2xl font-semibold text-foreground">2</p>
                 </div>
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-                  <AlertCircle size={16} className="text-destructive md:w-5 md:h-5" />
+                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <AlertCircle size={20} className="text-red-600" />
                 </div>
               </div>
             </div>

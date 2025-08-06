@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, MoreHorizontal, Mail, Loader } from "lucide-react";
+import { Search, MoreHorizontal, Mail, Loader, Upload } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -34,6 +34,7 @@ import { InviteUserDialog } from "@/components/users/InviteUserDialog";
 import { ViewUserDialog } from "@/components/users/ViewUserDialog";
 import { EditUserDialog } from "@/components/users/EditUserDialog";
 import { EmailUserDialog } from "@/components/users/EmailUserDialog";
+import { ImportUsersDialog } from "@/components/users/ImportUsersDialog";
 
 const roleBadgeColors = {
   'admin': 'bg-ace-500/10 text-ace-500',
@@ -50,6 +51,7 @@ const Users = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   const { data: users = [], isLoading, error } = useUsers();
   const deactivateUserMutation = useDeactivateUser();
@@ -225,7 +227,17 @@ const Users = () => {
             </Select>
           </div>
 
-          <InviteUserDialog />
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setImportDialogOpen(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Import to Mailchimp
+            </Button>
+            <InviteUserDialog />
+          </div>
         </div>
 
         <Tabs defaultValue="all" className="space-y-6">
@@ -303,6 +315,11 @@ const Users = () => {
           user={selectedUser}
           open={emailDialogOpen}
           onOpenChange={setEmailDialogOpen}
+        />
+        
+        <ImportUsersDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
         />
       </div>
     </Dashboard>

@@ -57,11 +57,28 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Add tags to the user based on their role
+    // Add comprehensive tags based on user role and type
     const tags = ["ace-labs-user"];
+    
+    // Add role-based tags
     if (userRole) {
       tags.push(`role-${userRole}`);
+      
+      // Add specific audience tags
+      if (userRole === 'influencer') {
+        tags.push('audience-influencer');
+      } else if (userRole === 'brand') {
+        tags.push('audience-brand');
+      } else if (userRole === 'agency') {
+        tags.push('audience-agency');
+      } else if (userRole === 'admin') {
+        tags.push('audience-admin');
+      } else if (userRole === 'creator') {
+        tags.push('audience-creator');
+      }
     }
+    
+    // Add organization tag
     if (organizationName) {
       tags.push(`org-${organizationName.toLowerCase().replace(/\s+/g, '-')}`);
     }

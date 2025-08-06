@@ -114,111 +114,118 @@ const DashboardOverview = () => {
 
   return (
     <Dashboard title="Dashboard" subtitle="Overview of your agency activities">
-      <div className="space-y-8">
-        <h2 className="text-2xl font-medium">
-          {greeting}, {userName}!
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Active Projects</p>
-                  <p className="text-2xl font-bold">12</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-agency-100 flex items-center justify-center text-agency-700">
-                  <Activity size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Pending Approvals</p>
-                  <p className="text-2xl font-bold">7</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
-                  <Clock size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Completed</p>
-                  <p className="text-2xl font-bold">24</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-700">
-                  <CheckCircle size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Overdue</p>
-                  <p className="text-2xl font-bold">2</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-700">
-                  <AlertCircle size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen bg-background mobile-scroll">
+        {/* Welcome Header */}
+        <div className="px-4 pt-4 pb-6 md:px-6 md:pt-6">
+          <h1 className="text-2xl md:text-3xl font-semibold text-foreground mb-2">
+            {greeting}, {userName}!
+          </h1>
+          <p className="text-muted-foreground">Here's what's happening with your projects today.</p>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="finances">Finances</TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Projects</CardTitle>
-                  <CardDescription>Your latest active projects</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {recentProjects.map(project => (
-                    <ProjectCard key={project.id} project={project} />
-                  ))}
-                </CardContent>
-              </Card>
-                
-              <Card>
-                <CardHeader>
-                  <CardTitle>Content Requiring Approval</CardTitle>
-                  <CardDescription>Items pending your review</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {approvalContent.map(content => (
-                    <ApprovalCard key={content.id} content={content} />
-                  ))}
-                </CardContent>
-              </Card>
+        {/* Stats Cards */}
+        <div className="px-4 md:px-6 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="modern-card swipe-card p-4 touch-target">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Active Projects</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground">12</p>
+                </div>
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Activity size={16} className="text-primary md:w-5 md:h-5" />
+                </div>
+              </div>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="projects" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Progress</CardTitle>
-                  <CardDescription>Current status of active projects</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            
+            <div className="modern-card swipe-card p-4 touch-target">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Pending Approvals</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground">7</p>
+                </div>
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                  <Clock size={16} className="text-accent md:w-5 md:h-5" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="modern-card swipe-card p-4 touch-target">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Completed</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground">24</p>
+                </div>
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle size={16} className="text-green-600 md:w-5 md:h-5" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="modern-card swipe-card p-4 touch-target">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Overdue</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground">2</p>
+                </div>
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <AlertCircle size={16} className="text-destructive md:w-5 md:h-5" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Tabs */}
+        <div className="px-4 md:px-6">
+          <Tabs defaultValue="overview" className="space-y-6">
+            <div className="overflow-x-auto">
+              <TabsList className="w-full justify-start min-w-max">
+                <TabsTrigger value="overview" className="touch-target">Overview</TabsTrigger>
+                <TabsTrigger value="projects" className="touch-target">Projects</TabsTrigger>
+                <TabsTrigger value="finances" className="touch-target">Finances</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                <div className="modern-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Recent Projects</h3>
+                    <p className="text-sm text-muted-foreground">Your latest active projects</p>
+                  </div>
+                  <div className="space-y-3">
+                    {recentProjects.map(project => (
+                      <div key={project.id} className="swipe-card">
+                        <ProjectCard project={project} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                  
+                <div className="modern-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Content Requiring Approval</h3>
+                    <p className="text-sm text-muted-foreground">Items pending your review</p>
+                  </div>
+                  <div className="space-y-3">
+                    {approvalContent.map(content => (
+                      <div key={content.id} className="swipe-card">
+                        <ApprovalCard content={content} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="projects" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                <div className="modern-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Project Progress</h3>
+                    <p className="text-sm text-muted-foreground">Current status of active projects</p>
+                  </div>
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
@@ -252,15 +259,13 @@ const DashboardOverview = () => {
                       <Progress value={60} className="h-2" />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Status</CardTitle>
-                  <CardDescription>Distribution of project states</CardDescription>
-                </CardHeader>
-                <CardContent>
+                </div>
+                
+                <div className="modern-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Project Status</h3>
+                    <p className="text-sm text-muted-foreground">Distribution of project states</p>
+                  </div>
                   <div className="flex justify-between mb-4">
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Planning</span>
@@ -280,21 +285,23 @@ const DashboardOverview = () => {
                     </div>
                   </div>
                   
-                  <div className="flex h-4 rounded-md overflow-hidden">
-                    <div className="bg-blue-500 w-[20%]" />
-                    <div className="bg-amber-500 w-[30%]" />
+                  <div className="flex h-3 rounded-lg overflow-hidden bg-muted">
+                    <div className="bg-primary w-[20%]" />
+                    <div className="bg-accent w-[30%]" />
                     <div className="bg-purple-500 w-[20%]" />
                     <div className="bg-green-500 w-[30%]" />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="finances" className="space-y-4">
-            <WalletCard balance={walletData.balance} transactions={walletData.transactions} />
-          </TabsContent>
-        </Tabs>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="finances" className="space-y-6">
+              <div className="swipe-card">
+                <WalletCard balance={walletData.balance} transactions={walletData.transactions} />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </Dashboard>
   );

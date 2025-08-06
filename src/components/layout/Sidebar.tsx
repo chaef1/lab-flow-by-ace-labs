@@ -95,12 +95,12 @@ const Sidebar = ({ className }: SidebarProps) => {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center justify-between px-4 py-2">
-        <Link to="/dashboard" className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-md bg-ace-500 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">A</span>
+      <div className="flex items-center justify-between px-4 py-3 md:py-4">
+        <Link to="/dashboard" className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-xl">A</span>
           </div>
-          <span className="font-bold text-lg text-ace-dark">Ace Labs</span>
+          <span className="font-bold text-xl text-foreground">Ace Labs</span>
         </Link>
         {isMobile && (
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>
@@ -109,16 +109,16 @@ const Sidebar = ({ className }: SidebarProps) => {
         )}
       </div>
       
-      <div className="mt-4 px-2 py-2">
+      <div className="mt-6 px-4">
         {userProfile && (
-          <div className="px-2 py-2 mb-4">
-            <div className="text-xs uppercase text-muted-foreground">Logged in as</div>
-            <div className="font-medium mt-1">{userProfile.role}</div>
+          <div className="modern-card p-3 mb-4">
+            <div className="text-xs uppercase text-muted-foreground font-medium tracking-wide">Logged in as</div>
+            <div className="font-semibold mt-1 text-foreground capitalize">{userProfile.role}</div>
           </div>
         )}
       </div>
       
-      <div className="mt-2 space-y-1 px-2">
+      <div className="mt-2 space-y-2 px-4">
         {menuItems.map((item) => (
           <Link 
             key={item.path} 
@@ -126,23 +126,25 @@ const Sidebar = ({ className }: SidebarProps) => {
             onClick={() => isMobile && setIsOpen(false)}
           >
             <Button
-              variant={isActive(item.path) ? "secondary" : "ghost"}
+              variant="ghost"
               className={cn(
-                "w-full justify-start font-medium",
-                isActive(item.path) ? "bg-ace-100 text-ace-700" : "text-muted-foreground"
+                "w-full justify-start font-medium touch-target transition-all duration-200",
+                isActive(item.path) 
+                  ? "bg-primary/10 text-primary border border-primary/20 shadow-sm" 
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <item.icon className={cn("w-5 h-5 mr-3", isActive(item.path) ? "text-ace-500" : "")} />
+              <item.icon className={cn("w-5 h-5 mr-3", isActive(item.path) ? "text-primary" : "")} />
               {item.name}
             </Button>
           </Link>
         ))}
       </div>
       
-      <div className="mt-auto pt-4 px-2">
+      <div className="mt-auto pt-6 px-4">
         <Button
           variant="ghost"
-          className="w-full justify-start font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+          className="w-full justify-start font-medium text-destructive hover:bg-destructive/10 hover:text-destructive touch-target transition-all duration-200"
           onClick={handleLogout}
         >
           <LogOut className="w-5 h-5 mr-3" />
@@ -175,9 +177,9 @@ const Sidebar = ({ className }: SidebarProps) => {
 
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-40 w-64 border-r border-border bg-sidebar flex flex-col transition-transform",
+          "fixed top-0 bottom-0 left-0 z-40 w-64 border-r border-border bg-sidebar flex flex-col transition-all duration-300 ease-in-out",
           isMobile && !isOpen && "-translate-x-full",
-          isMobile && isOpen && "translate-x-0",
+          isMobile && isOpen && "translate-x-0 shadow-2xl",
           !isMobile && "translate-x-0",
           className
         )}

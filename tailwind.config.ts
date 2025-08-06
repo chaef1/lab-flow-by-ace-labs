@@ -13,7 +13,12 @@ export default {
 	theme: {
 		container: {
 			center: true,
-			padding: '2rem',
+			padding: {
+				DEFAULT: '1rem',
+				sm: '1.25rem',
+				lg: '1.5rem',
+				xl: '2rem'
+			},
 			screens: {
 				'2xl': '1400px'
 			}
@@ -27,7 +32,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					hover: 'hsl(var(--primary-hover))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -131,6 +137,18 @@ export default {
 				shimmer: {
 					'0%': { backgroundPosition: '-1000px 0' },
 					'100%': { backgroundPosition: '1000px 0' }
+				},
+				'swipe-in': {
+					'0%': { transform: 'translateX(100%)', opacity: '0' },
+					'100%': { transform: 'translateX(0)', opacity: '1' }
+				},
+				'swipe-out': {
+					'0%': { transform: 'translateX(0)', opacity: '1' },
+					'100%': { transform: 'translateX(-100%)', opacity: '0' }
+				},
+				'bounce-subtle': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-2px)' }
 				}
 			},
 			animation: {
@@ -139,7 +157,10 @@ export default {
 				'fadeIn': 'fadeIn 0.3s ease-out forwards',
 				'scaleIn': 'scaleIn 0.3s ease-out forwards',
 				'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-				'shimmer': 'shimmer 2s infinite'
+				'shimmer': 'shimmer 2s infinite',
+				'swipe-in': 'swipe-in 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+				'swipe-out': 'swipe-out 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+				'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite'
 			},
 			fontFamily: {
 				sans: ['Inter', 'sans-serif']

@@ -25,14 +25,14 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, subject, message, name }: EmailUserRequest = await req.json();
 
-    // Send email using Mailchimp Transactional API
-    const emailResponse = await fetch(`https://${MAILCHIMP_SERVER}.api.mailchimp.com/3.0/messages/send`, {
+    // Send email using Mailchimp Transactional API (Mandrill)
+    const emailResponse = await fetch('https://mandrillapp.com/api/1.0/messages/send.json', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${MAILCHIMP_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        key: MAILCHIMP_API_KEY,
         message: {
           from_email: "noreply@acelabs.com",
           from_name: "Ace Labs",
@@ -47,6 +47,8 @@ const handler = async (req: Request): Promise<Response> => {
             <p>${message.replace(/\n/g, '<br>')}</p>
             <p>Best regards,<br>Ace Labs Team</p>
           `,
+          auto_text: true,
+          auto_html: false
         }
       })
     });

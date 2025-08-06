@@ -15,9 +15,11 @@ import {
   Eye
 } from "lucide-react";
 import { ImportUsersDialog } from "@/components/users/ImportUsersDialog";
+import { useTestMailchimp } from "@/hooks/useTestMailchimp";
 
 const MailchimpIntegration = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const testMailchimp = useTestMailchimp();
 
   const stats = [
     { title: "Total Subscribers", value: "1,234", icon: Users, color: "text-blue-600" },
@@ -221,10 +223,20 @@ const MailchimpIntegration = () => {
                 </div>
 
                 <div className="pt-4 border-t">
-                  <Button variant="outline">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configure API Settings
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      onClick={() => testMailchimp.mutate()}
+                      disabled={testMailchimp.isPending}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      {testMailchimp.isPending ? "Testing..." : "Test Connection"}
+                    </Button>
+                    <Button variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Configure API Settings
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

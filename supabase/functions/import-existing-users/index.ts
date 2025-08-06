@@ -22,6 +22,9 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log("Starting import of existing users to Mailchimp...");
+    console.log("MAILCHIMP_API_KEY exists:", !!MAILCHIMP_API_KEY);
+    console.log("MAILCHIMP_LIST_ID exists:", !!MAILCHIMP_LIST_ID);
+    console.log("MAILCHIMP_SERVER:", MAILCHIMP_SERVER);
 
     // Get all users from auth.users and their profiles
     const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
@@ -55,6 +58,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Found ${authUsers.users.length} users to import`);
 
     for (const user of authUsers.users) {
+      console.log(`Processing user: ${user.email}`);
       try {
         const profile = profiles.find(p => p.id === user.id);
         const organization = profile?.organization_id ? 
@@ -80,9 +84,13 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
         
+        console.log(`Tags for ${user.email}:`, tags);
+        
         if (organization?.name) {
           tags.push(`org-${organization.name.toLowerCase().replace(/\s+/g, '-')}`);
         }
+
+        console.log(`Adding user ${user.email} to Mailchimp with tags:`, tags);
 
         // Add user to Mailchimp
         const memberResponse = await fetch(
@@ -106,19 +114,21 @@ const handler = async (req: Request): Promise<Response> => {
           }
         );
 
+        console.log(`Mailchimp response status for ${user.email}:`, memberResponse.status);
         const memberData = await memberResponse.json();
+        console.log(`Mailchimp response data for ${user.email}:`, memberData);
 
         if (memberResponse.ok) {
-        // Create subscriber hash (MD5 of lowercase email) - using a simple MD5 implementation
-        const md5 = async (text: string) => {
-          const encoder = new TextEncoder();
-          const data = encoder.encode(text);
-          const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-          const hashArray = Array.from(new Uint8Array(hashBuffer));
-          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
-        };
-        
-        const subscriberHash = await md5(user.email!.toLowerCase());
+          // Create subscriber hash (MD5 of lowercase email) - using a simple MD5 implementation
+          const md5 = async (text: string) => {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+          };
+          
+          const subscriberHash = await md5(user.email!.toLowerCase());
 
           // Add tags
           const tagResponse = await fetch(
@@ -154,9 +164,19 @@ const handler = async (req: Request): Promise<Response> => {
             });
           }
         } else {
+          console.error(`Failed to add ${user.email} to Mailchimp:`, memberData);
           // Check if user already exists
           if (memberData.status === 400 && memberData.title === "Member Exists") {
             console.log(`User ${user.email} already exists in Mailchimp, updating tags...`);
+            
+            // Create MD5 function for existing user
+            const md5 = async (text: string) => {
+              const encoder = new TextEncoder();
+              const data = encoder.encode(text);
+              const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+              const hashArray = Array.from(new Uint8Array(hashBuffer));
+              return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+            };
             
             // Create subscriber hash for existing user
             const subscriberHash = await md5(user.email!.toLowerCase());
@@ -183,8 +203,12 @@ const handler = async (req: Request): Promise<Response> => {
                 tags: tags,
                 role: profile?.role || 'unknown'
               });
+            } else {
+              console.error(`Failed to update tags for existing user ${user.email}`);
+              errorCount++;
             }
           } else {
+            console.error(`Mailchimp API error for ${user.email}:`, memberData);
             errorCount++;
             results.push({
               email: user.email,
@@ -196,7 +220,7 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
 
       } catch (userError: any) {
         errorCount++;

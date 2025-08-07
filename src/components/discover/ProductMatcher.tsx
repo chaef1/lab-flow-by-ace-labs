@@ -4,9 +4,22 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { AyrshareProductMatcher } from './AyrshareProductMatcher';
 import { Link2, Search, Target, TrendingUp, Users } from 'lucide-react';
 
 export function ProductMatcher() {
+  return (
+    <div className="space-y-6">
+      {/* Ayrshare-Powered Product Matcher */}
+      <AyrshareProductMatcher />
+      
+      {/* Legacy Product Matcher for Demo */}
+      <LegacyProductMatcher />
+    </div>
+  );
+}
+
+function LegacyProductMatcher() {
   const [productUrl, setProductUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [matchResults, setMatchResults] = useState<any[]>([]);

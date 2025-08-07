@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Search, Filter, MapPin, Users, Target, Calendar } from 'lucide-react';
 import { InfluencerCard } from '@/components/influencers/InfluencerCard';
+import { EnhancedInfluencerSearch } from './EnhancedInfluencerSearch';
 import { useInfluencerAssignments } from '@/hooks/useInfluencerAssignments';
 
 export function InfluencerDiscovery() {
@@ -75,7 +76,10 @@ export function InfluencerDiscovery() {
 
   return (
     <div className="space-y-6">
-      {/* Search Header */}
+      {/* Enhanced Multi-Platform Search */}
+      <EnhancedInfluencerSearch />
+      
+      {/* Advanced Filtering */}
       <Card className="p-6">
         <div className="space-y-4">
           <div className="relative">

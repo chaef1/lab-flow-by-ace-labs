@@ -102,6 +102,97 @@ export type Database = {
           },
         ]
       }
+      brand_mentions: {
+        Row: {
+          brand_monitoring_id: string | null
+          confidence_score: number | null
+          detected_at: string | null
+          id: string
+          influencer_id: string | null
+          mention_type: string | null
+          metadata: Json | null
+          platform: string
+          post_id: string | null
+        }
+        Insert: {
+          brand_monitoring_id?: string | null
+          confidence_score?: number | null
+          detected_at?: string | null
+          id?: string
+          influencer_id?: string | null
+          mention_type?: string | null
+          metadata?: Json | null
+          platform: string
+          post_id?: string | null
+        }
+        Update: {
+          brand_monitoring_id?: string | null
+          confidence_score?: number | null
+          detected_at?: string | null
+          id?: string
+          influencer_id?: string | null
+          mention_type?: string | null
+          metadata?: Json | null
+          platform?: string
+          post_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_mentions_brand_monitoring_id_fkey"
+            columns: ["brand_monitoring_id"]
+            isOneToOne: false
+            referencedRelation: "brand_monitoring"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_mentions_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_mentions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "creator_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_monitoring: {
+        Row: {
+          brand_handles: Json | null
+          brand_name: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          monitoring_keywords: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          brand_handles?: Json | null
+          brand_name: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          monitoring_keywords?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          brand_handles?: Json | null
+          brand_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          monitoring_keywords?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       budget_allocations: {
         Row: {
           allocated_amount: number
@@ -139,6 +230,63 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_assets: {
+        Row: {
+          asset_type: string
+          campaign_id: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          influencer_id: string | null
+          metadata: Json | null
+          mime_type: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          asset_type: string
+          campaign_id?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          influencer_id?: string | null
+          metadata?: Json | null
+          mime_type?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          asset_type?: string
+          campaign_id?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          influencer_id?: string | null
+          metadata?: Json | null
+          mime_type?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_assets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_assets_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
             referencedColumns: ["id"]
           },
         ]
@@ -198,26 +346,62 @@ export type Database = {
         Row: {
           added_at: string
           added_by: string
+          brief_sent_date: string | null
           campaign_id: string
+          content_approved_date: string | null
+          content_submitted_date: string | null
+          contract_status: string | null
+          deliverable_status: string | null
+          fee_agreed: number | null
           id: string
           influencer_id: string
+          live_date: string | null
+          notes: string | null
+          outreach_date: string | null
+          outreach_status: string | null
+          response_date: string | null
           status: string
+          tracking_links: Json | null
         }
         Insert: {
           added_at?: string
           added_by: string
+          brief_sent_date?: string | null
           campaign_id: string
+          content_approved_date?: string | null
+          content_submitted_date?: string | null
+          contract_status?: string | null
+          deliverable_status?: string | null
+          fee_agreed?: number | null
           id?: string
           influencer_id: string
+          live_date?: string | null
+          notes?: string | null
+          outreach_date?: string | null
+          outreach_status?: string | null
+          response_date?: string | null
           status?: string
+          tracking_links?: Json | null
         }
         Update: {
           added_at?: string
           added_by?: string
+          brief_sent_date?: string | null
           campaign_id?: string
+          content_approved_date?: string | null
+          content_submitted_date?: string | null
+          contract_status?: string | null
+          deliverable_status?: string | null
+          fee_agreed?: number | null
           id?: string
           influencer_id?: string
+          live_date?: string | null
+          notes?: string | null
+          outreach_date?: string | null
+          outreach_status?: string | null
+          response_date?: string | null
           status?: string
+          tracking_links?: Json | null
         }
         Relationships: [
           {
@@ -236,48 +420,222 @@ export type Database = {
           },
         ]
       }
+      campaign_performance: {
+        Row: {
+          campaign_id: string | null
+          clicks: number | null
+          conversions: number | null
+          cpc: number | null
+          cpm: number | null
+          created_at: string | null
+          ctr: number | null
+          custom_metrics: Json | null
+          date_tracked: string | null
+          emv: number | null
+          engagement: number | null
+          id: string
+          impressions: number | null
+          influencer_id: string | null
+          platform: string
+          post_id: string | null
+          reach: number | null
+          roi: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          custom_metrics?: Json | null
+          date_tracked?: string | null
+          emv?: number | null
+          engagement?: number | null
+          id?: string
+          impressions?: number | null
+          influencer_id?: string | null
+          platform: string
+          post_id?: string | null
+          reach?: number | null
+          roi?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          clicks?: number | null
+          conversions?: number | null
+          cpc?: number | null
+          cpm?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          custom_metrics?: Json | null
+          date_tracked?: string | null
+          emv?: number | null
+          engagement?: number | null
+          id?: string
+          impressions?: number | null
+          influencer_id?: string | null
+          platform?: string
+          post_id?: string | null
+          reach?: number | null
+          roi?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_performance_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_performance_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_performance_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "creator_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_stages: {
+        Row: {
+          assigned_to: string | null
+          campaign_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          stage_name: string
+          stage_order: number
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          campaign_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          stage_name: string
+          stage_order: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          campaign_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          stage_name?: string
+          stage_order?: number
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_stages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
+          approval_workflow: Json | null
+          brief_document_url: string | null
+          budget_breakdown: Json | null
+          campaign_type: string | null
           client_id: string
           created_at: string
           created_by: string
+          deliverables: Json | null
           description: string | null
           end_date: string | null
+          hashtags: string[] | null
           id: string
+          kpis: Json | null
+          mentions: string[] | null
+          mood_board_urls: string[] | null
           name: string
           organization_id: string | null
           start_date: string | null
           status: string
+          target_audience: Json | null
+          timeline: Json | null
           total_budget: number | null
           updated_at: string
+          utm_parameters: Json | null
         }
         Insert: {
+          approval_workflow?: Json | null
+          brief_document_url?: string | null
+          budget_breakdown?: Json | null
+          campaign_type?: string | null
           client_id: string
           created_at?: string
           created_by: string
+          deliverables?: Json | null
           description?: string | null
           end_date?: string | null
+          hashtags?: string[] | null
           id?: string
+          kpis?: Json | null
+          mentions?: string[] | null
+          mood_board_urls?: string[] | null
           name: string
           organization_id?: string | null
           start_date?: string | null
           status?: string
+          target_audience?: Json | null
+          timeline?: Json | null
           total_budget?: number | null
           updated_at?: string
+          utm_parameters?: Json | null
         }
         Update: {
+          approval_workflow?: Json | null
+          brief_document_url?: string | null
+          budget_breakdown?: Json | null
+          campaign_type?: string | null
           client_id?: string
           created_at?: string
           created_by?: string
+          deliverables?: Json | null
           description?: string | null
           end_date?: string | null
+          hashtags?: string[] | null
           id?: string
+          kpis?: Json | null
+          mentions?: string[] | null
+          mood_board_urls?: string[] | null
           name?: string
           organization_id?: string | null
           start_date?: string | null
           status?: string
+          target_audience?: Json | null
+          timeline?: Json | null
           total_budget?: number | null
           updated_at?: string
+          utm_parameters?: Json | null
         }
         Relationships: [
           {
@@ -425,6 +783,77 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_posts: {
+        Row: {
+          caption: string | null
+          comments_count: number | null
+          created_at: string | null
+          creator_id: string | null
+          engagement_rate: number | null
+          hashtags: string[] | null
+          id: string
+          likes_count: number | null
+          media_urls: string[] | null
+          mentions: string[] | null
+          platform: string
+          post_id: string
+          post_type: string | null
+          post_url: string | null
+          posted_at: string | null
+          shares_count: number | null
+          updated_at: string | null
+          views_count: number | null
+        }
+        Insert: {
+          caption?: string | null
+          comments_count?: number | null
+          created_at?: string | null
+          creator_id?: string | null
+          engagement_rate?: number | null
+          hashtags?: string[] | null
+          id?: string
+          likes_count?: number | null
+          media_urls?: string[] | null
+          mentions?: string[] | null
+          platform: string
+          post_id: string
+          post_type?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          shares_count?: number | null
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Update: {
+          caption?: string | null
+          comments_count?: number | null
+          created_at?: string | null
+          creator_id?: string | null
+          engagement_rate?: number | null
+          hashtags?: string[] | null
+          id?: string
+          likes_count?: number | null
+          media_urls?: string[] | null
+          mentions?: string[] | null
+          platform?: string
+          post_id?: string
+          post_type?: string | null
+          post_url?: string | null
+          posted_at?: string | null
+          shares_count?: number | null
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_posts_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deliverables: {
         Row: {
           assigned_to: string | null
@@ -517,6 +946,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          body: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          subject: string
+          template_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          subject: string
+          template_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          subject?: string
+          template_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       influencer_pool_members: {
         Row: {
           added_at: string
@@ -586,23 +1051,40 @@ export type Database = {
       influencers: {
         Row: {
           account_type: string | null
+          age_range: string | null
+          audience_alignment_score: number | null
+          audience_insights: Json | null
           avg_comments: number | null
           avg_likes: number | null
           bio: string | null
+          brand_fit_score: number | null
           categories: string[] | null
+          collaboration_history: Json | null
+          contact_email: string | null
+          content_themes: string[] | null
           created_at: string | null
+          creator_score: number | null
           engagement_rate: number | null
           follower_count: number | null
           full_name: string | null
+          gender: string | null
           id: string
           instagram_handle: string | null
+          language: string | null
           location: string | null
+          location_city: string | null
+          location_country: string | null
+          media_kit_url: string | null
           organization_id: string | null
+          past_campaigns_count: number | null
+          performance_score: number | null
           platform: string
           portfolio_images: string[] | null
           profile_picture_url: string | null
           rate_per_post: number | null
+          relevance_score: number | null
           tiktok_handle: string | null
+          top_posts: Json | null
           updated_at: string | null
           username: string | null
           verified: boolean | null
@@ -611,23 +1093,40 @@ export type Database = {
         }
         Insert: {
           account_type?: string | null
+          age_range?: string | null
+          audience_alignment_score?: number | null
+          audience_insights?: Json | null
           avg_comments?: number | null
           avg_likes?: number | null
           bio?: string | null
+          brand_fit_score?: number | null
           categories?: string[] | null
+          collaboration_history?: Json | null
+          contact_email?: string | null
+          content_themes?: string[] | null
           created_at?: string | null
+          creator_score?: number | null
           engagement_rate?: number | null
           follower_count?: number | null
           full_name?: string | null
+          gender?: string | null
           id: string
           instagram_handle?: string | null
+          language?: string | null
           location?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          media_kit_url?: string | null
           organization_id?: string | null
+          past_campaigns_count?: number | null
+          performance_score?: number | null
           platform?: string
           portfolio_images?: string[] | null
           profile_picture_url?: string | null
           rate_per_post?: number | null
+          relevance_score?: number | null
           tiktok_handle?: string | null
+          top_posts?: Json | null
           updated_at?: string | null
           username?: string | null
           verified?: boolean | null
@@ -636,23 +1135,40 @@ export type Database = {
         }
         Update: {
           account_type?: string | null
+          age_range?: string | null
+          audience_alignment_score?: number | null
+          audience_insights?: Json | null
           avg_comments?: number | null
           avg_likes?: number | null
           bio?: string | null
+          brand_fit_score?: number | null
           categories?: string[] | null
+          collaboration_history?: Json | null
+          contact_email?: string | null
+          content_themes?: string[] | null
           created_at?: string | null
+          creator_score?: number | null
           engagement_rate?: number | null
           follower_count?: number | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           instagram_handle?: string | null
+          language?: string | null
           location?: string | null
+          location_city?: string | null
+          location_country?: string | null
+          media_kit_url?: string | null
           organization_id?: string | null
+          past_campaigns_count?: number | null
+          performance_score?: number | null
           platform?: string
           portfolio_images?: string[] | null
           profile_picture_url?: string | null
           rate_per_post?: number | null
+          relevance_score?: number | null
           tiktok_handle?: string | null
+          top_posts?: Json | null
           updated_at?: string | null
           username?: string | null
           verified?: boolean | null
@@ -720,6 +1236,106 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      outreach_history: {
+        Row: {
+          body: string
+          campaign_id: string | null
+          email_template_id: string | null
+          id: string
+          influencer_id: string | null
+          opened_at: string | null
+          recipient_email: string
+          replied_at: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          body: string
+          campaign_id?: string | null
+          email_template_id?: string | null
+          id?: string
+          influencer_id?: string | null
+          opened_at?: string | null
+          recipient_email: string
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          body?: string
+          campaign_id?: string | null
+          email_template_id?: string | null
+          id?: string
+          influencer_id?: string | null
+          opened_at?: string | null
+          recipient_email?: string
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_history_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_history_email_template_id_fkey"
+            columns: ["email_template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_history_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "influencers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_matches: {
+        Row: {
+          created_at: string | null
+          id: string
+          matched_influencers: Json | null
+          product_category: string | null
+          product_description: string | null
+          product_images: string[] | null
+          product_name: string | null
+          product_url: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          matched_influencers?: Json | null
+          product_category?: string | null
+          product_description?: string | null
+          product_images?: string[] | null
+          product_name?: string | null
+          product_url: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          matched_influencers?: Json | null
+          product_category?: string | null
+          product_description?: string | null
+          product_images?: string[] | null
+          product_name?: string | null
+          product_url?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

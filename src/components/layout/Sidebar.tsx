@@ -15,7 +15,14 @@ import {
   Star,
   UserCircle,
   BarChart3,
-  Mail
+  Mail,
+  Search,
+  Target,
+  FolderOpen,
+  Users2,
+  Upload,
+  Megaphone,
+  Calendar
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';

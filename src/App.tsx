@@ -17,6 +17,8 @@ import Reporting from "./pages/Reporting";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import Discover from "./pages/Discover";
+import CampaignCRM from "./pages/CampaignCRM";
 import Influencers from "./pages/Influencers";
 import InfluencerProfile from "./pages/InfluencerProfile";
 import Campaigns from "./pages/Campaigns";
@@ -62,6 +64,8 @@ const App = () => (
             <Route path="/content/:id" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><ContentDetails /></ProtectedRoute>} />
             
             {/* Admin, Brand routes */}
+            <Route path="/discover" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Discover /></ProtectedRoute>} />
+            <Route path="/campaign-crm" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><CampaignCRM /></ProtectedRoute>} />
             <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Influencers /></ProtectedRoute>} />
             <Route path="/influencers/:id" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><InfluencerProfile /></ProtectedRoute>} />
             <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Reporting /></ProtectedRoute>} />

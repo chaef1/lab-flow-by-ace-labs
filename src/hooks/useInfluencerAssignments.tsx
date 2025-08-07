@@ -16,6 +16,14 @@ export interface InfluencerWithAssignments {
   youtube_handle?: string;
   campaigns?: Array<{ id: string; name: string; }>;
   pools?: Array<{ id: string; name: string; }>;
+  // Enhanced fields
+  content_themes?: string[];
+  location_country?: string;
+  location_city?: string;
+  gender?: string;
+  age_range?: string;
+  creator_score?: number;
+  relevance_score?: number;
 }
 
 export function useInfluencerAssignments() {

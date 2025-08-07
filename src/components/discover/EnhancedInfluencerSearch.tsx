@@ -47,6 +47,15 @@ export function EnhancedInfluencerSearch() {
         return;
       }
 
+      if (!data?.success && data?.platform_error && data?.platform === 'tiktok') {
+        toast({
+          title: "TikTok Account Not Linked",
+          description: data.error + " " + (data.instructions || ""),
+          variant: "destructive"
+        });
+        return;
+      }
+
       setSearchResults(data?.profiles || []);
       
       if (!data?.profiles?.length) {

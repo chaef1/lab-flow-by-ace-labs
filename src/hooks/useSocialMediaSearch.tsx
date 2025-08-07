@@ -80,7 +80,7 @@ export function useSocialMediaSearch() {
       // Get profile data from brand lookup (public data only)
       const { data: profileData, error: profileError } = await supabase.functions.invoke('ayrshare-brand-lookup', {
         body: { 
-          handle: cleanUsername,
+          username: cleanUsername,
           platform: platform
         },
       });

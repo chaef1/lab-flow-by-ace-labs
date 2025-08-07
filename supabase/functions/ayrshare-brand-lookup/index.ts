@@ -98,6 +98,24 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${ayrshareApiKey ? '[REDACTED]' : '[MISSING]'}`,
         'User-Agent': 'Supabase-Edge-Function'
       })
+      
+      // Handle specific TikTok account linking error
+      if (errorText.includes('Missing social account') && platformParam === 'tiktok') {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `TikTok account not linked in Ayrshare. Please link your TikTok account in the Ayrshare dashboard first.`,
+            platform_error: true,
+            platform: 'tiktok',
+            instructions: 'Go to your Ayrshare dashboard and connect your TikTok account to enable searches.'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400
+          }
+        )
+      }
+      
       throw new Error(`Ayrshare API error: ${ayrshareResponse.status} - ${errorText}`)
     }
 

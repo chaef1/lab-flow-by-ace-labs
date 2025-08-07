@@ -13,16 +13,16 @@ Deno.serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
-    const { handle, platform } = await req.json()
+    const { username, platform, searchType } = await req.json()
 
-    if (!handle) {
-      throw new Error('Handle is required')
+    if (!username) {
+      throw new Error('Username is required')
     }
 
-    console.log(`Fetching profile for handle: ${handle} on platform: ${platform}`)
+    console.log(`Fetching profile for handle: ${username} on platform: ${platform}`)
 
     // Clean the handle - remove @ symbol and extract from URLs
-    let cleanHandle = handle.trim()
+    let cleanHandle = username.trim()
     
     // Remove @ symbol if present
     if (cleanHandle.startsWith('@')) {
@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        profile: transformedProfile
+        profiles: [transformedProfile]
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -76,11 +76,21 @@ export function InfluencerDiscovery() {
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Multi-Platform Search */}
-      <EnhancedInfluencerSearch />
+      {/* Enhanced Multi-Platform Search - Primary Feature */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Creator Discovery</h2>
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            Live Ayrshare Integration
+          </Badge>
+        </div>
+        <EnhancedInfluencerSearch />
+      </div>
       
-      {/* Advanced Filtering */}
-      <Card className="p-6">
+      {/* Database Search & Filtering */}
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold">Search Saved Creators</h3>
+        <Card className="p-6">
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -205,9 +215,9 @@ export function InfluencerDiscovery() {
             </div>
           </div>
         </div>
-      </Card>
+        </Card>
 
-      {/* Results Grid */}
+        {/* Results Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filteredInfluencers.map((influencer) => (
           <InfluencerCard
@@ -236,7 +246,8 @@ export function InfluencerDiscovery() {
             </div>
           </div>
         </Card>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -55,6 +55,10 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Profile - all users
     { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
+    // NEW STORYCLASH FEATURES
+    { name: 'Discovery', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Campaign CRM', path: '/campaign-crm', icon: Target, roles: ['admin', 'brand', 'agency'] },
+    
     // Projects menu - admins, creators, agencies, and brands
     { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
     

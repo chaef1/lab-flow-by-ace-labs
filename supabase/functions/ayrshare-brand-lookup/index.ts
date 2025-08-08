@@ -92,7 +92,9 @@ Deno.serve(async (req) => {
         const profilesData = await statusResponse.json()
         console.log('Available profiles:', JSON.stringify(profilesData, null, 2))
         
-        const hasTikTok = profilesData?.some((profile: any) => profile.platform === 'tiktok')
+        const hasTikTok = profilesData?.profiles?.some((profile: any) => 
+          profile.activeSocialAccounts?.includes('tiktok')
+        ) || false
         if (!hasTikTok) {
           console.log('No TikTok profile found in connected accounts')
           return new Response(
@@ -102,7 +104,7 @@ Deno.serve(async (req) => {
               platform_error: true,
               platform: 'tiktok',
               instructions: 'Go to your Ayrshare dashboard and connect your TikTok account to enable searches.',
-              available_platforms: profilesData?.map((p: any) => p.platform) || []
+              available_platforms: profilesData?.profiles?.flatMap((p: any) => p.activeSocialAccounts || []) || []
             }),
             {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -267,13 +269,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Store search in database
+    // Store search in database with organization_id
     const { data: userData } = await supabase.auth.getUser()
     if (userData?.user) {
+      // Get user's organization_id
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', userData.user.id)
+        .single()
+      
       await supabase
         .from('social_media_searches')
         .insert({
           user_id: userData.user.id,
+          organization_id: userProfile?.organization_id,
           platform: platform || 'instagram',
           username: cleanHandle
         })

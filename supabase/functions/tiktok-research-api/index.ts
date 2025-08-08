@@ -3,8 +3,8 @@ import { corsHeaders } from '../_shared/cors.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const tiktokClientKey = Deno.env.get('TIKTOK_CLIENT_KEY')
-const tiktokClientSecret = Deno.env.get('TIKTOK_CLIENT_SECRET')
+const tiktokClientKey = Deno.env.get('TIKTOK_APP_ID')
+const tiktokClientSecret = Deno.env.get('TIKTOK_API_SECRET')
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,10 +17,18 @@ Deno.serve(async (req) => {
 
     // Check if TikTok credentials are available
     if (!tiktokClientKey || !tiktokClientSecret) {
+      console.log('TikTok credentials check:', { 
+        hasAppId: !!tiktokClientKey, 
+        hasSecret: !!tiktokClientSecret 
+      })
       return new Response(
         JSON.stringify({ 
           error: 'TikTok Research API credentials not configured',
-          requires_setup: true 
+          requires_setup: true,
+          missing: {
+            app_id: !tiktokClientKey,
+            api_secret: !tiktokClientSecret
+          }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )

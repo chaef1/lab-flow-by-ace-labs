@@ -1075,7 +1075,7 @@ export type Database = {
           location_city: string | null
           location_country: string | null
           media_kit_url: string | null
-          organization_id: string | null
+          organization_id: string
           past_campaigns_count: number | null
           performance_score: number | null
           platform: string
@@ -1117,7 +1117,7 @@ export type Database = {
           location_city?: string | null
           location_country?: string | null
           media_kit_url?: string | null
-          organization_id?: string | null
+          organization_id: string
           past_campaigns_count?: number | null
           performance_score?: number | null
           platform?: string
@@ -1159,7 +1159,7 @@ export type Database = {
           location_city?: string | null
           location_country?: string | null
           media_kit_url?: string | null
-          organization_id?: string | null
+          organization_id?: string
           past_campaigns_count?: number | null
           performance_score?: number | null
           platform?: string
@@ -1306,8 +1306,10 @@ export type Database = {
       product_matches: {
         Row: {
           created_at: string | null
+          created_by: string | null
           id: string
           matched_influencers: Json | null
+          organization_id: string | null
           product_category: string | null
           product_description: string | null
           product_images: string[] | null
@@ -1317,8 +1319,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          created_by?: string | null
           id?: string
           matched_influencers?: Json | null
+          organization_id?: string | null
           product_category?: string | null
           product_description?: string | null
           product_images?: string[] | null
@@ -1328,8 +1332,10 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          created_by?: string | null
           id?: string
           matched_influencers?: Json | null
+          organization_id?: string | null
           product_category?: string | null
           product_description?: string | null
           product_images?: string[] | null
@@ -1337,7 +1343,15 @@ export type Database = {
           product_url?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "product_matches_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1511,7 +1525,7 @@ export type Database = {
       social_media_searches: {
         Row: {
           id: string
-          organization_id: string | null
+          organization_id: string
           platform: string
           timestamp: string
           user_id: string
@@ -1519,7 +1533,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          organization_id?: string | null
+          organization_id: string
           platform: string
           timestamp?: string
           user_id: string
@@ -1527,7 +1541,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          organization_id?: string | null
+          organization_id?: string
           platform?: string
           timestamp?: string
           user_id?: string

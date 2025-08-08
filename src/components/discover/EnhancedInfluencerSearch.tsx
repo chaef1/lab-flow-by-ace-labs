@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Search, Plus, Loader, Instagram, Music, BarChart3 } from 'lucide-react';
 import { TikTokAnalytics } from '@/components/influencers/TikTokAnalytics';
 
@@ -42,18 +42,48 @@ export function EnhancedInfluencerSearch() {
 
       if (error) {
         console.error('Search error:', error);
+        
+        // Provide specific error reasoning
+        let errorMessage = "Search failed. ";
+        let errorDescription = "Please try again.";
+        
+        if (error.message?.includes('Missing social account')) {
+          errorMessage = "Platform Not Connected";
+          errorDescription = `Your ${platform} account isn't linked to Ayrshare. Please connect it in your social media integrations.`;
+        } else if (error.message?.includes('Rate limit')) {
+          errorMessage = "Too Many Requests";
+          errorDescription = "You've reached the search limit. Please wait a few minutes before searching again.";
+        } else if (error.message?.includes('network')) {
+          errorMessage = "Connection Error";
+          errorDescription = "Unable to connect to the search service. Check your internet connection.";
+        } else {
+          errorDescription = `Error details: ${error.message || 'Unknown error occurred'}`;
+        }
+        
         toast({
-          title: "Search Failed",
-          description: "Failed to search for influencers. Please try again.",
+          title: errorMessage,
+          description: errorDescription,
           variant: "destructive"
         });
         return;
       }
 
-      if (!data?.success && data?.platform_error && data?.platform === 'tiktok') {
+      if (!data?.success) {
+        console.error('API returned error:', data);
+        
+        let errorMessage = "Search Failed";
+        let errorDescription = "Unable to complete the search.";
+        
+        if (data?.platform_error && data?.platform === 'tiktok') {
+          errorMessage = "TikTok Account Required";
+          errorDescription = data.error + " " + (data.instructions || "Connect your TikTok account in Ayrshare to enable searches.");
+        } else if (data?.error) {
+          errorDescription = data.error;
+        }
+        
         toast({
-          title: "TikTok Account Not Linked",
-          description: data.error + " " + (data.instructions || ""),
+          title: errorMessage,
+          description: errorDescription,
           variant: "destructive"
         });
         return;
@@ -63,20 +93,43 @@ export function EnhancedInfluencerSearch() {
       
       if (!data?.profiles?.length) {
         toast({
-          title: "No Results",
-          description: "No influencers found for your search criteria",
+          title: "No Results Found",
+          description: `No ${platform} profiles found for "${searchQuery}". Try a different username or check spelling.`,
         });
       } else if (data?.enhanced_data && platform === 'tiktok') {
         toast({
           title: "Enhanced Data Retrieved",
           description: `Found ${data.profiles.length} profile(s) with advanced TikTok metrics`,
         });
+      } else {
+        toast({
+          title: "Search Successful",
+          description: `Found ${data.profiles.length} ${platform} profile(s)`,
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Search error:', error);
+      
+      // Provide specific error reasoning based on error type
+      let errorMessage = "Search Error";
+      let errorDescription = "Unable to complete the search.";
+      
+      if (error.message?.includes('Failed to fetch')) {
+        errorMessage = "Network Connection Error";
+        errorDescription = "Cannot connect to the search service. Please check your internet connection and try again.";
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = "Search Timeout";
+        errorDescription = "The search is taking too long. Please try with a different username or try again later.";
+      } else if (error.message?.includes('unauthorized')) {
+        errorMessage = "Authentication Error";
+        errorDescription = "Your session has expired. Please refresh the page and try again.";
+      } else {
+        errorDescription = `Technical error: ${error.message || 'Unknown error'}. Please try again or contact support if the issue persists.`;
+      }
+      
       toast({
-        title: "Error",
-        description: "An error occurred while searching",
+        title: errorMessage,
+        description: errorDescription,
         variant: "destructive"
       });
     } finally {
@@ -120,9 +173,26 @@ export function EnhancedInfluencerSearch() {
 
       if (error) {
         console.error('Error adding influencer:', error);
+        
+        let errorMessage = "Failed to Add Influencer";
+        let errorDescription = `Unable to add ${profile.username} to database.`;
+        
+        if (error.message?.includes('duplicate')) {
+          errorMessage = "Influencer Already Exists";
+          errorDescription = `${profile.username} is already in your database.`;
+        } else if (error.message?.includes('permission')) {
+          errorMessage = "Permission Denied";
+          errorDescription = "You don't have permission to add influencers. Contact your administrator.";
+        } else if (error.message?.includes('organization')) {
+          errorMessage = "Organization Error";
+          errorDescription = "Unable to determine your organization. Please contact support.";
+        } else {
+          errorDescription += ` Error: ${error.message}`;
+        }
+        
         toast({
-          title: "Failed to Add",
-          description: `Failed to add ${profile.username} to database`,
+          title: errorMessage,
+          description: errorDescription,
           variant: "destructive"
         });
         return;
@@ -132,11 +202,22 @@ export function EnhancedInfluencerSearch() {
         title: "Success",
         description: `${profile.username} added to your influencer database`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding influencer:', error);
+      
+      let errorMessage = "Database Error";
+      let errorDescription = "Failed to save influencer to database.";
+      
+      if (error.message?.includes('network')) {
+        errorMessage = "Connection Error";
+        errorDescription = "Unable to connect to database. Please check your connection and try again.";
+      } else {
+        errorDescription += ` Technical details: ${error.message}`;
+      }
+      
       toast({
-        title: "Error",
-        description: "An error occurred while adding the influencer",
+        title: errorMessage,
+        description: errorDescription,
         variant: "destructive"
       });
     }

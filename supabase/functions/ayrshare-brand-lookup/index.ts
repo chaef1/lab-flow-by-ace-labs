@@ -12,11 +12,25 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('=== TikTok Search Request ===');
+    console.log('Request body:', JSON.stringify({ username, platform, searchType }));
+    
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
     const { username, platform, searchType } = await req.json()
 
     if (!username) {
-      throw new Error('Username is required')
+      console.error('No username provided');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Username is required',
+          user_help: 'Please enter a TikTok username (with or without @)'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      )
     }
 
     console.log(`Fetching profile for handle: ${username} on platform: ${platform}`)
@@ -97,12 +111,31 @@ Deno.serve(async (req) => {
 
     if (!ayrshareResponse.ok) {
       const errorText = await ayrshareResponse.text()
-      console.error('Ayrshare API error:', errorText)
-      console.error('Request URL:', ayrshareUrl)
-      console.error('Request headers:', {
-        'Authorization': `Bearer ${ayrshareApiKey ? '[REDACTED]' : '[MISSING]'}`,
-        'User-Agent': 'Supabase-Edge-Function'
-      })
+      console.error('=== Ayrshare API Error ===');
+      console.error('Status:', ayrshareResponse.status);
+      console.error('Error text:', errorText);
+      console.error('Request URL:', ayrshareUrl);
+      
+      // Provide specific error reasoning based on status codes
+      let userFriendlyError = 'Search failed. ';
+      let userHelp = '';
+      
+      if (ayrshareResponse.status === 401) {
+        userFriendlyError = 'Authentication failed with Ayrshare API.';
+        userHelp = 'The API key may be invalid or expired. Please contact support.';
+      } else if (ayrshareResponse.status === 403) {
+        userFriendlyError = 'Access denied to search this profile.';
+        userHelp = 'The profile may be private or restricted.';
+      } else if (ayrshareResponse.status === 404) {
+        userFriendlyError = `${platformParam.charAt(0).toUpperCase() + platformParam.slice(1)} profile not found.`;
+        userHelp = `The username "${cleanHandle}" doesn't exist on ${platformParam}. Check the spelling and try again.`;
+      } else if (ayrshareResponse.status === 429) {
+        userFriendlyError = 'Too many requests.';
+        userHelp = 'Please wait a few minutes before searching again.';
+      } else if (errorText.includes('Missing social account') && platformParam === 'tiktok') {
+        userFriendlyError = 'TikTok account not connected.';
+        userHelp = 'Connect your TikTok account in Ayrshare dashboard to enable searches.';
+      }
       
       // Handle specific TikTok errors
       if (platformParam === 'tiktok') {

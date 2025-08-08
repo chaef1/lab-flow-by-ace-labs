@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { BarChart3, TrendingUp, Users, Eye, Heart, MessageCircle, Share } from 'lucide-react';
 
 interface TikTokAnalyticsProps {
@@ -20,6 +20,8 @@ export function TikTokAnalytics({ profile, onAnalyticsUpdate }: TikTokAnalyticsP
     setIsLoading(true);
     
     try {
+      console.log('Fetching analytics for:', profile.username);
+      
       // First try TikTok Research API for detailed analytics
       const { data: researchData, error: researchError } = await supabase.functions.invoke('tiktok-research-api', {
         body: {
@@ -28,14 +30,25 @@ export function TikTokAnalytics({ profile, onAnalyticsUpdate }: TikTokAnalyticsP
         }
       });
 
+      console.log('Research API response:', { researchData, researchError });
+
       if (!researchError && researchData?.success) {
         setAnalytics(researchData);
         onAnalyticsUpdate?.(researchData);
         toast({
-          title: "Analytics Updated",
-          description: "Detailed TikTok analytics retrieved successfully"
+          title: "Analytics Retrieved",
+          description: "Detailed TikTok analytics from Research API"
         });
         return;
+      }
+
+      // If Research API fails, provide reasoning and fallback
+      if (researchError) {
+        console.log('Research API unavailable, using fallback calculations');
+        toast({
+          title: "Using Calculated Analytics",
+          description: "TikTok Research API unavailable. Using enhanced calculations from profile data."
+        });
       }
 
       // Fallback to enhanced Ayrshare data
@@ -53,11 +66,28 @@ export function TikTokAnalytics({ profile, onAnalyticsUpdate }: TikTokAnalyticsP
         description: "Analytics calculated from available profile data"
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analytics error:', error);
+      
+      let errorMessage = "Analytics Error";
+      let errorDescription = "Failed to retrieve analytics.";
+      
+      if (error.message?.includes('network')) {
+        errorMessage = "Connection Error";
+        errorDescription = "Unable to connect to analytics service. Please check your internet connection.";
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = "Request Timeout";
+        errorDescription = "Analytics request is taking too long. Please try again.";
+      } else if (error.message?.includes('unauthorized')) {
+        errorMessage = "Authentication Error";
+        errorDescription = "Your session has expired. Please refresh the page and try again.";
+      } else {
+        errorDescription = `Technical error: ${error.message}. Please try again or contact support.`;
+      }
+      
       toast({
-        title: "Analytics Error",
-        description: "Failed to retrieve detailed analytics",
+        title: errorMessage,
+        description: errorDescription,
         variant: "destructive"
       });
     } finally {

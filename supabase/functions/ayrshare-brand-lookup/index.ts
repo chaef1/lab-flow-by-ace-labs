@@ -76,6 +76,44 @@ Deno.serve(async (req) => {
     
     const ayrshareUrl = `https://api.ayrshare.com/api/brand/byUser?${params.toString()}`
     
+    // First, let's check if TikTok account is connected by testing with a simple API call
+    if (platformParam === 'tiktok') {
+      console.log('Checking TikTok account connection status...')
+      const statusUrl = 'https://api.ayrshare.com/api/profiles'
+      const statusResponse = await fetch(statusUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${ayrshareApiKey}`,
+          'User-Agent': 'Supabase-Edge-Function'
+        }
+      })
+      
+      if (statusResponse.ok) {
+        const profilesData = await statusResponse.json()
+        console.log('Available profiles:', JSON.stringify(profilesData, null, 2))
+        
+        const hasTikTok = profilesData?.some((profile: any) => profile.platform === 'tiktok')
+        if (!hasTikTok) {
+          console.log('No TikTok profile found in connected accounts')
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'TikTok account not connected to Ayrshare. Please connect your TikTok account in the Ayrshare dashboard.',
+              platform_error: true,
+              platform: 'tiktok',
+              instructions: 'Go to your Ayrshare dashboard and connect your TikTok account to enable searches.',
+              available_platforms: profilesData?.map((p: any) => p.platform) || []
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400
+            }
+          )
+        }
+        console.log('TikTok account is connected, proceeding with search...')
+      }
+    }
+
     console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platformParam}`)
     console.log(`Request URL: ${ayrshareUrl}`)
     console.log(`Using API key prefix: ${ayrshareApiKey?.substring(0, 10)}...`)

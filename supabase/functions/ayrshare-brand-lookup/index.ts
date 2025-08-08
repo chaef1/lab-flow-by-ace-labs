@@ -76,44 +76,9 @@ Deno.serve(async (req) => {
     
     const ayrshareUrl = `https://api.ayrshare.com/api/brand/byUser?${params.toString()}`
     
-    // First, let's check if TikTok account is connected by testing with a simple API call
+    // For TikTok, proceed directly with the brand lookup - Ayrshare will handle account verification
     if (platformParam === 'tiktok') {
-      console.log('Checking TikTok account connection status...')
-      const statusUrl = 'https://api.ayrshare.com/api/profiles'
-      const statusResponse = await fetch(statusUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${ayrshareApiKey}`,
-          'User-Agent': 'Supabase-Edge-Function'
-        }
-      })
-      
-      if (statusResponse.ok) {
-        const profilesData = await statusResponse.json()
-        console.log('Available profiles:', JSON.stringify(profilesData, null, 2))
-        
-        const hasTikTok = profilesData?.profiles?.some((profile: any) => 
-          profile.activeSocialAccounts?.includes('tiktok')
-        ) || false
-        if (!hasTikTok) {
-          console.log('No TikTok profile found in connected accounts')
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: 'TikTok account not connected to Ayrshare. Please connect your TikTok account in the Ayrshare dashboard.',
-              platform_error: true,
-              platform: 'tiktok',
-              instructions: 'Go to your Ayrshare dashboard and connect your TikTok account to enable searches.',
-              available_platforms: profilesData?.profiles?.flatMap((p: any) => p.activeSocialAccounts || []) || []
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 400
-            }
-          )
-        }
-        console.log('TikTok account is connected, proceeding with search...')
-      }
+      console.log('Proceeding with TikTok brand lookup via Ayrshare...')
     }
 
     console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platformParam}`)

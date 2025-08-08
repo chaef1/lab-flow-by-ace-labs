@@ -6,13 +6,16 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { Search, Plus, Loader, Instagram, Music } from 'lucide-react';
+import { Search, Plus, Loader, Instagram, Music, BarChart3 } from 'lucide-react';
+import { TikTokAnalytics } from '@/components/influencers/TikTokAnalytics';
 
 export function EnhancedInfluencerSearch() {
   const [platform, setPlatform] = useState('instagram');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const { toast } = useToast();
 
   const searchInfluencers = async () => {
@@ -62,6 +65,11 @@ export function EnhancedInfluencerSearch() {
         toast({
           title: "No Results",
           description: "No influencers found for your search criteria",
+        });
+      } else if (data?.enhanced_data && platform === 'tiktok') {
+        toast({
+          title: "Enhanced Data Retrieved",
+          description: `Found ${data.profiles.length} profile(s) with advanced TikTok metrics`,
         });
       }
     } catch (error) {
@@ -231,13 +239,28 @@ export function EnhancedInfluencerSearch() {
                     </div>
                   </div>
                   
-                  <Button
-                    onClick={() => addInfluencerToDatabase(profile)}
-                    size="sm"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add to Database
-                  </Button>
+                  <div className="flex space-x-2">
+                    {platform === 'tiktok' && (
+                      <Button
+                        onClick={() => {
+                          setSelectedProfile(profile);
+                          setShowAnalytics(true);
+                        }}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <BarChart3 className="mr-2 h-4 w-4" />
+                        Analytics
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => addInfluencerToDatabase(profile)}
+                      size="sm"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add to Database
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}
@@ -245,7 +268,36 @@ export function EnhancedInfluencerSearch() {
         </div>
       )}
 
-      {/* Platform Integration Status */}
+      {/* TikTok Analytics Modal */}
+      {showAnalytics && selectedProfile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">TikTok Analytics - @{selectedProfile.username}</h2>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAnalytics(false)}
+                >
+                  Close
+                </Button>
+              </div>
+              <TikTokAnalytics 
+                profile={selectedProfile}
+                onAnalyticsUpdate={(analytics) => {
+                  // Update the profile with enhanced analytics
+                  setSearchResults(prev => 
+                    prev.map(p => p.username === selectedProfile.username 
+                      ? { ...p, analytics } 
+                      : p
+                    )
+                  );
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <Card className="p-4">
         <div className="space-y-3">
           <h4 className="font-medium">Platform Integration Status</h4>

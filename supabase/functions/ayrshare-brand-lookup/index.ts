@@ -258,25 +258,47 @@ Deno.serve(async (req) => {
         ig_id: platformData.igId
       }
     } else if (platformParam === 'tiktok') {
+      // Enhanced TikTok data extraction
+      const followerCount = platformData.followersCount || platformData.fans || 0
+      const heartCount = platformData.heartCount || platformData.likesCount || platformData.totalLikes || 0
+      const videoCount = platformData.videoCount || platformData.videos || platformData.postsCount || 0
+      
+      // Calculate enhanced engagement metrics
+      const avgLikesPerVideo = videoCount > 0 ? heartCount / videoCount : 0
+      const engagementRate = followerCount > 0 ? (avgLikesPerVideo / followerCount) * 100 : 0
+      
       transformedProfile = {
-        username: platformData.username || platformData.handle || cleanHandle,
-        full_name: platformData.displayName || platformData.name || '',
-        bio: platformData.description || platformData.biography || '',
-        follower_count: platformData.followersCount || platformData.fans || 0,
+        username: platformData.username || platformData.handle || platformData.uniqueId || cleanHandle,
+        full_name: platformData.displayName || platformData.name || platformData.nickname || '',
+        bio: platformData.description || platformData.signature || platformData.biography || '',
+        follower_count: followerCount,
         following_count: platformData.followingCount || platformData.following || 0,
-        engagement_rate: 0,
+        engagement_rate: Math.round(engagementRate * 100) / 100,
         verified: platformData.verified || false,
-        profile_picture_url: platformData.avatar || platformData.profilePictureUrl || '',
+        profile_picture_url: platformData.avatar || platformData.avatarLarge || platformData.avatarMedium || platformData.profilePictureUrl || '',
         website: platformData.website || '',
-        category: categorizeInfluencer(platformData.followersCount || platformData.fans || 0),
+        category: categorizeInfluencer(followerCount),
         platform: platformParam,
-        posts_count: platformData.videoCount || platformData.videos || 0,
-        avg_likes: 0,
-        avg_comments: 0,
-        last_post_date: null,
+        posts_count: videoCount,
+        avg_likes: Math.round(avgLikesPerVideo),
+        avg_comments: platformData.avgComments || 0,
+        last_post_date: platformData.lastPostDate || null,
         account_type: 'public',
-        location: '',
-        id: platformData.id
+        location: platformData.region || platformData.location || '',
+        id: platformData.id || platformData.secUid,
+        // Enhanced TikTok specific metrics
+        total_likes: heartCount,
+        digg_count: platformData.diggCount || 0,
+        heart_count: heartCount,
+        video_count: videoCount,
+        aweme_count: platformData.awemeCount || videoCount,
+        signature: platformData.signature || '',
+        unique_id: platformData.uniqueId || cleanHandle,
+        sec_uid: platformData.secUid || '',
+        // Performance indicators
+        influence_score: calculateInfluenceScore(followerCount, engagementRate, videoCount, platformData.verified),
+        content_frequency: estimatePostingFrequency(videoCount),
+        audience_reach: followerCount > 0 ? Math.round((avgLikesPerVideo / followerCount) * 10000) / 100 : 0
       }
     } else if (platformParam === 'facebook') {
       transformedProfile = {
@@ -345,7 +367,16 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        profiles: [transformedProfile]
+        profiles: [transformedProfile],
+        enhanced_data: platformParam === 'tiktok' ? {
+          metrics_calculated: true,
+          engagement_analysis: {
+            rate: transformedProfile.engagement_rate,
+            influence_score: transformedProfile.influence_score,
+            content_frequency: transformedProfile.content_frequency
+          },
+          data_source: 'ayrshare_enhanced'
+        } : undefined
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -367,3 +398,21 @@ Deno.serve(async (req) => {
     )
   }
 })
+
+// Helper functions for enhanced TikTok metrics
+function calculateInfluenceScore(followers: number, engagementRate: number, videoCount: number, verified: boolean): number {
+  const followerWeight = Math.log10(Math.max(followers, 1)) * 10
+  const engagementWeight = Math.min(engagementRate * 2, 40)
+  const contentWeight = Math.min(videoCount / 10, 20)
+  const verifiedWeight = verified ? 20 : 0
+  
+  return Math.min(Math.round(followerWeight + engagementWeight + contentWeight + verifiedWeight), 100)
+}
+
+function estimatePostingFrequency(videoCount: number): string {
+  if (videoCount > 200) return 'Very High (5+ per week)'
+  if (videoCount > 100) return 'High (3-4 per week)'
+  if (videoCount > 50) return 'Medium (1-2 per week)'
+  if (videoCount > 20) return 'Low (1-3 per month)'
+  return 'Very Low (Irregular)'
+}

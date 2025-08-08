@@ -12,11 +12,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('=== TikTok Search Request ===');
-    console.log('Request body:', JSON.stringify({ username, platform, searchType }));
+    console.log('=== Ayrshare Brand Lookup Request ===');
     
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
     const { username, platform, searchType } = await req.json()
+
+    console.log('Request params:', { username, platform, searchType });
 
     if (!username) {
       console.error('No username provided');
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: false,
           error: 'Username is required',
-          user_help: 'Please enter a TikTok username (with or without @)'
+          user_help: 'Please enter a username (with or without @)'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -90,14 +91,8 @@ Deno.serve(async (req) => {
     
     const ayrshareUrl = `https://api.ayrshare.com/api/brand/byUser?${params.toString()}`
     
-    // For TikTok, proceed directly with the brand lookup - Ayrshare will handle account verification
-    if (platformParam === 'tiktok') {
-      console.log('Proceeding with TikTok brand lookup via Ayrshare...')
-    }
-
-    console.log(`Making request to Ayrshare API for handle: ${cleanHandle}, platform: ${platformParam}`)
+    console.log(`Making request to Ayrshare API`)
     console.log(`Request URL: ${ayrshareUrl}`)
-    console.log(`Using API key prefix: ${ayrshareApiKey?.substring(0, 10)}...`)
     
     const ayrshareResponse = await fetch(ayrshareUrl, {
       method: 'GET',
@@ -114,135 +109,48 @@ Deno.serve(async (req) => {
       console.error('=== Ayrshare API Error ===');
       console.error('Status:', ayrshareResponse.status);
       console.error('Error text:', errorText);
-      console.error('Request URL:', ayrshareUrl);
       
       // Provide specific error reasoning based on status codes
-      let userFriendlyError = 'Search failed. ';
+      let userFriendlyError = 'Search failed';
       let userHelp = '';
       
       if (ayrshareResponse.status === 401) {
-        userFriendlyError = 'Authentication failed with Ayrshare API.';
-        userHelp = 'The API key may be invalid or expired. Please contact support.';
+        userFriendlyError = 'Authentication failed with Ayrshare API';
+        userHelp = 'API key may be invalid. Please contact support.';
       } else if (ayrshareResponse.status === 403) {
-        userFriendlyError = 'Access denied to search this profile.';
+        userFriendlyError = 'Access denied to search this profile';
         userHelp = 'The profile may be private or restricted.';
       } else if (ayrshareResponse.status === 404) {
-        userFriendlyError = `${platformParam.charAt(0).toUpperCase() + platformParam.slice(1)} profile not found.`;
-        userHelp = `The username "${cleanHandle}" doesn't exist on ${platformParam}. Check the spelling and try again.`;
+        userFriendlyError = `${platformParam} profile not found`;
+        userHelp = `Username "${cleanHandle}" doesn't exist on ${platformParam}. Check spelling and try again.`;
       } else if (ayrshareResponse.status === 429) {
-        userFriendlyError = 'Too many requests.';
+        userFriendlyError = 'Too many requests';
         userHelp = 'Please wait a few minutes before searching again.';
       } else if (errorText.includes('Missing social account') && platformParam === 'tiktok') {
-        userFriendlyError = 'TikTok account not connected.';
+        userFriendlyError = 'TikTok account not connected to Ayrshare';
         userHelp = 'Connect your TikTok account in Ayrshare dashboard to enable searches.';
       }
       
-      // Handle specific TikTok errors
-      if (platformParam === 'tiktok') {
-        // For TikTok, try the business API endpoint instead
-        const businessUrl = `https://api.ayrshare.com/api/business/byUser?platforms[0]=tiktok&tiktokUser=${cleanHandle}`
-        console.log('Trying TikTok business endpoint:', businessUrl)
-        
-        const businessResponse = await fetch(businessUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${ayrshareApiKey}`,
-            'User-Agent': 'Supabase-Edge-Function'
-          }
-        })
-        
-        if (businessResponse.ok) {
-          const businessData = await businessResponse.json()
-          console.log('TikTok business API response:', JSON.stringify(businessData, null, 2))
-          
-          if (businessData.tiktok) {
-            // Categorize influencer based on follower count
-            const categorizeInfluencer = (followerCount: number): string => {
-              if (followerCount >= 1000000) return 'Celebrity/Elite'
-              if (followerCount >= 100001) return 'Macro'
-              if (followerCount >= 50001) return 'Mid-Tier'
-              if (followerCount >= 10001) return 'Micro'
-              if (followerCount >= 1000) return 'Nano'
-              return 'Emerging'
-            }
-            
-            // Continue with business API data
-            const ayrshareData = businessData
-            const platformData = ayrshareData[platformParam]
-            
-            if (platformData) {
-              const transformedProfile = {
-                username: platformData.username || platformData.handle || cleanHandle,
-                full_name: platformData.displayName || platformData.name || '',
-                bio: platformData.description || platformData.biography || '',
-                follower_count: platformData.followersCount || platformData.fans || 0,
-                following_count: platformData.followingCount || platformData.following || 0,
-                engagement_rate: 0,
-                verified: platformData.verified || false,
-                profile_picture_url: platformData.avatar || platformData.profilePictureUrl || '',
-                website: platformData.website || '',
-                category: categorizeInfluencer(platformData.followersCount || platformData.fans || 0),
-                platform: platformParam,
-                posts_count: platformData.videoCount || platformData.videos || 0,
-                avg_likes: 0,
-                avg_comments: 0,
-                last_post_date: null,
-                account_type: 'public',
-                location: '',
-                id: platformData.id
-              }
-              
-              // Store search and return result
-              const { data: userData } = await supabase.auth.getUser()
-              if (userData?.user) {
-                const { data: userProfile } = await supabase
-                  .from('profiles')
-                  .select('organization_id')
-                  .eq('id', userData.user.id)
-                  .single()
-                
-                await supabase
-                  .from('social_media_searches')
-                  .insert({
-                    user_id: userData.user.id,
-                    organization_id: userProfile?.organization_id,
-                    platform: platform || 'tiktok',
-                    username: cleanHandle
-                  })
-              }
-              
-              return new Response(
-                JSON.stringify({
-                  success: true,
-                  profiles: [transformedProfile]
-                }),
-                {
-                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                  status: 200
-                }
-              )
-            }
-          }
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: userFriendlyError,
+          user_help: userHelp,
+          platform_error: platformParam === 'tiktok',
+          platform: platformParam,
+          technical_details: `Status: ${ayrshareResponse.status}`,
+          suggestions: [
+            'Check username spelling',
+            'Try without @ symbol',
+            'Ensure the profile is public',
+            'Try again in a few minutes'
+          ]
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
         }
-      }
-      
-      // Return a more user-friendly error for TikTok
-      if (platformParam === 'tiktok') {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: `TikTok profile search failed. This could be due to: 1) Account not connected in Ayrshare, 2) Profile is private, or 3) Username doesn't exist.`,
-            platform_error: true,
-            platform: 'tiktok'
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400
-          }
-        )
-      }
-      
-      throw new Error(`Ayrshare API error: ${ayrshareResponse.status} - ${errorText}`)
+      )
     }
 
     const ayrshareData = await ayrshareResponse.json()
@@ -252,7 +160,19 @@ Deno.serve(async (req) => {
     const platformData = ayrshareData[platformParam]
     
     if (!platformData) {
-      throw new Error(`No data found for platform: ${platformParam}`)
+      console.error(`No data found for platform: ${platformParam}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `No ${platformParam} data found`,
+          user_help: `The username may not exist on ${platformParam} or the profile may be private`,
+          platform: platformParam
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
+        }
+      )
     }
     
     // Categorize influencer based on follower count
@@ -275,8 +195,8 @@ Deno.serve(async (req) => {
         bio: platformData.biography || '',
         follower_count: platformData.followersCount || 0,
         following_count: platformData.followsCount || 0,
-        engagement_rate: 0, // Brand endpoint doesn't provide engagement data
-        verified: false, // Brand endpoint doesn't provide verification status for Instagram
+        engagement_rate: 0,
+        verified: false,
         profile_picture_url: platformData.profilePictureUrl || '',
         website: platformData.website || '',
         category: categorizeInfluencer(platformData.followersCount || 0),
@@ -285,20 +205,22 @@ Deno.serve(async (req) => {
         avg_likes: 0,
         avg_comments: 0,
         last_post_date: null,
-        account_type: 'public', // Brand endpoint only returns public accounts
+        account_type: 'public',
         location: '',
-        id: platformData.id,
+        id: platformData.id || crypto.randomUUID(),
         ig_id: platformData.igId
       }
     } else if (platformParam === 'tiktok') {
       // Enhanced TikTok data extraction
-      const followerCount = platformData.followersCount || platformData.fans || 0
-      const heartCount = platformData.heartCount || platformData.likesCount || platformData.totalLikes || 0
-      const videoCount = platformData.videoCount || platformData.videos || platformData.postsCount || 0
+      console.log('Processing TikTok data:', platformData);
       
-      // Calculate enhanced engagement metrics
-      const avgLikesPerVideo = videoCount > 0 ? heartCount / videoCount : 0
-      const engagementRate = followerCount > 0 ? (avgLikesPerVideo / followerCount) * 100 : 0
+      const followerCount = platformData.followersCount || platformData.fans || platformData.follower_count || 0;
+      const heartCount = platformData.heartCount || platformData.likesCount || platformData.totalLikes || platformData.likes_count || 0;
+      const videoCount = platformData.videoCount || platformData.videos || platformData.postsCount || platformData.video_count || 1;
+      
+      // Calculate engagement metrics
+      const avgLikesPerVideo = videoCount > 0 ? heartCount / videoCount : 0;
+      const engagementRate = followerCount > 0 ? (avgLikesPerVideo / followerCount) * 100 : 0;
       
       transformedProfile = {
         username: platformData.username || platformData.handle || platformData.uniqueId || cleanHandle,
@@ -318,41 +240,36 @@ Deno.serve(async (req) => {
         last_post_date: platformData.lastPostDate || null,
         account_type: 'public',
         location: platformData.region || platformData.location || '',
-        id: platformData.id || platformData.secUid,
-        // Enhanced TikTok specific metrics
+        id: platformData.id || platformData.secUid || crypto.randomUUID(),
+        // TikTok specific fields
         total_likes: heartCount,
-        digg_count: platformData.diggCount || 0,
-        heart_count: heartCount,
         video_count: videoCount,
-        aweme_count: platformData.awemeCount || videoCount,
         signature: platformData.signature || '',
         unique_id: platformData.uniqueId || cleanHandle,
-        sec_uid: platformData.secUid || '',
-        // Performance indicators
-        influence_score: calculateInfluenceScore(followerCount, engagementRate, videoCount, platformData.verified),
-        content_frequency: estimatePostingFrequency(videoCount),
-        audience_reach: followerCount > 0 ? Math.round((avgLikesPerVideo / followerCount) * 10000) / 100 : 0
-      }
+        sec_uid: platformData.secUid || ''
+      };
+      
+      console.log('Transformed TikTok profile:', transformedProfile);
     } else if (platformParam === 'facebook') {
       transformedProfile = {
         username: platformData.username || cleanHandle,
         full_name: platformData.name || '',
         bio: platformData.description || platformData.about || '',
         follower_count: platformData.followersCount || platformData.fanCount || 0,
-        following_count: 0, // Facebook pages don't have following count
+        following_count: 0,
         engagement_rate: 0,
         verified: platformData.verificationStatus === 'blue_verified',
         profile_picture_url: platformData.picture?.data?.url || '',
         website: platformData.website || '',
         category: categorizeInfluencer(platformData.followersCount || platformData.fanCount || 0),
         platform: platformParam,
-        posts_count: 0, // Not provided in brand endpoint
+        posts_count: 0,
         avg_likes: 0,
         avg_comments: 0,
         last_post_date: null,
         account_type: 'public',
         location: platformData.location?.city || '',
-        id: platformData.id
+        id: platformData.id || crypto.randomUUID()
       }
     } else {
       // Generic transformation for other platforms
@@ -373,40 +290,46 @@ Deno.serve(async (req) => {
         avg_comments: 0,
         last_post_date: null,
         account_type: 'personal',
-        location: platformData.location?.city || ''
+        location: platformData.location?.city || '',
+        id: platformData.id || crypto.randomUUID()
       }
     }
 
     // Store search in database with organization_id
-    const { data: userData } = await supabase.auth.getUser()
-    if (userData?.user) {
-      // Get user's organization_id
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('id', userData.user.id)
-        .single()
-      
-      await supabase
-        .from('social_media_searches')
-        .insert({
-          user_id: userData.user.id,
-          organization_id: userProfile?.organization_id,
-          platform: platform || 'instagram',
-          username: cleanHandle
-        })
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+      if (userData?.user) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', userData.user.id)
+          .maybeSingle()
+        
+        if (userProfile?.organization_id) {
+          await supabase
+            .from('social_media_searches')
+            .insert({
+              user_id: userData.user.id,
+              organization_id: userProfile.organization_id,
+              platform: platform || 'instagram',
+              username: cleanHandle
+            })
+        }
+      }
+    } catch (dbError) {
+      console.error('Database error (non-critical):', dbError);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         profiles: [transformedProfile],
+        source: 'ayrshare_api',
         enhanced_data: platformParam === 'tiktok' ? {
           metrics_calculated: true,
           engagement_analysis: {
             rate: transformedProfile.engagement_rate,
-            influence_score: transformedProfile.influence_score,
-            content_frequency: transformedProfile.content_frequency
+            avg_likes_per_video: transformedProfile.avg_likes
           },
           data_source: 'ayrshare_enhanced'
         } : undefined
@@ -422,7 +345,9 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: `Search failed: ${error.message}`,
+        user_help: 'Please try again or contact support if the issue persists',
+        technical_details: error.message
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -431,21 +356,3 @@ Deno.serve(async (req) => {
     )
   }
 })
-
-// Helper functions for enhanced TikTok metrics
-function calculateInfluenceScore(followers: number, engagementRate: number, videoCount: number, verified: boolean): number {
-  const followerWeight = Math.log10(Math.max(followers, 1)) * 10
-  const engagementWeight = Math.min(engagementRate * 2, 40)
-  const contentWeight = Math.min(videoCount / 10, 20)
-  const verifiedWeight = verified ? 20 : 0
-  
-  return Math.min(Math.round(followerWeight + engagementWeight + contentWeight + verifiedWeight), 100)
-}
-
-function estimatePostingFrequency(videoCount: number): string {
-  if (videoCount > 200) return 'Very High (5+ per week)'
-  if (videoCount > 100) return 'High (3-4 per week)'
-  if (videoCount > 50) return 'Medium (1-2 per week)'
-  if (videoCount > 20) return 'Low (1-3 per month)'
-  return 'Very Low (Irregular)'
-}

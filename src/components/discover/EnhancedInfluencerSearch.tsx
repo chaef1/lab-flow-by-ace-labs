@@ -83,7 +83,7 @@ export function EnhancedInfluencerSearch() {
         .from('profiles')
         .select('organization_id')
         .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+        .maybeSingle();
 
       const influencerData = {
         id: profile.id || crypto.randomUUID(),

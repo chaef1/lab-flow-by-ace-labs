@@ -68,9 +68,17 @@ export function useSocialMediaSearch() {
       
       // Log the search in the database if user is authenticated
       if (user) {
+        // Get user's organization_id
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', user.id)
+          .maybeSingle();
+          
         await supabase.from('social_media_searches').insert([
           {
             user_id: user.id,
+            organization_id: userProfile?.organization_id,
             platform,
             username: cleanUsername
           }

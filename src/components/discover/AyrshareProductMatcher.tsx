@@ -106,6 +106,27 @@ export function AyrshareProductMatcher() {
         };
       }) || [];
 
+      // Save product match to database with organization_id
+      try {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', (await supabase.auth.getUser()).data.user?.id)
+          .maybeSingle();
+
+        await supabase.from('product_matches').insert({
+          product_url: productUrl,
+          product_name: extractedProductData.name,
+          product_category: extractedProductData.category,
+          product_description: extractedProductData.description,
+          matched_influencers: matches,
+          organization_id: userProfile?.organization_id,
+          created_by: (await supabase.auth.getUser()).data.user?.id
+        });
+      } catch (error) {
+        console.error('Error saving product match:', error);
+      }
+
       setMatchResults(matches);
       
       toast({

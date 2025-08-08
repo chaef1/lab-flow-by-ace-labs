@@ -104,15 +104,103 @@ Deno.serve(async (req) => {
         'User-Agent': 'Supabase-Edge-Function'
       })
       
-      // Handle specific TikTok account linking error
-      if (errorText.includes('Missing social account') && platformParam === 'tiktok') {
+      // Handle specific TikTok errors
+      if (platformParam === 'tiktok') {
+        // For TikTok, try the business API endpoint instead
+        const businessUrl = `https://api.ayrshare.com/api/business/byUser?platforms[0]=tiktok&tiktokUser=${cleanHandle}`
+        console.log('Trying TikTok business endpoint:', businessUrl)
+        
+        const businessResponse = await fetch(businessUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${ayrshareApiKey}`,
+            'User-Agent': 'Supabase-Edge-Function'
+          }
+        })
+        
+        if (businessResponse.ok) {
+          const businessData = await businessResponse.json()
+          console.log('TikTok business API response:', JSON.stringify(businessData, null, 2))
+          
+          if (businessData.tiktok) {
+            // Categorize influencer based on follower count
+            const categorizeInfluencer = (followerCount: number): string => {
+              if (followerCount >= 1000000) return 'Celebrity/Elite'
+              if (followerCount >= 100001) return 'Macro'
+              if (followerCount >= 50001) return 'Mid-Tier'
+              if (followerCount >= 10001) return 'Micro'
+              if (followerCount >= 1000) return 'Nano'
+              return 'Emerging'
+            }
+            
+            // Continue with business API data
+            const ayrshareData = businessData
+            const platformData = ayrshareData[platformParam]
+            
+            if (platformData) {
+              const transformedProfile = {
+                username: platformData.username || platformData.handle || cleanHandle,
+                full_name: platformData.displayName || platformData.name || '',
+                bio: platformData.description || platformData.biography || '',
+                follower_count: platformData.followersCount || platformData.fans || 0,
+                following_count: platformData.followingCount || platformData.following || 0,
+                engagement_rate: 0,
+                verified: platformData.verified || false,
+                profile_picture_url: platformData.avatar || platformData.profilePictureUrl || '',
+                website: platformData.website || '',
+                category: categorizeInfluencer(platformData.followersCount || platformData.fans || 0),
+                platform: platformParam,
+                posts_count: platformData.videoCount || platformData.videos || 0,
+                avg_likes: 0,
+                avg_comments: 0,
+                last_post_date: null,
+                account_type: 'public',
+                location: '',
+                id: platformData.id
+              }
+              
+              // Store search and return result
+              const { data: userData } = await supabase.auth.getUser()
+              if (userData?.user) {
+                const { data: userProfile } = await supabase
+                  .from('profiles')
+                  .select('organization_id')
+                  .eq('id', userData.user.id)
+                  .single()
+                
+                await supabase
+                  .from('social_media_searches')
+                  .insert({
+                    user_id: userData.user.id,
+                    organization_id: userProfile?.organization_id,
+                    platform: platform || 'tiktok',
+                    username: cleanHandle
+                  })
+              }
+              
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  profiles: [transformedProfile]
+                }),
+                {
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                  status: 200
+                }
+              )
+            }
+          }
+        }
+      }
+      
+      // Return a more user-friendly error for TikTok
+      if (platformParam === 'tiktok') {
         return new Response(
           JSON.stringify({
             success: false,
-            error: `TikTok account not linked in Ayrshare. Please link your TikTok account in the Ayrshare dashboard first.`,
+            error: `TikTok profile search failed. This could be due to: 1) Account not connected in Ayrshare, 2) Profile is private, or 3) Username doesn't exist.`,
             platform_error: true,
-            platform: 'tiktok',
-            instructions: 'Go to your Ayrshare dashboard and connect your TikTok account to enable searches.'
+            platform: 'tiktok'
           }),
           {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

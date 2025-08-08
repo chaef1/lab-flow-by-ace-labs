@@ -27,11 +27,10 @@ export function SimpleTikTokSearch() {
     try {
       console.log('Starting TikTok search for:', searchQuery);
       
-      const { data, error: functionError } = await supabase.functions.invoke('ayrshare-brand-lookup', {
+      const { data, error: functionError } = await supabase.functions.invoke('tiktok-display-api', {
         body: {
-          platform: 'tiktok',
-          username: searchQuery,
-          searchType: 'profile'
+          username: searchQuery.replace('@', ''),
+          action: 'get_user_info'
         }
       });
 
@@ -53,10 +52,10 @@ export function SimpleTikTokSearch() {
         console.error('API error:', data);
         setError(errorMsg);
         
-        if (data?.platform_error) {
+        if (data?.requires_setup) {
           toast({
-            title: "TikTok Connection Required",
-            description: data.error || "Please connect your TikTok account in Ayrshare",
+            title: "TikTok API Setup Required",
+            description: "TikTok Display API credentials need to be configured",
             variant: "destructive"
           });
         } else {
@@ -69,11 +68,11 @@ export function SimpleTikTokSearch() {
         return;
       }
 
-      if (data?.profiles?.length) {
-        setSearchResults(data.profiles);
+      if (data?.profile_data) {
+        setSearchResults([data.profile_data]);
         toast({
           title: "Profile Found",
-          description: `Found ${data.profiles.length} TikTok profile(s)`,
+          description: `Found TikTok profile: @${data.profile_data.username}`,
         });
       } else {
         setError('No TikTok profile found');
@@ -120,15 +119,18 @@ export function SimpleTikTokSearch() {
       const influencerData = {
         id: crypto.randomUUID(),
         username: profile.username,
-        full_name: profile.full_name || profile.displayName || '',
-        profile_picture_url: profile.profile_picture_url || profile.avatar || '',
-        bio: profile.bio || profile.description || '',
-        follower_count: profile.follower_count || profile.followersCount || 0,
+        full_name: profile.full_name || '',
+        profile_picture_url: profile.avatar_url || '',
+        bio: profile.bio || '',
+        follower_count: profile.follower_count || 0,
         engagement_rate: profile.engagement_rate || 0,
         platform: 'tiktok',
         tiktok_handle: profile.username,
         verified: profile.verified || false,
-        organization_id: userProfile.organization_id
+        organization_id: userProfile.organization_id,
+        likes_count: profile.likes_count || 0,
+        video_count: profile.video_count || 0,
+        following_count: profile.following_count || 0
       };
 
       const { error } = await supabase
@@ -212,9 +214,9 @@ export function SimpleTikTokSearch() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                    {profile.profile_picture_url ? (
+                    {profile.avatar_url ? (
                       <img 
-                        src={profile.profile_picture_url} 
+                        src={profile.avatar_url} 
                         alt={profile.username}
                         className="h-16 w-16 rounded-full object-cover"
                       />
@@ -226,14 +228,15 @@ export function SimpleTikTokSearch() {
                   </div>
                   
                   <div className="space-y-1">
-                    <h4 className="font-semibold">{profile.full_name || profile.displayName || profile.username}</h4>
+                    <h4 className="font-semibold">{profile.full_name || profile.username}</h4>
                     <p className="text-sm text-muted-foreground">@{profile.username}</p>
                     <div className="flex items-center space-x-4 text-sm">
                       <span>{(profile.follower_count || 0).toLocaleString()} followers</span>
+                      <span>{(profile.video_count || 0).toLocaleString()} videos</span>
                       {profile.engagement_rate > 0 && (
                         <span>{profile.engagement_rate}% engagement</span>
                       )}
-                      <Badge variant="outline">TikTok</Badge>
+                      <Badge variant="outline">Display API</Badge>
                       {profile.verified && <Badge>Verified</Badge>}
                     </div>
                     {profile.bio && (
@@ -267,7 +270,7 @@ export function SimpleTikTokSearch() {
             <Badge variant="default" className="bg-green-100 text-green-800">Available</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Search powered by Ayrshare API
+            Search powered by TikTok Display API
           </p>
         </div>
       </Card>

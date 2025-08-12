@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Sheet,
   SheetContent,
@@ -36,6 +37,7 @@ import {
   Share
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
 
 interface InfluencerCardModalProps {
   open: boolean;
@@ -281,55 +283,68 @@ export function InfluencerCardModal({
                   </div>
                 )}
                 
-                {activeTab === 'metrics' && (
+                 {activeTab === 'metrics' && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <Card className="p-3">
-                        <CardContent className="p-0">
-                          <h4 className="text-sm text-muted-foreground">Followers</h4>
-                          <div className="flex items-center mt-1">
-                            <Users className="h-4 w-4 mr-2 text-primary" />
-                            <span className="text-lg font-semibold">
-                              {influencerData.follower_count?.toLocaleString() || '0'}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
+                    <Tabs defaultValue="overview" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                      </TabsList>
                       
-                      <Card className="p-3">
-                        <CardContent className="p-0">
-                          <h4 className="text-sm text-muted-foreground">Engagement Rate</h4>
-                          <div className="flex items-center mt-1">
-                            <Star className="h-4 w-4 mr-2 text-amber-500" />
-                            <span className="text-lg font-semibold">{influencerData.engagement_rate || '0'}%</span>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <TabsContent value="overview" className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <Card className="p-3">
+                            <CardContent className="p-0">
+                              <h4 className="text-sm text-muted-foreground">Followers</h4>
+                              <div className="flex items-center mt-1">
+                                <Users className="h-4 w-4 mr-2 text-primary" />
+                                <span className="text-lg font-semibold">
+                                  {influencerData.follower_count?.toLocaleString() || '0'}
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card className="p-3">
+                            <CardContent className="p-0">
+                              <h4 className="text-sm text-muted-foreground">Engagement Rate</h4>
+                              <div className="flex items-center mt-1">
+                                <Star className="h-4 w-4 mr-2 text-amber-500" />
+                                <span className="text-lg font-semibold">{influencerData.engagement_rate || '0'}%</span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card className="p-3">
+                            <CardContent className="p-0">
+                              <h4 className="text-sm text-muted-foreground">Avg. Likes</h4>
+                              <div className="flex items-center mt-1">
+                                <Heart className="h-4 w-4 mr-2 text-rose-500" />
+                                <span className="text-lg font-semibold">
+                                  {influencerData.avg_likes?.toLocaleString() || 'N/A'}
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card className="p-3">
+                            <CardContent className="p-0">
+                              <h4 className="text-sm text-muted-foreground">Avg. Comments</h4>
+                              <div className="flex items-center mt-1">
+                                <MessageSquare className="h-4 w-4 mr-2 text-blue-500" />
+                                <span className="text-lg font-semibold">
+                                  {influencerData.avg_comments?.toLocaleString() || 'N/A'}
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </TabsContent>
                       
-                      <Card className="p-3">
-                        <CardContent className="p-0">
-                          <h4 className="text-sm text-muted-foreground">Avg. Likes</h4>
-                          <div className="flex items-center mt-1">
-                            <Heart className="h-4 w-4 mr-2 text-rose-500" />
-                            <span className="text-lg font-semibold">
-                              {Math.round((influencerData.follower_count || 0) * (influencerData.engagement_rate || 0) / 100).toLocaleString()}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card className="p-3">
-                        <CardContent className="p-0">
-                          <h4 className="text-sm text-muted-foreground">Influence Score</h4>
-                          <div className="flex items-center mt-1">
-                            <Award className="h-4 w-4 mr-2 text-blue-500" />
-                            <span className="text-lg font-semibold">
-                              {Math.min(Math.round((influencerData.follower_count || 0) / 10000 + (influencerData.engagement_rate || 0) * 10), 100)}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                      <TabsContent value="analytics" className="space-y-4">
+                        <AnalyticsDashboard influencer={influencerData} />
+                      </TabsContent>
+                    </Tabs>
                   </div>
                 )}
                 

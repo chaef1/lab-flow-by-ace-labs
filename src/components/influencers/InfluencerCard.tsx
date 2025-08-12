@@ -3,7 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Instagram, Users, Plus, Eye } from 'lucide-react';
+import { Star, Instagram, Users, Plus, Eye, RefreshCw } from 'lucide-react';
+import { useInfluencerAnalytics } from '@/hooks/useInfluencerAnalytics';
+import { toast } from 'sonner';
 
 interface InfluencerCardProps {
   influencer: {
@@ -25,6 +27,7 @@ interface InfluencerCardProps {
   onViewProfile: (influencer: any) => void;
   onAddToPool: (influencer: any) => void;
   onAddToCampaign: (influencer: any) => void;
+  onRefresh?: () => void;
 }
 
 export function InfluencerCard({ 
@@ -33,10 +36,27 @@ export function InfluencerCard({
   pools = [], 
   onViewProfile, 
   onAddToPool, 
-  onAddToCampaign 
+  onAddToCampaign,
+  onRefresh 
 }: InfluencerCardProps) {
   const displayName = influencer.full_name || influencer.username || 'Unknown';
   const handle = influencer.instagram_handle || influencer.tiktok_handle || influencer.username;
+  const { updateInfluencerWithAnalytics, loading } = useInfluencerAnalytics();
+
+  const handleRefreshAnalytics = async () => {
+    if (!handle) {
+      toast.error('No social media handle found for this influencer');
+      return;
+    }
+
+    try {
+      await updateInfluencerWithAnalytics(influencer.id, handle, influencer.platform);
+      toast.success('Analytics updated successfully');
+      if (onRefresh) onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update analytics');
+    }
+  };
 
   return (
     <Card className="p-6 hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary/20">
@@ -148,6 +168,15 @@ export function InfluencerCard({
             >
               <Plus className="mr-2 h-4 w-4" />
               Campaign
+            </Button>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={handleRefreshAnalytics}
+              disabled={loading}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Sync
             </Button>
           </div>
         </div>

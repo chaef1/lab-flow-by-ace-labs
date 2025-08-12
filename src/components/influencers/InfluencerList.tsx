@@ -210,6 +210,7 @@ export function InfluencerList({ onAddInfluencer }: InfluencerListProps) {
             onViewProfile={handleViewProfile}
             onAddToPool={handleAddToPool}
             onAddToCampaign={handleAddToCampaign}
+            onRefresh={refetch}
           />
         ))}
       </div>

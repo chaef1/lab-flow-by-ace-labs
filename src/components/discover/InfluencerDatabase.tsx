@@ -186,9 +186,9 @@ export const InfluencerDatabase = () => {
           </div>
         )}
 
-        {/* Analytics Panel - Custom slide-in from right */}
+        {/* Analytics Panel - Centered Modal */}
         <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <DialogContent className="fixed inset-y-0 right-0 h-full w-[80vw] max-w-none m-0 rounded-l-lg rounded-r-none border-l border-y-0 border-r-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right data-[state=closed]:duration-300 data-[state=open]:duration-500 overflow-y-auto p-0">
+          <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] m-0 p-0 overflow-hidden">
             {selectedInfluencer && (
               <div className="h-full flex flex-col">
                 <DialogHeader className="flex-shrink-0 p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

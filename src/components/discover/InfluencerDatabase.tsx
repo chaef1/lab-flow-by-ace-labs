@@ -3,7 +3,7 @@ import { useInfluencerAssignments } from '@/hooks/useInfluencerAssignments';
 import { InfluencerCard } from '@/components/influencers/InfluencerCard';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AnalyticsDashboard } from '@/components/influencers/AnalyticsDashboard';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -186,12 +186,12 @@ export const InfluencerDatabase = () => {
           </div>
         )}
 
-        {/* Analytics Sheet - 50% of screen width */}
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent side="right" className="w-[75vw] sm:w-[75vw] md:w-[75vw] lg:w-[75vw] xl:w-[75vw] max-w-none overflow-y-auto">
+        {/* Analytics Panel - Custom slide-in from right */}
+        <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <DialogContent className="fixed inset-y-0 right-0 h-full w-[80vw] max-w-none m-0 rounded-l-lg rounded-r-none border-l border-y-0 border-r-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right data-[state=closed]:duration-300 data-[state=open]:duration-500 overflow-y-auto p-0">
             {selectedInfluencer && (
-              <>
-                <SheetHeader className="pb-6">
+              <div className="h-full flex flex-col">
+                <DialogHeader className="flex-shrink-0 p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                   <div className="flex items-center space-x-4">
                     <Avatar className="h-16 w-16">
                       <AvatarImage src={selectedInfluencer.profile_picture_url} />
@@ -199,40 +199,42 @@ export const InfluencerDatabase = () => {
                         {selectedInfluencer.username?.charAt(0).toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <SheetTitle className="text-xl">
+                    <div className="flex-1">
+                      <DialogTitle className="text-2xl font-bold">
                         {selectedInfluencer.full_name || selectedInfluencer.username}
-                      </SheetTitle>
-                      <p className="text-muted-foreground">@{selectedInfluencer.username}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="outline">
+                      </DialogTitle>
+                      <p className="text-muted-foreground text-lg">@{selectedInfluencer.username}</p>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <Badge variant="outline" className="text-sm">
                           {selectedInfluencer.platform?.charAt(0).toUpperCase() + selectedInfluencer.platform?.slice(1)}
                         </Badge>
-                        <Badge variant="secondary">
+                        <Badge variant="secondary" className="text-sm">
                           {selectedInfluencer.follower_count?.toLocaleString() || 0} followers
                         </Badge>
                         {selectedInfluencer.creator_score && selectedInfluencer.creator_score > 0.8 && (
-                          <Badge variant="secondary">Top Creator</Badge>
+                          <Badge variant="secondary" className="text-sm">Top Creator</Badge>
                         )}
                       </div>
                     </div>
                   </div>
-                </SheetHeader>
+                </DialogHeader>
 
-                <div className="space-y-6">
-                  {selectedInfluencer.bio && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Bio</h4>
-                      <p className="text-sm text-muted-foreground">{selectedInfluencer.bio}</p>
-                    </div>
-                  )}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="space-y-6">
+                    {selectedInfluencer.bio && (
+                      <div className="bg-muted/50 rounded-lg p-4">
+                        <h4 className="font-semibold mb-2 text-lg">Bio</h4>
+                        <p className="text-muted-foreground">{selectedInfluencer.bio}</p>
+                      </div>
+                    )}
 
-                  <AnalyticsDashboard influencer={selectedInfluencer} />
+                    <AnalyticsDashboard influencer={selectedInfluencer} />
+                  </div>
                 </div>
-              </>
+              </div>
             )}
-          </SheetContent>
-        </Sheet>
+          </DialogContent>
+        </Dialog>
       </div>
     </ErrorBoundary>
   );

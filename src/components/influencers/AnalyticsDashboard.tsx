@@ -92,7 +92,13 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
   if (error) {
     return (
       <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-        <p className="text-destructive">Error loading analytics: {error}</p>
+        <p className="text-destructive font-medium">Analytics Unavailable</p>
+        <p className="text-destructive/80 text-sm mt-1">
+          {error.includes('Instagram is not linked') 
+            ? 'Instagram account is not connected to Ayrshare. Please link your Instagram account in the Ayrshare dashboard.'
+            : `Error: ${error}`
+          }
+        </p>
       </div>
     );
   }

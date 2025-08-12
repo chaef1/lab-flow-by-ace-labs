@@ -149,6 +149,10 @@ async function generateJWT(data: any) {
   console.log('JWT generation response:', responseData)
 
   if (!response.ok || responseData.status === 'error') {
+    // Handle rate limiting specifically
+    if (response.status === 429 || responseData.code === 105) {
+      throw new Error('Rate limit exceeded. Please wait 5 minutes before making more requests to avoid account suspension.')
+    }
     throw new Error(`Ayrshare API error: ${response.status} - ${JSON.stringify(responseData)}`)
   }
 

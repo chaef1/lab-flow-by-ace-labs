@@ -119,6 +119,12 @@ Deno.serve(async (req) => {
         headers: Object.fromEntries(response.headers.entries()),
         body: responseText
       })
+      
+      // Handle rate limiting specifically
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait 5 minutes before making more requests to avoid account suspension.')
+      }
+      
       throw new Error(`Ayrshare API error: ${response.status} - ${responseText}`)
     }
 
@@ -134,6 +140,12 @@ Deno.serve(async (req) => {
     // Check if Ayrshare returned an error in the response
     if (data.status === 'error' || (data.action && data.status === 'error')) {
       console.error('Ayrshare returned error:', data)
+      
+      // Handle rate limiting in error responses (Ayrshare returns code 105 for rate limits)
+      if (data.code === 105 || data.message?.includes('Rate limit exceeded')) {
+        throw new Error('Rate limit exceeded. Please wait 5 minutes before making more requests to avoid account suspension.')
+      }
+      
       throw new Error(data.message || data.details || 'Ayrshare API returned an error')
     }
 

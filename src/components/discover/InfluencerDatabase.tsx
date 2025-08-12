@@ -87,7 +87,7 @@ export const InfluencerDatabase = () => {
             <SelectTrigger>
               <SelectValue placeholder="Select platform" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background border border-border shadow-lg z-50">
               <SelectItem value="all">All Platforms</SelectItem>
               {platforms.map(platform => (
                 <SelectItem key={platform} value={platform}>
@@ -101,7 +101,7 @@ export const InfluencerDatabase = () => {
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background border border-border shadow-lg z-50">
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map(category => (
                 <SelectItem key={String(category)} value={String(category)}>
@@ -186,9 +186,9 @@ export const InfluencerDatabase = () => {
           </div>
         )}
 
-        {/* Analytics Sheet */}
+        {/* Analytics Sheet - 75% of screen width */}
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent side="right" size="large" className="overflow-y-auto">
+          <SheetContent side="right" className="w-[75vw] max-w-none overflow-y-auto">
             {selectedInfluencer && (
               <>
                 <SheetHeader className="pb-6">
@@ -204,9 +204,12 @@ export const InfluencerDatabase = () => {
                         {selectedInfluencer.full_name || selectedInfluencer.username}
                       </SheetTitle>
                       <p className="text-muted-foreground">@{selectedInfluencer.username}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-2">
                         <Badge variant="outline">
                           {selectedInfluencer.platform?.charAt(0).toUpperCase() + selectedInfluencer.platform?.slice(1)}
+                        </Badge>
+                        <Badge variant="secondary">
+                          {selectedInfluencer.follower_count?.toLocaleString() || 0} followers
                         </Badge>
                         {selectedInfluencer.creator_score && selectedInfluencer.creator_score > 0.8 && (
                           <Badge variant="secondary">Top Creator</Badge>

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, Heart, MessageCircle, Eye, MapPin, TrendingUp } from 'lucide-react';
+import { Users, Heart, MessageCircle, Eye, MapPin, TrendingUp, Loader2 } from 'lucide-react';
+import { useInfluencerAnalytics } from '@/hooks/useInfluencerAnalytics';
 
 interface AnalyticsDashboardProps {
   influencer: {
@@ -30,73 +31,98 @@ interface AnalyticsDashboardProps {
 }
 
 export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
-  const insights = influencer.audience_insights;
+  const { fetchAnalytics, loading, error } = useInfluencerAnalytics();
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      if (influencer.id) {
+        const data = await fetchAnalytics(influencer.id, 'instagram');
+        setAnalyticsData(data);
+      }
+    };
+    loadAnalytics();
+  }, [influencer.id, fetchAnalytics]);
+
+  // Use real analytics data if available, otherwise use influencer data
+  const insights = analyticsData ? {
+    demographics: analyticsData.demographics,
+    engagement: analyticsData.engagement
+  } : influencer.audience_insights;
+  
   const demographics = insights?.demographics;
   const engagement = insights?.engagement;
 
-  // Sample data for demonstration when no real data exists
-  const sampleAgeGroups = [
-    { range: '18-24', count: 45 },
-    { range: '25-34', count: 35 },
-    { range: '35-44', count: 15 },
-    { range: '45-54', count: 5 }
-  ];
+  // Parse age groups data
+  const ageGroups = demographics?.ageGroups && Object.keys(demographics.ageGroups).length > 0 
+    ? Object.entries(demographics.ageGroups)
+        .map(([key, value]) => ({ range: key, count: Number(value) || 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+    : [];
 
-  const sampleLocations = [
-    { city: 'Cape Town', count: 1250 },
-    { city: 'Johannesburg', count: 987 },
-    { city: 'Durban', count: 654 },
-    { city: 'Pretoria', count: 432 },
-    { city: 'Port Elizabeth', count: 321 }
-  ];
+  // Parse top locations
+  const topLocations = demographics?.locations && Object.keys(demographics.locations).length > 0
+    ? Object.entries(demographics.locations)
+        .map(([city, count]) => ({ city, count: Number(count) || 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+    : [];
 
-  const sampleCountries = [
-    { country: 'South Africa', count: 3644 },
-    { country: 'United States', count: 298 },
-    { country: 'United Kingdom', count: 156 },
-    { country: 'Australia', count: 87 },
-    { country: 'Canada', count: 65 }
-  ];
-
-  // Parse age groups data or use sample data
-  const ageGroups = demographics?.ageGroups ? Object.entries(demographics.ageGroups)
-    .map(([key, value]) => ({ range: key, count: value }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5) : sampleAgeGroups;
-
-  // Parse top locations or use sample data
-  const topLocations = demographics?.locations ? Object.entries(demographics.locations)
-    .map(([city, count]) => ({ city, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5) : sampleLocations;
-
-  // Parse top countries or use sample data
-  const topCountries = demographics?.countries ? Object.entries(demographics.countries)
-    .map(([country, count]) => ({ country, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5) : sampleCountries;
+  // Parse top countries
+  const topCountries = demographics?.countries && Object.keys(demographics.countries).length > 0
+    ? Object.entries(demographics.countries)
+        .map(([country, count]) => ({ country, count: Number(count) || 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+    : [];
 
   // Calculate total audience for percentages
   const totalAudience = ageGroups.reduce((sum, group) => sum + group.count, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading analytics...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+        <p className="text-destructive">Error loading analytics: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Performance Metrics Overview - Top Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <div className="text-2xl font-bold text-blue-500">{influencer.follower_count?.toLocaleString() || '2,475'}</div>
+          <div className="text-2xl font-bold text-blue-500">
+            {analyticsData?.followerGrowth?.total?.toLocaleString() || influencer.follower_count?.toLocaleString() || '0'}
+          </div>
           <div className="text-sm text-muted-foreground">Followers</div>
         </div>
         <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <div className="text-2xl font-bold text-red-500">{influencer.avg_likes?.toLocaleString() || '0'}</div>
+          <div className="text-2xl font-bold text-red-500">
+            {analyticsData?.engagement?.avgLikes?.toLocaleString() || influencer.avg_likes?.toLocaleString() || '0'}
+          </div>
           <div className="text-sm text-muted-foreground">Avg. Likes</div>
         </div>
         <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <div className="text-2xl font-bold text-blue-500">{influencer.avg_comments?.toLocaleString() || '0'}</div>
+          <div className="text-2xl font-bold text-blue-500">
+            {analyticsData?.engagement?.avgComments?.toLocaleString() || influencer.avg_comments?.toLocaleString() || '0'}
+          </div>
           <div className="text-sm text-muted-foreground">Avg. Comments</div>
         </div>
         <div className="text-center p-4 bg-muted/50 rounded-lg">
-          <div className="text-2xl font-bold text-green-500">{((influencer.engagement_rate || 0) * 100).toFixed(1)}%</div>
+          <div className="text-2xl font-bold text-green-500">
+            {analyticsData?.engagement?.rate?.toFixed(1) || ((influencer.engagement_rate || 0) * 100).toFixed(1)}%
+          </div>
           <div className="text-sm text-muted-foreground">Engagement</div>
         </div>
       </div>
@@ -119,20 +145,28 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
             
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span>Total Likes</span>
-                <span className="font-medium">{engagement?.totalLikes?.toLocaleString() || influencer.avg_likes?.toLocaleString() || 'N/A'}</span>
+                <span>Engagement Rate</span>
+                <span className="font-medium">
+                  {analyticsData?.engagement?.rate?.toFixed(1) || ((influencer.engagement_rate || 0) * 100).toFixed(1)}%
+                </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Total Comments</span>
-                <span className="font-medium">{engagement?.totalComments?.toLocaleString() || influencer.avg_comments?.toLocaleString() || 'N/A'}</span>
+                <span>Average Likes</span>
+                <span className="font-medium">
+                  {analyticsData?.engagement?.avgLikes?.toLocaleString() || influencer.avg_likes?.toLocaleString() || 'N/A'}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Total Views</span>
-                <span className="font-medium">{engagement?.totalViews?.toLocaleString() || 'N/A'}</span>
+                <span>Average Comments</span>
+                <span className="font-medium">
+                  {analyticsData?.engagement?.avgComments?.toLocaleString() || influencer.avg_comments?.toLocaleString() || 'N/A'}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Total Reach</span>
-                <span className="font-medium">{engagement?.totalReach?.toLocaleString() || 'N/A'}</span>
+                <span>Follower Growth</span>
+                <span className="font-medium">
+                  {analyticsData?.followerGrowth?.growth > 0 ? '+' : ''}{analyticsData?.followerGrowth?.growth || 'N/A'}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -147,20 +181,24 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {ageGroups.map((group, index) => {
-                const percentage = totalAudience > 0 ? (group.count / totalAudience) * 100 : group.count;
-                return (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium">{group.range}</span>
-                      <span className="text-muted-foreground">{percentage.toFixed(1)}%</span>
+            {ageGroups.length > 0 ? (
+              <div className="space-y-3">
+                {ageGroups.map((group, index) => {
+                  const percentage = totalAudience > 0 ? (group.count / totalAudience) * 100 : Number(group.count) || 0;
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium">{group.range}</span>
+                        <span className="text-muted-foreground">{Number(percentage).toFixed(1)}%</span>
+                      </div>
+                      <Progress value={Number(percentage)} className="h-2" />
                     </div>
-                    <Progress value={percentage} className="h-2" />
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No demographic data available</p>
+            )}
           </CardContent>
         </Card>
 
@@ -173,14 +211,18 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {topLocations.map((location, index) => (
-                <div key={index} className="flex justify-between items-center text-sm">
-                  <span className="truncate font-medium">{location.city}</span>
-                  <Badge variant="outline" className="ml-2">{location.count.toLocaleString()}</Badge>
-                </div>
-              ))}
-            </div>
+            {topLocations.length > 0 ? (
+              <div className="space-y-3">
+                {topLocations.map((location, index) => (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span className="truncate font-medium">{location.city}</span>
+                    <Badge variant="outline" className="ml-2">{Number(location.count).toLocaleString()}</Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No location data available</p>
+            )}
           </CardContent>
         </Card>
 
@@ -193,14 +235,18 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {topCountries.map((country, index) => (
-                <div key={index} className="flex justify-between items-center text-sm">
-                  <span className="font-medium">{country.country}</span>
-                  <Badge variant="outline">{country.count.toLocaleString()}</Badge>
-                </div>
-              ))}
-            </div>
+            {topCountries.length > 0 ? (
+              <div className="space-y-3">
+                {topCountries.map((country, index) => (
+                  <div key={index} className="flex justify-between items-center text-sm">
+                    <span className="font-medium">{country.country}</span>
+                    <Badge variant="outline">{Number(country.count).toLocaleString()}</Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No country data available</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -217,19 +263,19 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-500 mb-1">
-                {influencer.follower_count?.toLocaleString() || '2,475'}
+                {analyticsData?.followerGrowth?.total?.toLocaleString() || influencer.follower_count?.toLocaleString() || '0'}
               </div>
-              <div className="text-sm text-muted-foreground">Followers</div>
+              <div className="text-sm text-muted-foreground">Total Followers</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-red-500 mb-1">
-                {influencer.avg_likes?.toLocaleString() || '0'}
+                {analyticsData?.engagement?.avgLikes?.toLocaleString() || influencer.avg_likes?.toLocaleString() || '0'}
               </div>
-              <div className="text-sm text-muted-foreground">Avg. Likes</div>
+              <div className="text-sm text-muted-foreground">Average Likes</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-green-500 mb-1">
-                {((influencer.engagement_rate || 0) * 100).toFixed(1)}%
+                {analyticsData?.engagement?.rate?.toFixed(1) || ((influencer.engagement_rate || 0) * 100).toFixed(1)}%
               </div>
               <div className="text-sm text-muted-foreground">Engagement Rate</div>
             </div>

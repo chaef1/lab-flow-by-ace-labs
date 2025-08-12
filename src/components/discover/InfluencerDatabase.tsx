@@ -186,9 +186,9 @@ export const InfluencerDatabase = () => {
           </div>
         )}
 
-        {/* Analytics Panel - Centered Modal with Proper Scrolling */}
+        {/* Analytics Panel - Centered Modal with Contained Content */}
         <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] m-0 p-0">
+          <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] m-0 p-0 overflow-hidden">
             {selectedInfluencer && (
               <div className="h-full flex flex-col">
                 <DialogHeader className="flex-shrink-0 p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -219,7 +219,7 @@ export const InfluencerDatabase = () => {
                   </div>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
                   <div className="p-6 space-y-6">
                     {selectedInfluencer.bio && (
                       <div className="bg-muted/50 rounded-lg p-4">

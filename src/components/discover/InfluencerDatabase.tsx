@@ -186,12 +186,13 @@ export const InfluencerDatabase = () => {
           </div>
         )}
 
-        {/* Analytics Panel - Centered Modal with Contained Content */}
+        {/* Analytics Panel - Fixed Scrolling */}
         <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] m-0 p-0 overflow-hidden">
+          <DialogContent className="max-w-[90vw] w-[90vw] h-[90vh] max-h-[90vh] m-0 p-0">
             {selectedInfluencer && (
-              <div className="h-full flex flex-col">
-                <DialogHeader className="flex-shrink-0 p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <>
+                {/* Fixed Header */}
+                <DialogHeader className="p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex-shrink-0">
                   <div className="flex items-center space-x-4">
                     <Avatar className="h-16 w-16">
                       <AvatarImage src={selectedInfluencer.profile_picture_url} />
@@ -219,19 +220,21 @@ export const InfluencerDatabase = () => {
                   </div>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
-                  <div className="p-6 space-y-6">
-                    {selectedInfluencer.bio && (
-                      <div className="bg-muted/50 rounded-lg p-4">
-                        <h4 className="font-semibold mb-2 text-lg">Bio</h4>
-                        <p className="text-muted-foreground">{selectedInfluencer.bio}</p>
-                      </div>
-                    )}
+                {/* Scrollable Content */}
+                <div 
+                  className="overflow-y-auto p-6 space-y-6" 
+                  style={{ height: 'calc(90vh - 180px)' }}
+                >
+                  {selectedInfluencer.bio && (
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <h4 className="font-semibold mb-2 text-lg">Bio</h4>
+                      <p className="text-muted-foreground">{selectedInfluencer.bio}</p>
+                    </div>
+                  )}
 
-                    <AnalyticsDashboard influencer={selectedInfluencer} />
-                  </div>
+                  <AnalyticsDashboard influencer={selectedInfluencer} />
                 </div>
-              </div>
+              </>
             )}
           </DialogContent>
         </Dialog>

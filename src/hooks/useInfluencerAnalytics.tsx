@@ -34,9 +34,23 @@ export function useInfluencerAnalytics() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchAnalytics = async (influencerId: string, platform: string = 'instagram'): Promise<InfluencerAnalytics | null> => {
+    // Rate limiting: Only allow analytics fetch once every 60 seconds per influencer
+    const cacheKey = `analytics_${influencerId}_${platform}`;
+    const lastFetch = localStorage.getItem(cacheKey);
+    const rateLimitDelay = 60000; // 60 seconds
+    const now = Date.now();
+    
+    if (lastFetch && (now - parseInt(lastFetch)) < rateLimitDelay) {
+      console.log('Rate limiting: Skipping analytics fetch, last fetch too recent');
+      return null;
+    }
+    
     try {
       setLoading(true);
       setError(null);
+      
+      // Update last fetch time before making API call
+      localStorage.setItem(cacheKey, now.toString());
 
       // Get user's Ayrshare profile key
       const { data: profile } = await supabase

@@ -90,14 +90,23 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
   }
 
   if (error) {
+    const isRateLimit = error.includes('Rate limit') || error.includes('rate limit');
+    const isInstagramNotLinked = error.includes('Instagram is not linked');
+    const isProfileKeyMissing = error.includes('profile key not found');
+    
     return (
       <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-        <p className="text-destructive font-medium">Analytics Unavailable</p>
+        <p className="text-destructive font-medium">
+          {isRateLimit ? 'Rate Limit Reached' : 
+           isInstagramNotLinked ? 'Instagram Not Connected' :
+           isProfileKeyMissing ? 'Account Setup Required' : 
+           'Analytics Unavailable'}
+        </p>
         <p className="text-destructive/80 text-sm mt-1">
-          {error.includes('Instagram is not linked') 
-            ? 'Instagram account is not connected to Ayrshare. Please link your Instagram account in the Ayrshare dashboard.'
-            : `Error: ${error}`
-          }
+          {isRateLimit ? 'Too many requests. Please wait a few minutes before refreshing analytics.' :
+           isInstagramNotLinked ? 'Please connect your Instagram account in your Profile > Social Media Integration section.' :
+           isProfileKeyMissing ? 'Please set up your social media integration in your Profile settings first.' :
+           `Error: ${error}`}
         </p>
       </div>
     );

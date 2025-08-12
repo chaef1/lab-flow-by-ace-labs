@@ -66,7 +66,17 @@ export function SocialMediaIntegration() {
     return () => subscription.unsubscribe();
   }, [currentUserId]);
 
-  const loadConnectedProfiles = async () => {
+  const loadConnectedProfiles = async (skipRateLimit = false) => {
+    // Rate limiting: Only allow profile loading once every 30 seconds unless forced
+    const now = Date.now();
+    const lastLoad = localStorage.getItem(`ayrshare_last_load_${currentUserId}`);
+    const rateLimitDelay = 30000; // 30 seconds
+    
+    if (!skipRateLimit && lastLoad && (now - parseInt(lastLoad)) < rateLimitDelay) {
+      console.log('🔍 Rate limiting: Skipping profile load, last load too recent');
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -99,6 +109,9 @@ export function SocialMediaIntegration() {
       }
 
       console.log('🔍 Using profile key:', profile.ayrshare_profile_key, 'for user:', profile.first_name, profile.last_name);
+      
+      // Update last load time before making API call
+      localStorage.setItem(`ayrshare_last_load_${user.id}`, now.toString());
 
       const { data, error } = await supabase.functions.invoke('ayrshare-auth', {
         body: { 
@@ -390,7 +403,7 @@ export function SocialMediaIntegration() {
           <Button
             variant="outline"
             size="sm"
-            onClick={loadConnectedProfiles}
+            onClick={() => loadConnectedProfiles(true)}
             disabled={isLoading}
           >
             {isLoading ? (

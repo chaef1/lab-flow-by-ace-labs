@@ -226,6 +226,10 @@ async function getProfiles(profileKey?: string) {
   console.log('Connected profiles response:', responseData)
 
   if (!response.ok) {
+    // Handle rate limiting gracefully
+    if (response.status === 429 || responseData.code === 105) {
+      throw new Error('Rate limit exceeded. Please wait a few minutes before trying again.')
+    }
     throw new Error(`Ayrshare API error: ${response.status} - ${JSON.stringify(responseData)}`)
   }
 

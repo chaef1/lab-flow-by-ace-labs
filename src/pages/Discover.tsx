@@ -5,6 +5,7 @@ import { InfluencerDiscovery } from '@/components/discover/InfluencerDiscovery';
 import { ProductMatcher } from '@/components/discover/ProductMatcher';
 import { LookalikeEngine } from '@/components/discover/LookalikeEngine';
 import { SimpleTikTokSearch } from '@/components/discover/SimpleTikTokSearch';
+import { InfluencerDatabase } from '@/components/discover/InfluencerDatabase';
 
 const Discover = () => {
   return (
@@ -15,6 +16,7 @@ const Discover = () => {
       <Tabs defaultValue="search" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="search">Advanced Search</TabsTrigger>
+          <TabsTrigger value="database">Influencer Database</TabsTrigger>
           <TabsTrigger value="tiktok">TikTok Search</TabsTrigger>
           <TabsTrigger value="product">Product Matcher</TabsTrigger>
           <TabsTrigger value="lookalike">Lookalike Engine</TabsTrigger>
@@ -22,6 +24,10 @@ const Discover = () => {
         
         <TabsContent value="search" className="space-y-6">
           <InfluencerDiscovery />
+        </TabsContent>
+        
+        <TabsContent value="database" className="space-y-6">
+          <InfluencerDatabase />
         </TabsContent>
         
         <TabsContent value="tiktok" className="space-y-6">

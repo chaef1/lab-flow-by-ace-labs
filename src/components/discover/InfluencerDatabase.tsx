@@ -188,7 +188,7 @@ export const InfluencerDatabase = () => {
 
         {/* Analytics Sheet - 50% of screen width */}
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent side="right" className="w-[50vw] max-w-none overflow-y-auto">
+          <SheetContent side="right" className="w-[75vw] sm:w-[75vw] md:w-[75vw] lg:w-[75vw] xl:w-[75vw] max-w-none overflow-y-auto">
             {selectedInfluencer && (
               <>
                 <SheetHeader className="pb-6">

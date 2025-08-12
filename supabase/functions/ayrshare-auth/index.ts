@@ -58,9 +58,14 @@ async function createProfile(data: any) {
 
   const ayrshareUrl = 'https://api.ayrshare.com/api/profiles'
   
+  // Create unique title to avoid duplicates
+  const timestamp = Date.now()
+  const uniqueSuffix = Math.random().toString(36).substring(7)
+  const baseTitle = userName || `User ${userId}`
+  
   const requestBody = {
-    title: userName || `User ${userId}`,
-    name: userName || `User ${userId}`
+    title: `${baseTitle}_${timestamp}_${uniqueSuffix}`,
+    name: baseTitle
   }
 
   const response = await fetch(ayrshareUrl, {
@@ -240,11 +245,14 @@ async function getProfiles(profileKey?: string) {
   // Transform the response to match our expected format
   const transformedData = {
     profiles: responseData.profiles?.map((profile: any) => ({
-      platform: profile.platform || 'unknown',
+      platform: profile.platform || 'multiplatform',
       username: profile.username || profile.name || profile.title,
       profileKey: profileKey,
       status: profile.status || 'active',
-      refId: profile.refId
+      refId: profile.refId,
+      activeSocialAccounts: profile.activeSocialAccounts || [],
+      created: profile.created,
+      createdUTC: profile.createdUTC
     })) || []
   }
 

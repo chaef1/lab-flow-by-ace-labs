@@ -171,12 +171,16 @@ export function SocialMediaIntegration() {
 
       if (!profileKey) {
         console.log('🔗 No profile key found, creating new Ayrshare profile for user:', user.id);
+        // Create unique profile name to avoid conflicts
+        const displayName = `${profile?.first_name || user.user_metadata?.first_name || ''} ${profile?.last_name || user.user_metadata?.last_name || ''}`.trim();
+        const profileName = displayName || user.email?.split('@')[0] || `User_${user.id.substring(0, 8)}`;
+        
         // Create Ayrshare profile first
         const { data: createData, error: createError } = await supabase.functions.invoke('ayrshare-auth', {
           body: { 
             action: 'create_profile',
             userId: user.id,
-            userName: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email
+            userName: profileName
           }
         });
 
@@ -188,6 +192,7 @@ export function SocialMediaIntegration() {
 
         profileKey = createData.data.profileKey;
         console.log('🔗 Created new profile key:', profileKey);
+        setCurrentAyrshareProfile(profileKey);
       }
       
       console.log('🔗 Requesting auth URL with profile key:', profileKey, 'for user:', profile?.first_name, profile?.last_name);

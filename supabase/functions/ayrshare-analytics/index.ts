@@ -51,8 +51,10 @@ Deno.serve(async (req) => {
     switch (action) {
       case 'account_insights':
         apiUrl += '/analytics/social'
+        // Only request data for the specific platform, not all platforms
+        const platformArray = platform === 'all' ? ['instagram'] : [platform]
         payload = {
-          platforms: platform === 'all' ? ['instagram', 'facebook', 'twitter', 'linkedin', 'tiktok'] : [platform],
+          platforms: platformArray,
           lastDays: timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : 30
         }
         break

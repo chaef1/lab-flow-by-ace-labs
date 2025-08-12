@@ -49,18 +49,24 @@ export function useInfluencerAnalytics() {
         throw new Error('Ayrshare profile key not found. Please connect your social accounts first.');
       }
 
-      // Fetch account insights
+      // Fetch account insights for specific platform only
       const { data, error: functionError } = await supabase.functions.invoke('ayrshare-analytics', {
         body: {
           action: 'account_insights',
-          platform,
+          platform: platform, // Use specific platform instead of 'all'
           timeRange: '30d',
           profileKey: profile.ayrshare_profile_key
         }
       });
 
-      if (functionError) throw functionError;
-      if (!data?.success) throw new Error(data?.error || 'Failed to fetch analytics');
+      if (functionError) {
+        console.error('Ayrshare function error:', functionError);
+        throw functionError;
+      }
+      if (!data?.success) {
+        console.error('Ayrshare API error:', data?.error);
+        throw new Error(data?.error || 'Failed to fetch analytics');
+      }
 
       return transformAnalyticsData(data.data);
     } catch (err: any) {
@@ -88,11 +94,11 @@ export function useInfluencerAnalytics() {
         throw new Error('Ayrshare profile key not found');
       }
 
-      // Fetch fresh analytics data
+      // Fetch fresh analytics data for specific platform
       const { data, error: functionError } = await supabase.functions.invoke('ayrshare-analytics', {
         body: {
           action: 'account_insights',
-          platform,
+          platform: platform, // Use specific platform, not 'all'
           timeRange: '30d',
           profileKey: profile.ayrshare_profile_key
         }

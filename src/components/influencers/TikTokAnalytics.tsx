@@ -22,40 +22,42 @@ export function TikTokAnalytics({ profile, onAnalyticsUpdate }: TikTokAnalyticsP
     try {
       console.log('Fetching analytics for:', profile.username);
       
-      // First try TikTok Research API for detailed analytics
-      const { data: researchData, error: researchError } = await supabase.functions.invoke('tiktok-research-api', {
+      // Use Ayrshare analytics API for TikTok data
+      const { data: ayrshareData, error: ayrshareError } = await supabase.functions.invoke('ayrshare-analytics', {
         body: {
-          username: profile.username,
-          action: 'get_enhanced_analytics'
+          action: 'account_insights',
+          platform: 'tiktok',
+          timeRange: '30d',
+          username: profile.username
         }
       });
 
-      console.log('Research API response:', { researchData, researchError });
+      console.log('Ayrshare API response:', { ayrshareData, ayrshareError });
 
-      if (!researchError && researchData?.success) {
-        setAnalytics(researchData);
-        onAnalyticsUpdate?.(researchData);
+      if (!ayrshareError && ayrshareData?.success) {
+        setAnalytics(ayrshareData.data);
+        onAnalyticsUpdate?.(ayrshareData.data);
         toast({
           title: "Analytics Retrieved",
-          description: "Detailed TikTok analytics from Research API"
+          description: "TikTok analytics from Ayrshare API"
         });
         return;
       }
 
-      // If Research API fails, provide reasoning and fallback
-      if (researchError) {
-        console.log('Research API unavailable, using fallback calculations');
+      // If Ayrshare fails, provide reasoning and fallback
+      if (ayrshareError) {
+        console.log('Ayrshare API unavailable, using fallback calculations');
         toast({
           title: "Using Calculated Analytics",
-          description: "TikTok Research API unavailable. Using enhanced calculations from profile data."
+          description: "Ayrshare API unavailable. Using enhanced calculations from profile data."
         });
       }
 
-      // Fallback to enhanced Ayrshare data
+      // Fallback to enhanced calculations from profile data
       const enhancedAnalytics = calculateEnhancedMetrics(profile);
       setAnalytics({
         success: true,
-        source: 'enhanced_calculation',
+        source: 'enhanced_ayrshare_calculation',
         ...enhancedAnalytics
       });
       
@@ -320,10 +322,10 @@ export function TikTokAnalytics({ profile, onAnalyticsUpdate }: TikTokAnalyticsP
         <Card className="p-4">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              Data Source: {analytics.source === 'tiktok_research_api' ? 'TikTok Research API' : 'Enhanced Ayrshare + Calculations'}
+              Data Source: {analytics.source === 'ayrshare_api' ? 'Ayrshare TikTok API' : 'Enhanced Ayrshare + Calculations'}
             </span>
             <Badge variant="outline" className="text-xs">
-              {analytics.source === 'tiktok_research_api' ? 'Live Data' : 'Estimated'}
+              {analytics.source === 'ayrshare_api' ? 'Live Data' : 'Estimated'}
             </Badge>
           </div>
         </Card>

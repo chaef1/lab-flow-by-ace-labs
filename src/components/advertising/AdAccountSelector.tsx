@@ -28,14 +28,6 @@ import { Link, Loader2, X, Facebook } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
-  getTikTokAuthUrl, 
-  exchangeTikTokCode,
-  processTikTokAuthCallback,
-  getTikTokAdAccounts,
-  hasTikTokToken,
-  getSavedTikTokToken,
-  saveTikTokToken,
-  removeTikTokToken,
   saveMetaToken,
   hasMetaToken,
   getSavedMetaToken,
@@ -47,7 +39,7 @@ import {
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface AdAccountSelectorProps {
-  platform: 'tiktok' | 'meta';
+  platform: 'meta';
   onConnectionStatusChange?: (connected: boolean) => void;
   isProcessingAuth?: boolean;
 }
@@ -81,129 +73,37 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Setup message listener for auth iframe
+  // Setup message listener for auth iframe - Meta only
   useEffect(() => {
-    if (platform === 'tiktok') {
-      const handleMessage = async (event: MessageEvent) => {
-        // Log all received messages to help with debugging
-        console.log('Received message event:', event.data);
-        
-        // Only process messages with TikTok auth code
-        if (event.data && event.data.tiktokAuthCode) {
-          console.log('Received auth code from iframe message:', event.data.tiktokAuthCode);
-          
-          try {
-            setIsLoading(true);
-            setAuthSheetOpen(false); // Close the sheet immediately
-            
-            // Process the auth code
-            const result = await processTikTokAuthCallback(
-              `https://app-sandbox.acelabs.co.za/advertising?code=${event.data.tiktokAuthCode}`
-            );
-            
-            // Store debug info for troubleshooting
-            setDebugInfo(result);
-            
-            if (result.success && result.token) {
-              setIsConnected(true);
-              if (onConnectionStatusChange) onConnectionStatusChange(true);
-              
-              // Fetch ad accounts with the new token
-              await fetchAdAccounts(result.token);
-              
-              // Set selected account if available
-              if (result.advertiserId) {
-                setSelectedAccount(result.advertiserId);
-              }
-              
-              toast({
-                title: "Successfully Connected",
-                description: "Your TikTok Ads account has been connected successfully."
-              });
-            } else {
-              throw new Error(result.error || 'Authentication failed');
-            }
-          } catch (error: any) {
-            console.error('Error processing auth code from message:', error);
-            showError(error.message || 'Authentication failed');
-          } finally {
-            setIsLoading(false);
-          }
-        }
-      };
-      
-      console.log('Setting up message event listener');
-      window.addEventListener('message', handleMessage);
-      
-      return () => {
-        console.log('Removing message event listener');
-        window.removeEventListener('message', handleMessage);
-      };
-    }
+    // Meta auth is handled via redirect, no iframe messaging needed
   }, [platform, onConnectionStatusChange, toast]);
   
-  // Check for URL parameters on component mount and location changes
+  // Check for URL parameters on component mount and location changes - Meta only
   useEffect(() => {
     const processAuthCallback = async () => {
       const urlParams = new URLSearchParams(location.search);
       const code = urlParams.get('code');
-      const state = urlParams.get('state');
       
       if (!code) return;
       
       console.log('Found auth code in URL:', code.substring(0, 5) + '...');
       
-      // Determine platform from state param if available
-      let authPlatform = platform;
-      if (state) {
-        try {
-          const stateObj = JSON.parse(decodeURIComponent(state));
-          if (stateObj.platform) {
-            authPlatform = stateObj.platform;
-          }
-        } catch (e) {
-          console.warn('Could not parse state parameter:', e);
-        }
-      }
-      
       setIsLoading(true);
       
       try {
-        if (authPlatform === 'tiktok') {
-          // Process the TikTok authorization code
-          const result = await processTikTokAuthCallback(
-            `https://app-sandbox.acelabs.co.za/advertising?code=${code}`
-          );
-          
-          if (result.success && result.token) {
-            setIsConnected(true);
-            if (onConnectionStatusChange) onConnectionStatusChange(true);
-            await fetchAdAccounts(result.token);
-            if (result.advertiserId) {
-              setSelectedAccount(result.advertiserId);
-            }
-            toast({
-              title: "Successfully Connected",
-              description: "Your TikTok Ads account has been connected successfully."
-            });
-          } else {
-            throw new Error(result.error || 'Authentication failed');
-          }
-        } else if (authPlatform === 'meta') {
-          // Process the Meta authorization code
-          const result = await processMetaAuthCallback(window.location.href);
-          
-          if (result.success && result.token) {
-            setIsConnected(true);
-            if (onConnectionStatusChange) onConnectionStatusChange(true);
-            await fetchMetaAdAccounts(result.token);
-            toast({
-              title: "Successfully Connected",
-              description: "Your Meta Ads account has been connected successfully."
-            });
-          } else {
-            throw new Error(result.error || 'Meta authentication failed');
-          }
+        // Process the Meta authorization code
+        const result = await processMetaAuthCallback(window.location.href);
+        
+        if (result.success && result.token) {
+          setIsConnected(true);
+          if (onConnectionStatusChange) onConnectionStatusChange(true);
+          await fetchMetaAdAccounts(result.token);
+          toast({
+            title: "Successfully Connected",
+            description: "Your Meta Ads account has been connected successfully."
+          });
+        } else {
+          throw new Error(result.error || 'Meta authentication failed');
         }
       } catch (error: any) {
         console.error('Error processing auth code from URL:', error);
@@ -217,61 +117,36 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     };
     
     processAuthCallback();
-  }, [location.search, platform, onConnectionStatusChange, navigate, toast]);
+  }, [location.search, onConnectionStatusChange, navigate, toast]);
 
-  // Check for saved tokens on component mount and platform changes
+  // Check for saved tokens on component mount - Meta only
   useEffect(() => {
     const checkAuthStatus = async () => {
-      console.log('Checking auth status for', platform);
+      console.log('Checking auth status for Meta');
       setIsLoading(true);
       
       try {
-        if (platform === 'tiktok') {
-          const hasToken = hasTikTokToken();
-          console.log('Has existing token:', hasToken);
+        const hasToken = hasMetaToken();
+        console.log('Has existing Meta token:', hasToken);
+        
+        if (hasToken) {
+          setIsConnected(true);
+          if (onConnectionStatusChange) onConnectionStatusChange(true);
           
-          if (hasToken) {
-            setIsConnected(true);
-            if (onConnectionStatusChange) onConnectionStatusChange(true);
-            
-            const { accessToken, advertiserId } = getSavedTikTokToken();
-            
-            if (accessToken) {
-              console.log('Using existing token to fetch ad accounts');
-              await fetchAdAccounts(accessToken);
-              
-              if (advertiserId) {
-                console.log('Setting selected account from saved token:', advertiserId);
-                setSelectedAccount(advertiserId);
-              }
-            }
-          } else {
-            setIsConnected(false);
-            if (onConnectionStatusChange) onConnectionStatusChange(false);
-          }
-        } else if (platform === 'meta') {
-          const hasToken = hasMetaToken();
-          console.log('Has existing Meta token:', hasToken);
+          const { accessToken, accountId } = await getSavedMetaToken();
           
-          if (hasToken) {
-            setIsConnected(true);
-            if (onConnectionStatusChange) onConnectionStatusChange(true);
+          if (accessToken) {
+            console.log('Using existing Meta token to fetch ad accounts');
+            await fetchMetaAdAccounts(accessToken);
             
-            const { accessToken, accountId } = await getSavedMetaToken();
-            
-            if (accessToken) {
-              console.log('Using existing Meta token to fetch ad accounts');
-              await fetchMetaAdAccounts(accessToken);
-              
-              if (accountId) {
-                console.log('Setting selected account from saved Meta token:', accountId);
-                setSelectedAccount(accountId);
-              }
+            if (accountId) {
+              console.log('Setting selected account from saved Meta token:', accountId);
+              setSelectedAccount(accountId);
             }
-          } else {
-            setIsConnected(false);
-            if (onConnectionStatusChange) onConnectionStatusChange(false);
           }
+        } else {
+          setIsConnected(false);
+          if (onConnectionStatusChange) onConnectionStatusChange(false);
         }
       } catch (error: any) {
         console.error('Error checking authentication status:', error);
@@ -282,62 +157,9 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     };
     
     checkAuthStatus();
-  }, [platform, onConnectionStatusChange]);
+  }, [onConnectionStatusChange]);
   
-  const fetchAdAccounts = async (accessToken: string) => {
-    if (!accessToken) {
-      console.error('Cannot fetch ad accounts without an access token');
-      return;
-    }
-    
-    try {
-      console.log('Fetching ad accounts with token:', accessToken.substring(0, 5) + '...');
-      const accountsData = await getTikTokAdAccounts(accessToken);
-      
-      if (accountsData.code === 0 && accountsData.data && accountsData.data.list) {
-        console.log('Successfully fetched ad accounts:', accountsData.data.list.length);
-        const formattedAccounts = accountsData.data.list.map(account => ({
-          id: account.advertiser_id,
-          name: account.advertiser_name,
-          status: account.status === 'ENABLE' ? 'Active' : 'Paused',
-          budget: account.budget || 5000 // Use default if not available
-        }));
-        
-        setAccounts(formattedAccounts);
-        
-        // If we have accounts but no selected account, select the first one
-        if (formattedAccounts.length > 0 && !selectedAccount) {
-          setSelectedAccount(formattedAccounts[0].id);
-        }
-      } else {
-        console.log('No accounts found or API error, using mock data');
-        // If API call succeeded but no accounts found, use mock data
-        setAccounts([
-          { id: '1', name: 'Ace Labs Main', budget: 5000, status: 'Active' },
-          { id: '2', name: 'Ace Labs Test', budget: 1000, status: 'Paused' },
-        ]);
-        
-        // Select the first mock account
-        setSelectedAccount('1');
-      }
-    } catch (error: any) {
-      console.error('Error fetching ad accounts:', error);
-      // Fallback to mock data on error
-      setAccounts([
-        { id: '1', name: 'Ace Labs Main', budget: 5000, status: 'Active' },
-        { id: '2', name: 'Ace Labs Test', budget: 1000, status: 'Paused' },
-      ]);
-      
-      // Select the first mock account
-      setSelectedAccount('1');
-      
-      toast({
-        title: "Error Fetching Accounts",
-        description: "Could not retrieve your ad accounts. Using sample data instead.",
-        variant: "destructive"
-      });
-    }
-  };
+  // Remove TikTok ad accounts function - Meta only
 
   const fetchMetaAdAccounts = async (accessToken: string) => {
     if (!accessToken) {
@@ -403,37 +225,23 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     setIsLoading(true);
     
     try {
-      if (platform === 'tiktok') {
-        const { authUrl } = await getTikTokAuthUrl();
-        console.log('Retrieved auth URL:', authUrl);
-        setAuthUrl(authUrl);
-        setAuthSheetOpen(true);
-      } else if (platform === 'meta') {
-        // For Meta, we'll support both OAuth flow and manual token input
-        const metaAuthUrl = getMetaOAuthUrl();
-        console.log('Opening Meta auth URL:', metaAuthUrl);
-        
-        // Open in same window, which will redirect back to our app
-        window.location.href = metaAuthUrl;
-      }
+      // For Meta, we'll support both OAuth flow and manual token input
+      const metaAuthUrl = getMetaOAuthUrl();
+      console.log('Opening Meta auth URL:', metaAuthUrl);
+      
+      // Open in same window, which will redirect back to our app
+      window.location.href = metaAuthUrl;
     } catch (error: any) {
-      console.error(`Error initiating ${platform} connection:`, error);
-      showError(error.message || `Error connecting to ${platform}`);
+      console.error(`Error initiating Meta connection:`, error);
+      showError(error.message || `Error connecting to Meta`);
     } finally {
       setIsLoading(false);
     }
   };
   
   const handleDisconnect = () => {
-    let success = false;
-    
-    if (platform === 'tiktok') {
-      success = removeTikTokToken();
-      console.log('TikTok token removal success:', success);
-    } else if (platform === 'meta') {
-      success = removeMetaToken();
-      console.log('Meta token removal success:', success);
-    }
+    const success = removeMetaToken();
+    console.log('Meta token removal success:', success);
     
     setIsConnected(false);
     if (onConnectionStatusChange) onConnectionStatusChange(false);
@@ -442,7 +250,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
     
     toast({
       title: "Disconnected",
-      description: `Successfully disconnected from ${platform === 'tiktok' ? 'TikTok' : 'Meta'} Ads`
+      description: `Successfully disconnected from Meta Ads`
     });
   };
 
@@ -495,21 +303,12 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
   };
   
   const renderPlatformHeader = () => {
-    if (platform === 'tiktok') {
-      return (
-        <>
-          <h3 className="text-lg font-medium mb-1">TikTok For Business</h3>
-          <p className="text-sm text-muted-foreground">Connect your TikTok Ads account to create and manage campaigns</p>
-        </>
-      );
-    } else {
-      return (
-        <>
-          <h3 className="text-lg font-medium mb-1">Meta For Business</h3>
-          <p className="text-sm text-muted-foreground">Connect your Facebook & Instagram Ads account to create and manage campaigns</p>
-        </>
-      );
-    }
+    return (
+      <>
+        <h3 className="text-lg font-medium mb-1">Meta For Business</h3>
+        <p className="text-sm text-muted-foreground">Connect your Facebook & Instagram Ads account to create and manage campaigns</p>
+      </>
+    );
   };
   
   return (
@@ -536,7 +335,7 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         {(isLoading || isProcessingAuth) && (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <span className="ml-2">Processing {platform === 'tiktok' ? 'TikTok' : 'Meta'} connection...</span>
+            <span className="ml-2">Processing Meta connection...</span>
           </div>
         )}
         
@@ -564,15 +363,12 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
                   <CardFooter className="pt-0">
                     <Button variant="ghost" size="sm" className="w-full" asChild>
                       <a 
-                        href={platform === 'tiktok' 
-                          ? "https://ads.tiktok.com/business/" 
-                          : "https://business.facebook.com/adsmanager/"
-                        } 
+                        href="https://business.facebook.com/adsmanager/"
                         target="_blank" 
                         rel="noopener noreferrer"
                       >
                         <Link className="h-4 w-4 mr-1" /> 
-                        View in {platform === 'tiktok' ? 'TikTok' : 'Meta'} Ads Manager
+                        View in Meta Ads Manager
                       </a>
                     </Button>
                   </CardFooter>
@@ -594,15 +390,9 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
             {showDebugInfo && (
               <div className="mt-4 p-4 bg-muted/50 rounded-md overflow-x-auto">
                 <h4 className="font-medium mb-2">Local Storage Token Status</h4>
-                {platform === 'tiktok' ? (
-                  <pre className="text-xs whitespace-pre-wrap">
-                    {JSON.stringify(getSavedTikTokToken(), null, 2)}
-                  </pre>
-                ) : (
-                  <pre className="text-xs whitespace-pre-wrap">
-                    {JSON.stringify(getSavedMetaToken(), null, 2)}
-                  </pre>
-                )}
+                <pre className="text-xs whitespace-pre-wrap">
+                  {JSON.stringify(getSavedMetaToken(), null, 2)}
+                </pre>
                 {debugInfo && (
                   <>
                     <h4 className="font-medium mt-4 mb-2">Last Authentication Result</h4>
@@ -622,26 +412,20 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
         {!isConnected && !isLoading && !isProcessingAuth && (
           <div className="flex flex-col items-center justify-center p-8 border rounded-lg border-dashed">
             <div className="mb-4 p-3 rounded-full bg-secondary">
-              {platform === 'tiktok' ? (
-                <Link className="h-6 w-6 text-primary" />
-              ) : (
-                <Facebook className="h-6 w-6 text-primary" />
-              )}
+              <Facebook className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="text-lg font-medium mb-2">Connect Your {platform === 'tiktok' ? 'TikTok' : 'Meta'} Account</h3>
+            <h3 className="text-lg font-medium mb-2">Connect Your Meta Account</h3>
             <p className="text-center text-muted-foreground mb-4 max-w-md">
-              Connect your {platform === 'tiktok' ? 'TikTok' : 'Meta'} Ads account to manage campaigns directly from the Ace Labs platform
+              Connect your Meta Ads account to manage campaigns directly from the Ace Labs platform
             </p>
             
             <div className="flex flex-col sm:flex-row gap-2">
               <Button onClick={initiateConnect}>
-                Connect with {platform === 'tiktok' ? 'TikTok' : 'Facebook'}
+                Connect with Facebook
               </Button>
-              {platform === 'meta' && (
-                <Button variant="outline" onClick={showManualTokenInput}>
-                  Use API Token
-                </Button>
-              )}
+              <Button variant="outline" onClick={showManualTokenInput}>
+                Use API Token
+              </Button>
             </div>
           </div>
         )}
@@ -741,12 +525,12 @@ const AdAccountSelector: React.FC<AdAccountSelectorProps> = ({
       </Dialog>
       
       {/* Error Dialog */}
-      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+       <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Connection Error</AlertDialogTitle>
             <AlertDialogDescription>
-              {errorMessage || `There was an error connecting to ${platform === 'tiktok' ? 'TikTok' : 'Meta'} Ads.`}
+              {errorMessage || `There was an error connecting to Meta Ads.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { getSavedMetaToken, hasMetaToken, getSavedTikTokToken, hasTikTokToken } from '@/lib/ads-api';
+import { getSavedMetaToken, hasMetaToken } from '@/lib/ads-api';
 
-export const usePaidReportingData = (timeRange: string, platform: 'meta' | 'tiktok') => {
+export const usePaidReportingData = (timeRange: string, platform: 'meta' = 'meta') => {
   const [data, setData] = useState({
     metrics: {
       spend: '$0',
@@ -30,8 +30,6 @@ export const usePaidReportingData = (timeRange: string, platform: 'meta' | 'tikt
     const checkConnection = async () => {
       if (platform === 'meta') {
         return await hasMetaToken();
-      } else if (platform === 'tiktok') {
-        return await hasTikTokToken();
       }
       return false;
     };

@@ -16,18 +16,11 @@ interface PaidReportingProps {
 }
 
 const PaidReporting = ({ timeRange, platform }: PaidReportingProps) => {
-  // Fix 1: Ensure selectedPlatform is either 'meta' or 'tiktok'
-  const [selectedPlatform, setSelectedPlatform] = useState<'meta' | 'tiktok'>('meta');
+  // Meta ads only - simplified
   const [isLoading, setIsLoading] = useState(false);
-  const { data, error, isConnected } = usePaidReportingData(timeRange, selectedPlatform);
+  const { data, error, isConnected } = usePaidReportingData(timeRange);
 
-  useEffect(() => {
-    if (platform === 'instagram' || platform === 'all') {
-      setSelectedPlatform('meta');
-    } else if (platform === 'tiktok') {
-      setSelectedPlatform('tiktok');
-    }
-  }, [platform]);
+  // Effect removed since we only support Meta ads now
 
   if (isLoading) {
     return (
@@ -41,12 +34,11 @@ const PaidReporting = ({ timeRange, platform }: PaidReportingProps) => {
   }
   
   if (!isConnected) {
-    // Fix 2: Change warning variant to default
     return (
       <Alert variant="default" className="mb-6">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          You need to connect your {selectedPlatform === 'meta' ? 'Meta' : 'TikTok'} account to view paid campaign data. 
+          You need to connect your Meta account to view paid campaign data. 
           Please visit the Advertising page to connect your account.
         </AlertDescription>
       </Alert>
@@ -66,34 +58,17 @@ const PaidReporting = ({ timeRange, platform }: PaidReportingProps) => {
 
   return (
     <div className="space-y-6">
-      <Tabs value={selectedPlatform} onValueChange={(value) => setSelectedPlatform(value as 'meta' | 'tiktok')} className="w-full">
-        <TabsList>
-          <TabsTrigger value="meta">Meta Ads</TabsTrigger>
-          <TabsTrigger value="tiktok">TikTok Ads</TabsTrigger>
-        </TabsList>
+      {/* Meta Ads Only - No Tabs Needed */}
+      <div className="space-y-6">
+        <PaidMetricCards metrics={data.metrics} />
         
-        <TabsContent value="meta" className="space-y-6 pt-4">
-          <PaidMetricCards metrics={data.metrics} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PaidPerformanceChart data={data.performanceData} />
-            <AdSpendChart data={data.adSpendData} />
-          </div>
-          
-          <CampaignTable campaigns={data.campaigns} platform="meta" />
-        </TabsContent>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PaidPerformanceChart data={data.performanceData} />
+          <AdSpendChart data={data.adSpendData} />
+        </div>
         
-        <TabsContent value="tiktok" className="space-y-6 pt-4">
-          <PaidMetricCards metrics={data.metrics} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PaidPerformanceChart data={data.performanceData} />
-            <AdSpendChart data={data.adSpendData} />
-          </div>
-          
-          <CampaignTable campaigns={data.campaigns} platform="tiktok" />
-        </TabsContent>
-      </Tabs>
+        <CampaignTable campaigns={data.campaigns} platform="meta" />
+      </div>
     </div>
   );
 };

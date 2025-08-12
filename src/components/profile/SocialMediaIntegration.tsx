@@ -20,6 +20,7 @@ export function SocialMediaIntegration() {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentAyrshareProfile, setCurrentAyrshareProfile] = useState<string | null>(null);
   const { toast } = useToast();
 
   const platforms = [
@@ -109,6 +110,9 @@ export function SocialMediaIntegration() {
       }
 
       console.log('🔍 Using profile key:', profile.ayrshare_profile_key, 'for user:', profile.first_name, profile.last_name);
+      
+      // Store current Ayrshare profile key
+      setCurrentAyrshareProfile(profile.ayrshare_profile_key);
       
       // Update last load time before making API call
       localStorage.setItem(`ayrshare_last_load_${user.id}`, now.toString());
@@ -351,6 +355,69 @@ export function SocialMediaIntegration() {
     }
   };
 
+  const handleDisconnectAyrshareAccount = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user || !currentAyrshareProfile) {
+        throw new Error('No Ayrshare account connected');
+      }
+
+      // Clear the ayrshare_profile_key from the user's profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ ayrshare_profile_key: null })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // Clear local state
+      setCurrentAyrshareProfile(null);
+      setConnectedProfiles([]);
+      
+      // Clear any cached data
+      localStorage.removeItem(`ayrshare_last_load_${user.id}`);
+
+      toast({
+        title: "Ayrshare account disconnected",
+        description: "You can now connect to a different Ayrshare account"
+      });
+
+    } catch (error: any) {
+      console.error('Error disconnecting Ayrshare account:', error);
+      toast({
+        title: "Failed to disconnect account",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSwitchAyrshareAccount = async () => {
+    try {
+      // First disconnect current account
+      await handleDisconnectAyrshareAccount();
+      
+      // Small delay to ensure state is updated
+      setTimeout(() => {
+        // Trigger connection to new account by calling connect for any platform
+        // This will create a new Ayrshare profile
+        handleConnectPlatform('instagram');
+      }, 1000);
+
+    } catch (error: any) {
+      console.error('Error switching Ayrshare account:', error);
+      toast({
+        title: "Failed to switch account",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const getConnectedProfile = (platformId: string): ConnectedProfile | undefined => {
     console.log('Checking connection for platform:', platformId);
     console.log('Available profiles:', connectedProfiles);
@@ -416,6 +483,41 @@ export function SocialMediaIntegration() {
       </CardHeader>
       
       <CardContent className="space-y-6">
+        {/* Ayrshare Account Management Section */}
+        {currentAyrshareProfile && (
+          <div className="p-4 bg-muted/50 rounded-lg border">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="font-medium">Ayrshare Account</h4>
+                <p className="text-sm text-muted-foreground">
+                  Currently connected to profile: {currentAyrshareProfile.substring(0, 8)}...
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSwitchAyrshareAccount}
+                  disabled={isLoading || isConnecting}
+                >
+                  Switch Account
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDisconnectAyrshareAccount}
+                  disabled={isLoading || isConnecting}
+                >
+                  Disconnect
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Switch accounts to connect to a different Ayrshare profile or disconnect to remove all platform connections.
+            </p>
+          </div>
+        )}
+
         {connectedProfiles.length === 0 && !isLoading && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />

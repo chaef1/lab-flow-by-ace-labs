@@ -323,6 +323,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        profile: transformedProfile,
         profiles: [transformedProfile],
         source: 'ayrshare_api',
         enhanced_data: platformParam === 'tiktok' ? {

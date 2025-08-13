@@ -65,6 +65,22 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
     if (!profileData) return;
     
     try {
+      // Get user's organization_id
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .maybeSingle();
+        
+      if (!userProfile?.organization_id) {
+        toast({
+          title: "Error",
+          description: "Unable to determine your organization. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Check if influencer already exists with the handle based on platform
       const { data: existingInfluencer } = await supabase
         .from('influencers')
@@ -102,6 +118,7 @@ export default function SocialMediaSearch({ onAddInfluencer }: SocialMediaSearch
         avg_comments: profileData.avg_comments || 0,
         platform: platform,
         categories: [],
+        organization_id: userProfile.organization_id, // Required for RLS policy
       };
       
       // Add legacy social handles for backward compatibility

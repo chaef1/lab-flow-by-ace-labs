@@ -63,12 +63,25 @@ export function useInfluencerAnalytics() {
         throw new Error('Ayrshare profile key not found. Please connect your social accounts first.');
       }
 
-      // Fetch account insights for specific platform only
+      // Get the influencer's username for profile analysis
+      const { data: influencer } = await supabase
+        .from('influencers')
+        .select('username, instagram_handle')
+        .eq('id', influencerId)
+        .single();
+
+      if (!influencer?.username && !influencer?.instagram_handle) {
+        throw new Error('Influencer username not found');
+      }
+
+      const username = influencer.instagram_handle || influencer.username;
+
+      // Use profile_analysis for external influencer profiles
       const { data, error: functionError } = await supabase.functions.invoke('ayrshare-analytics', {
         body: {
-          action: 'account_insights',
-          platform: platform, // Use specific platform instead of 'all'
-          timeRange: '30d',
+          action: 'profile_analysis',
+          platform: platform,
+          username: username,
           profileKey: profile.ayrshare_profile_key
         }
       });
@@ -82,7 +95,7 @@ export function useInfluencerAnalytics() {
         throw new Error(data?.error || 'Failed to fetch analytics');
       }
 
-      return transformAnalyticsData(data.data);
+      return transformProfileAnalyticsData(data.data);
     } catch (err: any) {
       console.error('Analytics fetch error:', err);
       setError(err.message);
@@ -204,6 +217,30 @@ function transformAnalyticsData(data: any): InfluencerAnalytics {
       avgShares: 0
     },
     recentPosts: [] // Would need additional API calls for recent posts
+  };
+}
+
+function transformProfileAnalyticsData(data: any): InfluencerAnalytics {
+  // Transform profile analysis data from Ayrshare API
+  return {
+    followerGrowth: {
+      total: data.followers || 0,
+      growth: 0,
+      newFollowers: 0,
+      unfollowers: 0
+    },
+    demographics: {
+      ageGroups: data.demographics?.ageGroups || {},
+      genders: data.demographics?.genders || {},
+      topCities: []
+    },
+    engagement: {
+      rate: data.engagement?.rate || 0,
+      avgLikes: data.engagement?.avgLikes || 0,
+      avgComments: data.engagement?.avgComments || 0,
+      avgShares: data.engagement?.avgShares || 0
+    },
+    recentPosts: []
   };
 }
 

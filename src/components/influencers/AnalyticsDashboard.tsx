@@ -93,6 +93,7 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
     const isRateLimit = error.includes('Rate limit') || error.includes('rate limit');
     const isInstagramNotLinked = error.includes('Instagram is not linked');
     const isProfileKeyMissing = error.includes('profile key not found');
+    const isUsernameNotFound = error.includes('username not found');
     
     return (
       <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -100,12 +101,14 @@ export function AnalyticsDashboard({ influencer }: AnalyticsDashboardProps) {
           {isRateLimit ? 'Rate Limit Reached' : 
            isInstagramNotLinked ? 'Instagram Not Connected' :
            isProfileKeyMissing ? 'Account Setup Required' : 
+           isUsernameNotFound ? 'Profile Not Found' :
            'Analytics Unavailable'}
         </p>
         <p className="text-destructive/80 text-sm mt-1">
           {isRateLimit ? 'Too many requests. Please wait a few minutes before refreshing analytics.' :
            isInstagramNotLinked ? 'Please connect your Instagram account in your Profile > Social Media Integration section.' :
            isProfileKeyMissing ? 'Please set up your social media integration in your Profile settings first.' :
+           isUsernameNotFound ? 'This influencer\'s profile could not be analyzed. Please check their username.' :
            `Error: ${error}`}
         </p>
       </div>

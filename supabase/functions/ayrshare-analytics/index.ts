@@ -4,6 +4,8 @@ import { corsHeaders } from '../_shared/cors.ts'
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')!
+const ayrsharePrivateKey = Deno.env.get('AYRSHARE_PRIVATE_KEY')!
+const ayrshareDomain = Deno.env.get('AYRSHARE_DOMAIN')!
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -32,12 +34,19 @@ Deno.serve(async (req) => {
 
     console.log('Ayrshare Analytics request:', { action, timeRange, platform, username })
 
-    let apiUrl = 'https://api.ayrshare.com/api'
+    // Use custom domain if provided, otherwise default to api.ayrshare.com
+    let apiUrl = ayrshareDomain ? `https://${ayrshareDomain}/api` : 'https://api.ayrshare.com/api'
     let payload: any = {}
     let headers: any = {
       'Content-Type': 'application/json',
       'Accept-Encoding': 'deflate, gzip, br',
       'Authorization': `Bearer ${ayrshareApiKey}`
+    }
+
+    // Add private key to headers if provided for enhanced authentication
+    if (ayrsharePrivateKey) {
+      headers['Private-Key'] = ayrsharePrivateKey
+      console.log('Using Private-Key header for enhanced authentication')
     }
 
     // Add profile key to headers if provided - this is critical for user-specific data

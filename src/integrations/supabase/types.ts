@@ -751,6 +751,7 @@ export type Database = {
           email: string | null
           id: string
           name: string
+          organization_id: string
           phone: string | null
           status: string
           updated_at: string
@@ -764,6 +765,7 @@ export type Database = {
           email?: string | null
           id?: string
           name: string
+          organization_id: string
           phone?: string | null
           status?: string
           updated_at?: string
@@ -777,11 +779,20 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string
+          organization_id?: string
           phone?: string | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       creator_posts: {
         Row: {

@@ -80,7 +80,7 @@ port = 54321
 verify_jwt = true
 
 [functions.ayrshare-brand-lookup]
-verify_jwt = true
+verify_jwt = false
 
 [analytics]
 enabled = false

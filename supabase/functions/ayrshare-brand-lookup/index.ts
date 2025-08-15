@@ -3,7 +3,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')!
+const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')
 
 Deno.serve(async (req) => {
   // Force function redeploy by adding timestamp

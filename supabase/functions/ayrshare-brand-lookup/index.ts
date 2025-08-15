@@ -7,12 +7,9 @@ const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')!
 
 Deno.serve(async (req) => {
   console.log('=== Environment Check ===');
-  console.log('SUPABASE_URL:', supabaseUrl?.substring(0, 20) + '...');
-  console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceRoleKey?.substring(0, 20) + '...');
   console.log('AYRSHARE_API_KEY exists:', !!ayrshareApiKey);
   console.log('AYRSHARE_API_KEY length:', ayrshareApiKey?.length || 0);
-  console.log('AYRSHARE_API_KEY prefix:', ayrshareApiKey?.substring(0, 10) + '...' || 'MISSING');
-
+  
   if (!ayrshareApiKey) {
     console.error('CRITICAL: AYRSHARE_API_KEY environment variable is not set!');
     return new Response(

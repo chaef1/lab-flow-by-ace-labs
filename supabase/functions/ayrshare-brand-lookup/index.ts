@@ -6,6 +6,29 @@ const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')!
 
 Deno.serve(async (req) => {
+  console.log('=== Environment Check ===');
+  console.log('SUPABASE_URL:', supabaseUrl?.substring(0, 20) + '...');
+  console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceRoleKey?.substring(0, 20) + '...');
+  console.log('AYRSHARE_API_KEY exists:', !!ayrshareApiKey);
+  console.log('AYRSHARE_API_KEY length:', ayrshareApiKey?.length || 0);
+  console.log('AYRSHARE_API_KEY prefix:', ayrshareApiKey?.substring(0, 10) + '...' || 'MISSING');
+
+  if (!ayrshareApiKey) {
+    console.error('CRITICAL: AYRSHARE_API_KEY environment variable is not set!');
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Server configuration error',
+        user_help: 'Ayrshare API key is not configured. Please contact support.',
+        technical_details: 'AYRSHARE_API_KEY environment variable missing'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      }
+    );
+  }
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })

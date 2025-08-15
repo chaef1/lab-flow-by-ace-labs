@@ -93,13 +93,20 @@ Deno.serve(async (req) => {
     
     console.log(`Making request to Ayrshare API`)
     console.log(`Request URL: ${ayrshareUrl}`)
+    console.log(`API Key prefix: ${ayrshareApiKey ? ayrshareApiKey.substring(0, 10) : 'MISSING'}...`)
+    console.log(`API Key length: ${ayrshareApiKey ? ayrshareApiKey.length : 0}`)
+    
+    const requestHeaders = {
+      'Authorization': `Bearer ${ayrshareApiKey}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'Supabase-Edge-Function'
+    }
+    
+    console.log('Request headers:', Object.keys(requestHeaders))
     
     const ayrshareResponse = await fetch(ayrshareUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${ayrshareApiKey}`,
-        'User-Agent': 'Supabase-Edge-Function'
-      }
+      headers: requestHeaders
     })
 
     console.log(`Ayrshare API response status: ${ayrshareResponse.status}`)

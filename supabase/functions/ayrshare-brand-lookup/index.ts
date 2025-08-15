@@ -1,188 +1,358 @@
-Deno.serve(async (req) => {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  }
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from '../_shared/cors.ts'
 
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')!
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
-  console.log('=== Function Started ===')
-  console.log('Method:', req.method)
-
   try {
-    const body = await req.json()
-    console.log('Body received:', JSON.stringify(body))
+    console.log('=== Ayrshare Brand Lookup Request ===');
     
-    const { username, platform } = body
-    const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')
-    
-    console.log('Username:', username)
-    console.log('Platform:', platform) 
-    console.log('API Key exists:', !!ayrshareApiKey)
-    console.log('API Key length:', ayrshareApiKey?.length || 0)
-    
-    if (!ayrshareApiKey) {
-      console.log('No API key found')
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'API key not configured',
-          debug: true
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-    
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+    const { username, platform, searchType } = await req.json()
+
+    console.log('Request params:', { username, platform, searchType });
+
     if (!username) {
-      console.log('No username provided')
+      console.error('No username provided');
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Username required',
-          debug: true
+          error: 'Username is required',
+          user_help: 'Please enter a username (with or without @)'
         }),
         {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
         }
       )
     }
-    
-    // Clean username
+
+    console.log(`Fetching profile for handle: ${username} on platform: ${platform}`)
+
+    // Clean the handle - remove @ symbol and extract from URLs
     let cleanHandle = username.trim()
+    
+    // Remove @ symbol if present
     if (cleanHandle.startsWith('@')) {
       cleanHandle = cleanHandle.substring(1)
     }
-    
+
+    // Extract username from various social media URL formats
+    const urlPatterns = [
+      /(?:instagram\.com\/|instagr\.am\/)([^\/\?]+)/,
+      /(?:tiktok\.com\/@?)([^\/\?]+)/,
+      /(?:twitter\.com\/|x\.com\/)([^\/\?]+)/,
+      /(?:facebook\.com\/)([^\/\?]+)/,
+      /(?:linkedin\.com\/in\/)([^\/\?]+)/,
+      /(?:youtube\.com\/(?:@|c\/|user\/))([^\/\?]+)/,
+      /(?:pinterest\.com\/)([^\/\?]+)/,
+      /(?:snapchat\.com\/add\/)([^\/\?]+)/
+    ]
+
+    for (const pattern of urlPatterns) {
+      const match = cleanHandle.match(pattern)
+      if (match) {
+        cleanHandle = match[1]
+        break
+      }
+    }
+
+    console.log(`Cleaned handle: ${cleanHandle}`)
+
     const platformParam = platform || 'instagram'
-    console.log('Cleaned handle:', cleanHandle)
-    console.log('Platform param:', platformParam)
-    
-    // Build Ayrshare URL
     const params = new URLSearchParams()
     params.append('platforms[0]', platformParam)
     
-    if (platformParam === 'instagram') {
-      params.append('instagramUser', cleanHandle)
-    } else if (platformParam === 'tiktok') {
-      params.append('tiktokUser', cleanHandle)  
-    } else {
-      params.append('instagramUser', cleanHandle)
+    // Use correct parameter name based on platform
+    switch (platformParam.toLowerCase()) {
+      case 'instagram':
+        params.append('instagramUser', cleanHandle)
+        break
+      case 'tiktok':
+        params.append('tiktokUser', cleanHandle)
+        break
+      case 'facebook':
+        params.append('facebookUser', cleanHandle)
+        break
+      case 'twitter':
+      case 'x':
+        params.append('twitterUser', cleanHandle)
+        break
+      default:
+        params.append('instagramUser', cleanHandle) // Default to Instagram
     }
     
     const ayrshareUrl = `https://api.ayrshare.com/api/brand/byUser?${params.toString()}`
-    console.log('Ayrshare URL:', ayrshareUrl)
     
-    // Make API call
-    console.log('Making Ayrshare API call...')
-    const response = await fetch(ayrshareUrl, {
+    console.log(`Making request to Ayrshare API`)
+    console.log(`Request URL: ${ayrshareUrl}`)
+    
+    const ayrshareResponse = await fetch(ayrshareUrl, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${ayrshareApiKey}`,
-        'Content-Type': 'application/json'
+        'User-Agent': 'Supabase-Edge-Function'
       }
     })
-    
-    console.log('API Response status:', response.status)
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.log('API Error:', errorText)
+
+    console.log(`Ayrshare API response status: ${ayrshareResponse.status}`)
+
+    if (!ayrshareResponse.ok) {
+      const errorText = await ayrshareResponse.text()
+      console.error('=== Ayrshare API Error ===');
+      console.error('Status:', ayrshareResponse.status);
+      console.error('Error text:', errorText);
+      
+      // Provide specific error reasoning based on status codes
+      let userFriendlyError = 'Search failed';
+      let userHelp = '';
+      
+      if (ayrshareResponse.status === 401) {
+        userFriendlyError = 'Authentication failed with Ayrshare API';
+        userHelp = 'API key may be invalid. Please contact support.';
+      } else if (ayrshareResponse.status === 403) {
+        userFriendlyError = 'Access denied to search this profile';
+        userHelp = 'The profile may be private or restricted.';
+      } else if (ayrshareResponse.status === 404) {
+        userFriendlyError = `${platformParam} profile not found`;
+        userHelp = `Username "${cleanHandle}" doesn't exist on ${platformParam}. Check spelling and try again.`;
+      } else if (ayrshareResponse.status === 429) {
+        userFriendlyError = 'Too many requests';
+        userHelp = 'Please wait a few minutes before searching again.';
+      } else if (errorText.includes('Missing social account') && platformParam === 'tiktok') {
+        userFriendlyError = 'TikTok account not connected to Ayrshare';
+        userHelp = 'Connect your TikTok account in Ayrshare dashboard to enable searches.';
+      }
       
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Ayrshare API error: ${response.status}`,
-          details: errorText,
-          debug: true
+          error: userFriendlyError,
+          user_help: userHelp,
+          platform_error: platformParam === 'tiktok',
+          platform: platformParam,
+          technical_details: `Status: ${ayrshareResponse.status}`,
+          suggestions: [
+            'Check username spelling',
+            'Try without @ symbol',
+            'Ensure the profile is public',
+            'Try again in a few minutes'
+          ]
         }),
         {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
         }
       )
     }
+
+    const ayrshareData = await ayrshareResponse.json()
+    console.log('Ayrshare response data:', JSON.stringify(ayrshareData, null, 2))
+
+    // Extract platform-specific data from the response
+    const platformData = ayrshareData[platformParam]
     
-    const data = await response.json()
-    console.log('API Response keys:', Object.keys(data))
-    
-    const platformData = data[platformParam]
     if (!platformData) {
-      console.log('No platform data found')
+      console.error(`No data found for platform: ${platformParam}`);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'No profile data found',
-          available: Object.keys(data),
-          debug: true
+          error: `No ${platformParam} data found`,
+          user_help: `The username may not exist on ${platformParam} or the profile may be private`,
+          platform: platformParam
         }),
         {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
         }
       )
     }
     
-    console.log('Platform data found, creating profile...')
-    
-    // Create profile
-    const profile = {
-      username: platformData.username || cleanHandle,
-      full_name: platformData.name || platformData.displayName || '',
-      bio: platformData.biography || platformData.description || '',
-      follower_count: platformData.followersCount || platformData.fans || 0,
-      following_count: platformData.followsCount || platformData.following || 0,
-      posts_count: platformData.mediaCount || platformData.videoCount || 0,
-      profile_picture_url: platformData.profilePictureUrl || platformData.avatar || '',
-      verified: platformData.verified || false,
-      website: platformData.website || '',
-      engagement_rate: 0,
-      category: 'Micro',
-      platform: platformParam,
-      account_type: 'public',
-      location: '',
-      avg_likes: 0,
-      avg_comments: 0,
-      last_post_date: null,
-      id: crypto.randomUUID()
+    // Categorize influencer based on follower count
+    const categorizeInfluencer = (followerCount: number): string => {
+      if (followerCount >= 1000000) return 'Celebrity/Elite'
+      if (followerCount >= 100001) return 'Macro'
+      if (followerCount >= 50001) return 'Mid-Tier'
+      if (followerCount >= 10001) return 'Micro'
+      if (followerCount >= 1000) return 'Nano'
+      return 'Emerging'
     }
+
+    // Transform Ayrshare data to our format based on platform
+    let transformedProfile
     
-    console.log('Returning profile:', profile.username)
-    
+    if (platformParam === 'instagram') {
+      transformedProfile = {
+        username: platformData.username || cleanHandle,
+        full_name: platformData.name || '',
+        bio: platformData.biography || '',
+        follower_count: platformData.followersCount || 0,
+        following_count: platformData.followsCount || 0,
+        engagement_rate: 0,
+        verified: false,
+        profile_picture_url: platformData.profilePictureUrl || '',
+        website: platformData.website || '',
+        category: categorizeInfluencer(platformData.followersCount || 0),
+        platform: platformParam,
+        posts_count: platformData.mediaCount || 0,
+        avg_likes: 0,
+        avg_comments: 0,
+        last_post_date: null,
+        account_type: 'public',
+        location: '',
+        id: platformData.id || crypto.randomUUID(),
+        ig_id: platformData.igId
+      }
+    } else if (platformParam === 'tiktok') {
+      // Enhanced TikTok data extraction
+      console.log('Processing TikTok data:', platformData);
+      
+      const followerCount = platformData.followersCount || platformData.fans || platformData.follower_count || 0;
+      const heartCount = platformData.heartCount || platformData.likesCount || platformData.totalLikes || platformData.likes_count || 0;
+      const videoCount = platformData.videoCount || platformData.videos || platformData.postsCount || platformData.video_count || 1;
+      
+      // Calculate engagement metrics
+      const avgLikesPerVideo = videoCount > 0 ? heartCount / videoCount : 0;
+      const engagementRate = followerCount > 0 ? (avgLikesPerVideo / followerCount) * 100 : 0;
+      
+      transformedProfile = {
+        username: platformData.username || platformData.handle || platformData.uniqueId || cleanHandle,
+        full_name: platformData.displayName || platformData.name || platformData.nickname || '',
+        bio: platformData.description || platformData.signature || platformData.biography || '',
+        follower_count: followerCount,
+        following_count: platformData.followingCount || platformData.following || 0,
+        engagement_rate: Math.round(engagementRate * 100) / 100,
+        verified: platformData.verified || false,
+        profile_picture_url: platformData.avatar || platformData.avatarLarge || platformData.avatarMedium || platformData.profilePictureUrl || '',
+        website: platformData.website || '',
+        category: categorizeInfluencer(followerCount),
+        platform: platformParam,
+        posts_count: videoCount,
+        avg_likes: Math.round(avgLikesPerVideo),
+        avg_comments: platformData.avgComments || 0,
+        last_post_date: platformData.lastPostDate || null,
+        account_type: 'public',
+        location: platformData.region || platformData.location || '',
+        id: platformData.id || platformData.secUid || crypto.randomUUID(),
+        // TikTok specific fields
+        total_likes: heartCount,
+        video_count: videoCount,
+        signature: platformData.signature || '',
+        unique_id: platformData.uniqueId || cleanHandle,
+        sec_uid: platformData.secUid || ''
+      };
+      
+      console.log('Transformed TikTok profile:', transformedProfile);
+    } else if (platformParam === 'facebook') {
+      transformedProfile = {
+        username: platformData.username || cleanHandle,
+        full_name: platformData.name || '',
+        bio: platformData.description || platformData.about || '',
+        follower_count: platformData.followersCount || platformData.fanCount || 0,
+        following_count: 0,
+        engagement_rate: 0,
+        verified: platformData.verificationStatus === 'blue_verified',
+        profile_picture_url: platformData.picture?.data?.url || '',
+        website: platformData.website || '',
+        category: categorizeInfluencer(platformData.followersCount || platformData.fanCount || 0),
+        platform: platformParam,
+        posts_count: 0,
+        avg_likes: 0,
+        avg_comments: 0,
+        last_post_date: null,
+        account_type: 'public',
+        location: platformData.location?.city || '',
+        id: platformData.id || crypto.randomUUID()
+      }
+    } else {
+      // Generic transformation for other platforms
+      transformedProfile = {
+        username: platformData.username || platformData.handle || cleanHandle,
+        full_name: platformData.displayName || platformData.name || '',
+        bio: platformData.description || platformData.bio || '',
+        follower_count: platformData.followersCount || platformData.followers_count || 0,
+        following_count: platformData.followingCount || platformData.following_count || 0,
+        engagement_rate: 0,
+        verified: platformData.verified || false,
+        profile_picture_url: platformData.avatar || platformData.picture?.data?.url || '',
+        website: platformData.website || '',
+        category: categorizeInfluencer(platformData.followersCount || platformData.followers_count || 0),
+        platform: platformParam,
+        posts_count: 0,
+        avg_likes: 0,
+        avg_comments: 0,
+        last_post_date: null,
+        account_type: 'personal',
+        location: platformData.location?.city || '',
+        id: platformData.id || crypto.randomUUID()
+      }
+    }
+
+    // Store search in database with organization_id
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+      if (userData?.user) {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', userData.user.id)
+          .maybeSingle()
+        
+        if (userProfile?.organization_id) {
+          await supabase
+            .from('social_media_searches')
+            .insert({
+              user_id: userData.user.id,
+              organization_id: userProfile.organization_id,
+              platform: platform || 'instagram',
+              username: cleanHandle
+            })
+        }
+      }
+    } catch (dbError) {
+      console.error('Database error (non-critical):', dbError);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
-        profile: profile,
-        profiles: [profile],
+        profile: transformedProfile,
+        profiles: [transformedProfile],
         source: 'ayrshare_api',
-        debug: true
+        enhanced_data: platformParam === 'tiktok' ? {
+          metrics_calculated: true,
+          engagement_analysis: {
+            rate: transformedProfile.engagement_rate,
+            avg_likes_per_video: transformedProfile.avg_likes
+          },
+          data_source: 'ayrshare_enhanced'
+        } : undefined
       }),
       {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       }
     )
-    
+
   } catch (error) {
-    console.error('Function error:', error.message)
-    console.error('Stack:', error.stack)
-    
+    console.error('Error in ayrshare-brand-lookup:', error)
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Internal error',
-        details: error.message,
-        debug: true
+        error: `Search failed: ${error.message}`,
+        user_help: 'Please try again or contact support if the issue persists',
+        technical_details: error.message
       }),
       {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
       }
     )
   }

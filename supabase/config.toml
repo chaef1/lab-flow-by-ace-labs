@@ -79,9 +79,6 @@ port = 54321
 [functions.ayrshare-analytics]
 verify_jwt = true
 
-[functions.ayrshare-brand-lookup]
-verify_jwt = true
-
 [analytics]
 enabled = false
 port = 54327

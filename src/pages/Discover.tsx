@@ -6,6 +6,7 @@ import { ProductMatcher } from '@/components/discover/ProductMatcher';
 import { LookalikeEngine } from '@/components/discover/LookalikeEngine';
 import { SimpleTikTokSearch } from '@/components/discover/SimpleTikTokSearch';
 import { InfluencerDatabase } from '@/components/discover/InfluencerDatabase';
+import { AyrshareConnectionTest } from '@/components/discover/AyrshareConnectionTest';
 
 const Discover = () => {
   return (
@@ -23,6 +24,7 @@ const Discover = () => {
         </TabsList>
         
         <TabsContent value="search" className="space-y-6">
+          <AyrshareConnectionTest />
           <InfluencerDiscovery />
         </TabsContent>
         

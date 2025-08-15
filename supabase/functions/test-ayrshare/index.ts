@@ -4,8 +4,12 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  console.log('=== Test Function Started ===');
+  console.log('Method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('CORS preflight request');
     return new Response(null, { headers: corsHeaders })
   }
 
@@ -27,72 +31,35 @@ Deno.serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
-        }
-      )
-    }
-
-    // Test with a simple API call to get user info
-    console.log('Making test request to Ayrshare API...');
-    
-    const testResponse = await fetch('https://app.ayrshare.com/api/user', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${ayrshareApiKey}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    console.log('Ayrshare API response status:', testResponse.status);
-    
-    const responseData = await testResponse.text()
-    console.log('Response data:', responseData);
-
-    let parsedData;
-    try {
-      parsedData = JSON.parse(responseData);
-    } catch (e) {
-      parsedData = { raw: responseData };
-    }
-
-    if (testResponse.ok) {
-      console.log('✅ Ayrshare API connection successful!');
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Ayrshare API connection successful',
-          status: testResponse.status,
-          data: parsedData
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
-        }
-      )
-    } else {
-      console.error('❌ Ayrshare API connection failed');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Ayrshare API connection failed',
-          status: testResponse.status,
-          response: parsedData,
-          details: 'API key may be invalid or expired'
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400
         }
       )
     }
 
+    // Just return success for now to test basic function
+    console.log('✅ Basic test successful!');
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Basic function test successful',
+        hasApiKey: !!ayrshareApiKey,
+        apiKeyLength: ayrshareApiKey?.length || 0
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
+    )
+
   } catch (error) {
-    console.error('Error testing Ayrshare API:', error);
+    console.error('Error in test function:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
       JSON.stringify({
         success: false,
         error: `Test failed: ${error.message}`,
-        details: error.message
+        details: error.stack,
+        type: error.constructor.name
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

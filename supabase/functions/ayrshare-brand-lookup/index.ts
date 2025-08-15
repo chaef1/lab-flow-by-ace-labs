@@ -6,41 +6,29 @@ const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const ayrshareApiKey = Deno.env.get('AYRSHARE_API_KEY')
 
 Deno.serve(async (req) => {
-  // Force function redeploy by adding timestamp
-  console.log('=== Ayrshare Brand Lookup Function - v2025.01.15.1 ===');
-  console.log('Environment variables check:');
-  console.log('- SUPABASE_URL exists:', !!supabaseUrl);
-  console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseServiceRoleKey);
-  console.log('- AYRSHARE_API_KEY exists:', !!ayrshareApiKey);
-  console.log('- AYRSHARE_API_KEY length:', ayrshareApiKey?.length || 0);
-  
-  // List all environment variables that start with AYRSHARE
-  const envKeys = Object.keys(Deno.env.toObject()).filter(key => key.includes('AYRSHARE'));
-  console.log('Available AYRSHARE env vars:', envKeys);
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  console.log('=== Ayrshare Brand Lookup Function ===');
+  console.log('AYRSHARE_API_KEY exists:', !!ayrshareApiKey);
+  console.log('AYRSHARE_API_KEY length:', ayrshareApiKey?.length || 0);
   
   if (!ayrshareApiKey) {
     console.error('CRITICAL: AYRSHARE_API_KEY environment variable is not set!');
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Server configuration error - API key missing',
-        user_help: 'The Ayrshare API key is not properly configured. Please check your secrets configuration.',
-        technical_details: 'AYRSHARE_API_KEY environment variable is not available',
-        debug_info: {
-          available_ayrshare_vars: envKeys,
-          timestamp: new Date().toISOString()
-        }
+        error: 'Server configuration error',
+        user_help: 'Ayrshare API key is not configured. Please contact support.',
+        technical_details: 'AYRSHARE_API_KEY environment variable missing'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       }
     );
-  }
-
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
   }
 
   try {

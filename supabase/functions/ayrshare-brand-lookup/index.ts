@@ -109,6 +109,22 @@ Deno.serve(async (req) => {
       console.error('=== Ayrshare API Error ===');
       console.error('Status:', ayrshareResponse.status);
       console.error('Error text:', errorText);
+      console.error('Request headers sent:', ayrshareResponse.headers);
+      console.error('Full request details:', {
+        url: ayrshareUrl,
+        method: 'GET',
+        platform: platformParam,
+        username: cleanHandle
+      });
+      
+      // Parse error response if it's JSON
+      let parsedError;
+      try {
+        parsedError = JSON.parse(errorText);
+        console.error('Parsed error response:', parsedError);
+      } catch (e) {
+        console.error('Could not parse error response as JSON');
+      }
       
       // Provide specific error reasoning based on status codes
       let userFriendlyError = 'Search failed';
@@ -118,8 +134,17 @@ Deno.serve(async (req) => {
         userFriendlyError = 'Authentication failed with Ayrshare API';
         userHelp = 'API key may be invalid. Please contact support.';
       } else if (ayrshareResponse.status === 403) {
-        userFriendlyError = 'Access denied to search this profile';
-        userHelp = 'The profile may be private or restricted.';
+        // Check for specific 403 error messages
+        if (parsedError?.message?.includes('API Key not valid')) {
+          userFriendlyError = 'API Key authentication failed';
+          userHelp = 'The API key may be incorrect or expired. Please verify your Ayrshare API key.';
+        } else if (parsedError?.message?.includes('not linked') || parsedError?.message?.includes('connect')) {
+          userFriendlyError = `${platformParam} account not properly connected`;
+          userHelp = `Please ensure your ${platformParam} account is properly connected and authorized in your Ayrshare dashboard under Social Accounts.`;
+        } else {
+          userFriendlyError = 'Access denied to search this profile';
+          userHelp = 'This may indicate the social account is not properly connected to Ayrshare or the profile search feature is not available for your account type.';
+        }
       } else if (ayrshareResponse.status === 404) {
         userFriendlyError = `${platformParam} profile not found`;
         userHelp = `Username "${cleanHandle}" doesn't exist on ${platformParam}. Check spelling and try again.`;

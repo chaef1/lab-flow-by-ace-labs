@@ -64,7 +64,7 @@ serve(async (req) => {
     }
 
     // Fetch from Modash API
-    const response = await fetch(`${MODASH_BASE_URL}/${platform}/report/${userId}`, {
+    const response = await fetch(`${MODASH_BASE_URL}/${platform}/profile/${userId}/report`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${MODASH_API_KEY}`,

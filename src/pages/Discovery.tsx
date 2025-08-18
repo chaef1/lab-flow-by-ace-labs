@@ -49,24 +49,6 @@ interface CreatorResult {
   hasContactDetails: boolean;
 }
 
-interface SearchFilters {
-  platforms: string[];
-  followersMin: number;
-  followersMax: number;
-  engagementRateMin: number;
-  engagementRateMax: number;
-  location: string;
-  language: string;
-  keywords: string[];
-  hashtags: string[];
-  brands: string[];
-  interests: string[];
-  hasContactDetails: boolean;
-  isVerified: boolean;
-  postedWithinDays: number;
-  handleSearch: string;
-}
-
 const Discovery = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
@@ -79,54 +61,41 @@ const Discovery = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   
-  // Filter state
-  const [filters, setFilters] = useState<SearchFilters>({
-    platforms: ['instagram'],
-    followersMin: 1000,
-    followersMax: 1000000,
-    engagementRateMin: 0,
-    engagementRateMax: 20,
-    location: '',
-    language: '',
-    keywords: [],
-    hashtags: [],
-    brands: [],
-    interests: [],
-    hasContactDetails: false,
-    isVerified: false,
-    postedWithinDays: 30,
-    handleSearch: ''
+  // Filter state matching Modash API structure
+  const [filters, setFilters] = useState({
+    influencer: {
+      followers: { min: 1000, max: 1000000 },
+      hasContactDetails: false,
+      isVerified: false,
+      lastposted: 30,
+      keywords: "",
+      textTags: [] as Array<{type: 'hashtag' | 'mention', value: string}>,
+      brands: [] as number[],
+      interests: [] as number[]
+    }
   });
 
+  const [platform, setPlatform] = useState('instagram');
   const [keywordInput, setKeywordInput] = useState('');
   const [hashtagInput, setHashtagInput] = useState('');
-  const [brandInput, setBrandInput] = useState('');
 
-  // Search mutation with debouncing
+  // Search mutation
   const searchMutation = useMutation({
     mutationFn: async () => {
-      const modashFilters = {
+      const searchFilters = {
+        ...filters,
         influencer: {
-          followersMin: filters.followersMin,
-          followersMax: filters.followersMax,
-          hasContactDetails: filters.hasContactDetails,
-          isVerified: filters.isVerified,
-          postedWithinDays: filters.postedWithinDays,
-          keywords: filters.handleSearch ? [filters.handleSearch] : filters.keywords,
-          hashtags: filters.hashtags.map(h => h.startsWith('#') ? h : `#${h}`),
-          brands: filters.brands,
-          interests: filters.interests.map(i => ({ id: i }))
-        },
-        audience: filters.location ? {
-          countries: [{ id: filters.location, minPercent: 20 }]
-        } : undefined
+          ...filters.influencer,
+          keywords: searchTerm || filters.influencer.keywords
+        }
       };
 
       const { data, error } = await supabase.functions.invoke('modash-discovery-search', {
         body: {
-          platform: filters.platforms[0] || 'instagram',
-          filters: modashFilters,
+          platform,
+          filters: searchFilters,
           sort: { field: sortBy, direction: sortOrder },
           pagination: { page: currentPage, limit: 15 }
         }
@@ -206,88 +175,72 @@ const Discovery = () => {
     return num.toString();
   };
 
-  const addKeyword = useCallback(() => {
-    if (keywordInput.trim() && !filters.keywords.includes(keywordInput.trim())) {
-      setFilters(prev => ({
-        ...prev,
-        keywords: [...prev.keywords, keywordInput.trim()]
-      }));
-      setKeywordInput('');
-    }
-  }, [keywordInput, filters.keywords]);
+  const handleSearch = () => {
+    setCurrentPage(0);
+    searchMutation.mutate();
+  };
 
   const addHashtag = useCallback(() => {
-    if (hashtagInput.trim() && !filters.hashtags.includes(hashtagInput.trim())) {
+    if (hashtagInput.trim()) {
       setFilters(prev => ({
         ...prev,
-        hashtags: [...prev.hashtags, hashtagInput.trim()]
+        influencer: {
+          ...prev.influencer,
+          textTags: [...prev.influencer.textTags, { type: 'hashtag', value: hashtagInput.trim() }]
+        }
       }));
       setHashtagInput('');
     }
-  }, [hashtagInput, filters.hashtags]);
+  }, [hashtagInput]);
 
-  const addBrand = useCallback(() => {
-    if (brandInput.trim() && !filters.brands.includes(brandInput.trim())) {
-      setFilters(prev => ({
-        ...prev,
-        brands: [...prev.brands, brandInput.trim()]
-      }));
-      setBrandInput('');
-    }
-  }, [brandInput, filters.brands]);
-
-  const removeFilter = useCallback((type: keyof SearchFilters, value: string) => {
+  const removeTextTag = useCallback((index: number) => {
     setFilters(prev => ({
       ...prev,
-      [type]: (prev[type] as string[]).filter(item => item !== value)
+      influencer: {
+        ...prev.influencer,
+        textTags: prev.influencer.textTags.filter((_, i) => i !== index)
+      }
     }));
   }, []);
 
   const resetFilters = useCallback(() => {
     setFilters({
-      platforms: ['instagram'],
-      followersMin: 1000,
-      followersMax: 1000000,
-      engagementRateMin: 0,
-      engagementRateMax: 20,
-      location: '',
-      language: '',
-      keywords: [],
-      hashtags: [],
-      brands: [],
-      interests: [],
-      hasContactDetails: false,
-      isVerified: false,
-      postedWithinDays: 30,
-      handleSearch: ''
+      influencer: {
+        followers: { min: 1000, max: 1000000 },
+        hasContactDetails: false,
+        isVerified: false,
+        lastposted: 30,
+        keywords: "",
+        textTags: [],
+        brands: [],
+        interests: []
+      }
     });
+    setSearchTerm('');
     setCurrentPage(0);
   }, []);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (filters.keywords.length > 0) count++;
-    if (filters.hashtags.length > 0) count++;
-    if (filters.brands.length > 0) count++;
-    if (filters.location) count++;
-    if (filters.handleSearch) count++;
-    if (filters.hasContactDetails) count++;
-    if (filters.isVerified) count++;
-    if (filters.followersMin > 1000 || filters.followersMax < 1000000) count++;
-    if (filters.engagementRateMin > 0 || filters.engagementRateMax < 20) count++;
+    if (filters.influencer.keywords) count++;
+    if (filters.influencer.textTags.length > 0) count++;
+    if (searchTerm) count++;
+    if (filters.influencer.hasContactDetails) count++;
+    if (filters.influencer.isVerified) count++;
+    if (filters.influencer.followers.min > 1000 || filters.influencer.followers.max < 1000000) count++;
     return count;
-  }, [filters]);
+  }, [filters, searchTerm]);
 
   // Auto-search on filter changes with debouncing
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (activeFiltersCount > 0 || filters.handleSearch) {
+      if (activeFiltersCount > 0 || searchTerm) {
         searchMutation.mutate();
       }
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [filters, sortBy, sortOrder, currentPage]);
+  }, [filters, searchTerm, sortBy, sortOrder, currentPage, platform]);
 
   // CreatorCard component
   const CreatorCard = ({ creator }: { creator: CreatorResult }) => {
@@ -461,7 +414,6 @@ const Discovery = () => {
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-              {/* Filter content will go here */}
             </div>
           </div>
         </div>
@@ -481,21 +433,33 @@ const Discovery = () => {
               </div>
             </div>
 
-            {/* Handle Search */}
+            {/* Search */}
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center">
-                <AtSign className="w-4 h-4 mr-2" />
-                Search by Handle
+                <Search className="w-4 h-4 mr-2" />
+                Search
               </label>
               <div className="flex space-x-2">
                 <Input
-                  placeholder="e.g., username"
-                  value={filters.handleSearch}
-                  onChange={(e) => setFilters(prev => ({ ...prev, handleSearch: e.target.value }))}
+                  placeholder="Search creators, handles, keywords..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      setFilters(prev => ({
+                        ...prev,
+                        influencer: {
+                          ...prev.influencer,
+                          keywords: searchTerm
+                        }
+                      }));
+                      handleSearch();
+                    }
+                  }}
                   className="flex-1"
                 />
                 <Button 
-                  onClick={() => searchMutation.mutate()} 
+                  onClick={handleSearch} 
                   size="sm"
                   disabled={searchMutation.isPending}
                 >
@@ -513,10 +477,7 @@ const Discovery = () => {
             {/* Platform Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Platform</label>
-              <Tabs
-                value={filters.platforms[0]}
-                onValueChange={(value) => setFilters(prev => ({ ...prev, platforms: [value] }))}
-              >
+              <Tabs value={platform} onValueChange={setPlatform}>
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="instagram">Instagram</TabsTrigger>
                   <TabsTrigger value="tiktok">TikTok</TabsTrigger>
@@ -530,140 +491,96 @@ const Discovery = () => {
               <label className="text-sm font-medium">Followers Range</label>
               <div className="space-y-2">
                 <Slider
-                  value={[filters.followersMin]}
-                  onValueChange={([value]) => setFilters(prev => ({ ...prev, followersMin: value }))}
+                  value={[filters.influencer.followers.min, filters.influencer.followers.max]}
+                  onValueChange={([min, max]) => 
+                    setFilters(prev => ({
+                      ...prev,
+                      influencer: {
+                        ...prev.influencer,
+                        followers: { min, max }
+                      }
+                    }))
+                  }
                   max={10000000}
                   min={100}
                   step={1000}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{formatNumber(filters.followersMin)}+</span>
-                  <span>to {formatNumber(filters.followersMax)}</span>
+                  <span>{formatNumber(filters.influencer.followers.min)}</span>
+                  <span>{formatNumber(filters.influencer.followers.max)}</span>
                 </div>
               </div>
             </div>
 
-            {/* Engagement Rate */}
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Engagement Rate (%)</label>
-              <div className="space-y-2">
-                <Slider
-                  value={[filters.engagementRateMin, filters.engagementRateMax]}
-                  onValueChange={([min, max]) => setFilters(prev => ({ 
-                    ...prev, 
-                    engagementRateMin: min, 
-                    engagementRateMax: max 
-                  }))}
-                  max={20}
-                  min={0}
-                  step={0.1}
-                  className="w-full"
+            {/* Hashtags */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Hashtags</label>
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Enter hashtag..."
+                  value={hashtagInput}
+                  onChange={(e) => setHashtagInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addHashtag()}
+                  className="flex-1"
                 />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{filters.engagementRateMin}%</span>
-                  <span>{filters.engagementRateMax}%</span>
+                <Button onClick={addHashtag} size="sm">Add</Button>
+              </div>
+              {filters.influencer.textTags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {filters.influencer.textTags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {tag.type === 'hashtag' ? '#' : '@'}{tag.value}
+                      <button
+                        onClick={() => removeTextTag(index)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quality Filters */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Quality Filters</label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="verified"
+                    checked={filters.influencer.isVerified}
+                    onCheckedChange={(checked) => 
+                      setFilters(prev => ({
+                        ...prev,
+                        influencer: {
+                          ...prev.influencer,
+                          isVerified: !!checked
+                        }
+                      }))
+                    }
+                  />
+                  <label htmlFor="verified" className="text-sm">Verified accounts only</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="contact"
+                    checked={filters.influencer.hasContactDetails}
+                    onCheckedChange={(checked) => 
+                      setFilters(prev => ({
+                        ...prev,
+                        influencer: {
+                          ...prev.influencer,
+                          hasContactDetails: !!checked
+                        }
+                      }))
+                    }
+                  />
+                  <label htmlFor="contact" className="text-sm">Has contact details</label>
                 </div>
               </div>
             </div>
-
-            {/* Advanced Filters */}
-            <Collapsible>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between">
-                  <span className="text-sm font-medium">Advanced Filters</span>
-                  <SlidersHorizontal className="w-4 h-4" />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 mt-4">
-                {/* Keywords */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Keywords</label>
-                  <div className="flex space-x-2">
-                    <Input
-                      placeholder="Enter keyword..."
-                      value={keywordInput}
-                      onChange={(e) => setKeywordInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
-                      className="flex-1"
-                    />
-                    <Button onClick={addKeyword} size="sm">Add</Button>
-                  </div>
-                  {filters.keywords.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {filters.keywords.map((keyword, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {keyword}
-                          <button
-                            onClick={() => removeFilter('keywords', keyword)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Hashtags */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Hashtags</label>
-                  <div className="flex space-x-2">
-                    <Input
-                      placeholder="Enter hashtag..."
-                      value={hashtagInput}
-                      onChange={(e) => setHashtagInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addHashtag()}
-                      className="flex-1"
-                    />
-                    <Button onClick={addHashtag} size="sm">Add</Button>
-                  </div>
-                  {filters.hashtags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {filters.hashtags.map((hashtag, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          #{hashtag}
-                          <button
-                            onClick={() => removeFilter('hashtags', hashtag)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Quality Filters */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Quality Filters</label>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="verified"
-                        checked={filters.isVerified}
-                        onCheckedChange={(checked) => 
-                          setFilters(prev => ({ ...prev, isVerified: !!checked }))
-                        }
-                      />
-                      <label htmlFor="verified" className="text-sm">Verified accounts only</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="contact"
-                        checked={filters.hasContactDetails}
-                        onCheckedChange={(checked) => 
-                          setFilters(prev => ({ ...prev, hasContactDetails: !!checked }))
-                        }
-                      />
-                      <label htmlFor="contact" className="text-sm">Has contact details</label>
-                    </div>
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
           </div>
         </div>
 

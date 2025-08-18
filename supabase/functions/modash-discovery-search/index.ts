@@ -29,12 +29,10 @@ serve(async (req) => {
 
     console.log(`Searching ${platform} creators with filters:`, JSON.stringify(filters, null, 2));
 
-    // Normalize filters for Modash API
+    // Normalize filters for Modash API according to their docs
     const modashPayload = {
-      pagination: {
-        page: pagination?.page || 0,
-        limit: pagination?.limit || 15
-      },
+      page: pagination?.page || 0,
+      calculationMethod: "median",
       sort: {
         field: sort?.field || 'followers',
         direction: sort?.direction || 'desc'
@@ -103,7 +101,7 @@ serve(async (req) => {
           .from('search_queries')
           .insert({
             payload: modashPayload,
-            page: modashPayload.pagination.page,
+            page: modashPayload.page,
             results_count: data.results?.length || 0,
             estimated_credits: data.meta?.estimatedCredits || 1,
             created_by: user.id

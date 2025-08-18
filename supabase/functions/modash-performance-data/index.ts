@@ -32,17 +32,12 @@ serve(async (req) => {
     console.log(`Fetching ${platform} performance data for user ${userId}`);
 
     // Call Modash Performance Data API
-    const response = await fetch(`${MODASH_BASE_URL}/${platform}/performance-data`, {
-      method: 'POST',
+    const response = await fetch(`${MODASH_BASE_URL}/${platform}/performance-data?userId=${userId}&period=${period}&limit=${postCount}`, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${MODASH_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        userId,
-        period: parseInt(period),
-        limit: parseInt(postCount)
-      }),
     });
 
     if (!response.ok) {

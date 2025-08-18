@@ -43,10 +43,8 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const kind = url.pathname.split('/').pop();
-    const query = url.searchParams.get('query') || undefined;
-    const limit = url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!) : undefined;
+    const body = await req.json();
+    const { kind, query, limit } = body;
 
     if (!kind || !['location', 'interest', 'brand', 'language'].includes(kind)) {
       return new Response(

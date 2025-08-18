@@ -16,8 +16,12 @@ export const useModashDiscovery = () => {
     return useQuery({
       queryKey: ['modash-dictionary', kind, searchKeyword],
       queryFn: async () => {
-        const { data, error } = await supabase.functions.invoke(`modash-dictionaries/${kind}`, {
-          body: { query: searchKeyword, limit: 50 }
+        const { data, error } = await supabase.functions.invoke('modash-dictionaries', {
+          body: { 
+            kind,
+            query: searchKeyword, 
+            limit: 50 
+          }
         });
         if (error) throw error;
         return data as DictionaryEntry[];

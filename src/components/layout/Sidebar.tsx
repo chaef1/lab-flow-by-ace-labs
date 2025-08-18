@@ -57,6 +57,7 @@ const Sidebar = ({ className }: SidebarProps) => {
     
     // NEW STORYCLASH FEATURES
     { name: 'Discovery', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Modash Discovery', path: '/modash-discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
     { name: 'Campaign CRM', path: '/campaign-crm', icon: Target, roles: ['admin', 'brand', 'agency'] },
     
     // Projects menu - admins, creators, agencies, and brands

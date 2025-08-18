@@ -27,6 +27,109 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useToast } from '@/hooks/use-toast';
+import { useCreatorCollaborations } from '@/hooks/useCreatorReport';
+
+// Collaborations Tab Component
+const CollaborationsTab = ({ platform, userId }: { platform: string; userId: string }) => {
+  const { data: collaborations, isLoading } = useCreatorCollaborations(platform, userId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-48 w-full" />
+      </div>
+    );
+  }
+
+  if (!collaborations?.collaborations?.length) {
+    return (
+      <div className="text-center py-8">
+        <h3 className="text-lg font-medium mb-2">No Collaborations Found</h3>
+        <p className="text-muted-foreground">This creator hasn't collaborated with brands recently</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">{collaborations.summary.totalBrands}</div>
+            <p className="text-xs text-muted-foreground">Brands Collaborated</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">{collaborations.summary.totalPosts}</div>
+            <p className="text-xs text-muted-foreground">Sponsored Posts</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">{collaborations.summary.avgPerformance.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Avg Engagement</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Brand Collaborations */}
+      <div className="space-y-4">
+        {collaborations.collaborations.map((brand: any, index: number) => (
+          <Card key={index}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{brand.name}</CardTitle>
+                <Badge variant="outline">{brand.postCount} posts</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="text-lg font-semibold">{brand.avgEngagement.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Avg Engagement</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-semibold">{brand.totalEngagement.toLocaleString()}</div>
+                  <div className="text-xs text-muted-foreground">Total Engagement</div>
+                </div>
+              </div>
+              
+              {/* Recent Posts */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {brand.posts.slice(0, 4).map((post: any, postIndex: number) => (
+                  <div key={postIndex} className="relative group cursor-pointer">
+                    <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                      {post.thumbnail ? (
+                        <img 
+                          src={post.thumbnail} 
+                          alt="Collaboration post" 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          No Image
+                        </div>
+                      )}
+                    </div>
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                      <div className="text-white text-xs text-center p-2">
+                        <div>{post.likes.toLocaleString()} likes</div>
+                        <div>{post.comments.toLocaleString()} comments</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const CreatorReport = () => {
   const { platform, userId } = useParams<{ platform: string; userId: string }>();

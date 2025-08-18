@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,17 +10,18 @@ const corsHeaders = {
 const MODASH_API_KEY = Deno.env.get('MODASH_API_TOKEN');
 const MODASH_BASE_URL = 'https://api.modash.io/v1';
 
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const url = new URL(req.url);
-    const platform = url.searchParams.get('platform');
-    const feedType = url.searchParams.get('feedType');
-    const identifier = url.searchParams.get('identifier'); // username, hashtag, etc.
-    const limit = url.searchParams.get('limit') || '12';
+    const { platform, feedType, identifier, limit = 12 } = await req.json();
 
     if (!platform || !feedType || !identifier) {
       throw new Error('Platform, feedType, and identifier are required');

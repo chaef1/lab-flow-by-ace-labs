@@ -40,19 +40,16 @@ serve(async (req) => {
 
     console.log(`Searching ${platform} creators with filters:`, JSON.stringify(filters, null, 2));
 
-    // Create proper Modash API payload
+    // Create proper Modash API payload according to documentation
     const modashPayload = {
-      pagination: {
-        limit: 15,
-        offset: (pagination?.page || 0) * 15
-      },
+      page: pagination?.page || 0,
       sort: {
-        field: sort?.field === 'followers' ? 'followerCount' : sort?.field || 'followerCount',
-        order: sort?.direction || 'desc'
+        field: sort?.field === 'followers' ? 'followers' : sort?.field || 'followers',
+        direction: sort?.direction || 'desc'
       },
       filter: {
-        // Basic filters
-        followerCount: {
+        // Basic profile filters
+        followers: {
           min: filters.influencer?.followers?.min || 1000,
           max: filters.influencer?.followers?.max || 10000000
         },
@@ -65,21 +62,28 @@ serve(async (req) => {
         ...(filters.influencer?.isVerified && { isVerified: true }),
         ...(filters.influencer?.hasContactDetails && { hasContactDetails: true }),
         ...(filters.influencer?.keywords && {
-          keywords: [filters.influencer.keywords]
+          text: filters.influencer.keywords
         }),
+        // Audience filters
         ...(filters.influencer?.location?.countries?.length > 0 && {
-          audienceGeo: {
-            countries: filters.influencer.location.countries.map(c => ({ code: c, weight: 50 }))
+          audience: {
+            geo: {
+              countries: filters.influencer.location.countries.map(c => ({ id: c, weight: 0.3 }))
+            }
           }
         }),
         ...(filters.influencer?.gender?.length > 0 && {
-          audienceGender: {
-            code: filters.influencer.gender[0],
-            weight: 50
+          audience: {
+            gender: {
+              code: filters.influencer.gender[0],
+              weight: 0.3
+            }
           }
         }),
         ...(filters.influencer?.language?.length > 0 && {
-          audienceLanguage: filters.influencer.language.map(l => ({ code: l, weight: 50 }))
+          audience: {
+            languages: filters.influencer.language.map(l => ({ id: l, weight: 0.3 }))
+          }
         })
       }
     };
@@ -120,29 +124,38 @@ serve(async (req) => {
 
     const data = await response.json();
     console.log('Raw Modash response:', JSON.stringify(data, null, 2));
-    console.log(`Found ${data.data?.length || data.results?.length || 0} creators`);
+    
+    // Handle both direct matches and lookalikes from Modash response
+    const allResults = [...(data.directs || []), ...(data.lookalikes || [])];
+    console.log(`Found ${allResults.length} creators (${data.directs?.length || 0} direct, ${data.lookalikes?.length || 0} lookalikes)`);
 
     // Normalize the response to match our expected format
     const normalizedData = {
-      results: (data.data || data.results || []).map((creator: any) => ({
-        userId: creator.userId || creator.id || creator.user_id,
-        username: creator.username || creator.handle,
-        fullName: creator.fullName || creator.name || creator.full_name || '',
-        profilePicUrl: creator.profilePicUrl || creator.picture || creator.profile_pic_url || '',
-        followers: creator.followers || creator.followerCount || 0,
-        engagementRate: creator.engagementRate || creator.engagement_rate || 0,
-        avgLikes: creator.avgLikes || creator.avg_likes || 0,
-        avgViews: creator.avgViews || creator.avg_views || 0,
-        isVerified: creator.isVerified || creator.verified || false,
-        hasContactDetails: creator.hasContactDetails || creator.contactDetails || false,
-        topAudience: {
-          country: creator.audience?.geoCountries?.[0]?.name || creator.topAudience?.country,
-          city: creator.audience?.geoCities?.[0]?.name || creator.topAudience?.city
-        },
-        platform
-      })),
-      total: data.total || (data.data || data.results || []).length,
-      page: pagination?.page || 0
+      results: allResults.map((creator: any) => {
+        // Handle different response structures from Modash
+        const profile = creator.profile || creator;
+        return {
+          userId: creator.userId || profile.userId || creator.id,
+          username: profile.username || creator.username,
+          fullName: profile.fullname || profile.fullName || profile.name || '',
+          profilePicUrl: profile.picture || profile.profilePicUrl || '',
+          followers: profile.followers || profile.followerCount || 0,
+          engagementRate: profile.engagementRate || 0,
+          avgLikes: profile.engagements || profile.avgLikes || 0,
+          avgViews: profile.averageViews || profile.avgViews || 0,
+          isVerified: profile.isVerified || false,
+          hasContactDetails: profile.hasContactDetails || false,
+          topAudience: {
+            country: profile.audience?.geoCountries?.[0]?.name,
+            city: profile.audience?.geoCities?.[0]?.name
+          },
+          platform,
+          matchInfo: creator.matchInfo || null
+        };
+      }),
+      total: data.total || allResults.length,
+      page: pagination?.page || 0,
+      isExactMatch: data.isExactMatch || false
     };
 
     // Cache results in our database for faster subsequent access

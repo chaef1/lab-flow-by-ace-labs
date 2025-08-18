@@ -104,25 +104,6 @@ const Discovery = () => {
     search(searchFilters);
   };
 
-  const testModashAPI = async () => {
-    console.log('Testing Modash API directly...');
-    try {
-      const { data, error } = await supabase.functions.invoke('test-modash');
-      console.log('Test result:', data);
-      if (error) console.error('Test error:', error);
-      toast({
-        title: "API Test Complete",
-        description: "Check browser console for results"
-      });
-    } catch (err) {
-      console.error('Test failed:', err);
-      toast({
-        title: "API Test Failed",
-        description: "Check browser console for details",
-        variant: "destructive"
-      });
-    }
-  };
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -141,19 +122,9 @@ const Discovery = () => {
               Find and analyze creators across Instagram, TikTok, and YouTube
             </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={testModashAPI}
-              className="text-xs"
-            >
-              Test API
-            </Button>
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary">
-              Powered by Modash ⚡
-            </Badge>
-          </div>
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary">
+            Powered by Modash ⚡
+          </Badge>
         </div>
 
         {/* Platform Tabs */}

@@ -64,6 +64,39 @@ export type Database = {
           },
         ]
       }
+      api_usage_logs: {
+        Row: {
+          created_at: string | null
+          credits_used: number | null
+          endpoint: string
+          id: string
+          platform: string | null
+          query_hash: string | null
+          response_cached: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          credits_used?: number | null
+          endpoint: string
+          id?: string
+          platform?: string | null
+          query_hash?: string | null
+          response_cached?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          credits_used?: number | null
+          endpoint?: string
+          id?: string
+          platform?: string | null
+          query_hash?: string | null
+          response_cached?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           created_at: string
@@ -160,6 +193,56 @@ export type Database = {
           },
         ]
       }
+      brand_monitor_hits: {
+        Row: {
+          confidence_score: number | null
+          content_preview: string | null
+          creator_id: string
+          hit_at: string | null
+          hit_type: string
+          id: string
+          metrics: Json | null
+          monitor_id: string | null
+          platform: string
+          post_id: string | null
+          processed: boolean | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          content_preview?: string | null
+          creator_id: string
+          hit_at?: string | null
+          hit_type: string
+          id?: string
+          metrics?: Json | null
+          monitor_id?: string | null
+          platform: string
+          post_id?: string | null
+          processed?: boolean | null
+        }
+        Update: {
+          confidence_score?: number | null
+          content_preview?: string | null
+          creator_id?: string
+          hit_at?: string | null
+          hit_type?: string
+          id?: string
+          metrics?: Json | null
+          monitor_id?: string | null
+          platform?: string
+          post_id?: string | null
+          processed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_monitor_hits_monitor_id_fkey"
+            columns: ["monitor_id"]
+            isOneToOne: false
+            referencedRelation: "brand_monitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_monitoring: {
         Row: {
           brand_handles: Json | null
@@ -189,6 +272,42 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           monitoring_keywords?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      brand_monitors: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          name: string
+          owners: string[] | null
+          rules_json: Json
+          schedule: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          owners?: string[] | null
+          rules_json: Json
+          schedule?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          owners?: string[] | null
+          rules_json?: Json
+          schedule?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -233,6 +352,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cached_creator_reports: {
+        Row: {
+          expires_at: string | null
+          fetched_at: string | null
+          id: string
+          performance_json: Json | null
+          platform: string
+          raw_feed_json: Json | null
+          report_json: Json
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          fetched_at?: string | null
+          id?: string
+          performance_json?: Json | null
+          platform: string
+          raw_feed_json?: Json | null
+          report_json: Json
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          fetched_at?: string | null
+          id?: string
+          performance_json?: Json | null
+          platform?: string
+          raw_feed_json?: Json | null
+          report_json?: Json
+          user_id?: string
+        }
+        Relationships: []
       }
       cached_reports: {
         Row: {
@@ -641,6 +793,71 @@ export type Database = {
           },
         ]
       }
+      campaign_workspace_creators: {
+        Row: {
+          assigned_to: string | null
+          contact_email: string | null
+          created_at: string | null
+          creator_id: string
+          deal_status: string | null
+          deliverables: string[] | null
+          id: string
+          last_contacted: string | null
+          notes: string | null
+          platform: string
+          price_quoted: number | null
+          snapshot_json: Json | null
+          stage: string | null
+          updated_at: string | null
+          username: string
+          workspace_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          contact_email?: string | null
+          created_at?: string | null
+          creator_id: string
+          deal_status?: string | null
+          deliverables?: string[] | null
+          id?: string
+          last_contacted?: string | null
+          notes?: string | null
+          platform: string
+          price_quoted?: number | null
+          snapshot_json?: Json | null
+          stage?: string | null
+          updated_at?: string | null
+          username: string
+          workspace_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          contact_email?: string | null
+          created_at?: string | null
+          creator_id?: string
+          deal_status?: string | null
+          deliverables?: string[] | null
+          id?: string
+          last_contacted?: string | null
+          notes?: string | null
+          platform?: string
+          price_quoted?: number | null
+          snapshot_json?: Json | null
+          stage?: string | null
+          updated_at?: string | null
+          username?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_workspace_creators_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_workspaces: {
         Row: {
           created_at: string
@@ -906,6 +1123,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      creator_comparisons: {
+        Row: {
+          comparison_data: Json | null
+          created_at: string | null
+          created_by: string
+          creator_ids: Json
+          id: string
+          name: string | null
+        }
+        Insert: {
+          comparison_data?: Json | null
+          created_at?: string | null
+          created_by: string
+          creator_ids: Json
+          id?: string
+          name?: string | null
+        }
+        Update: {
+          comparison_data?: Json | null
+          created_at?: string | null
+          created_by?: string
+          creator_ids?: Json
+          id?: string
+          name?: string | null
+        }
+        Relationships: []
       }
       creator_posts: {
         Row: {

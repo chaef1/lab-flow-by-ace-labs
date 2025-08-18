@@ -55,6 +55,7 @@ const App = () => (
             {/* Influencer Intelligence Platform */}
             <Route path="/discover" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Discovery /></ProtectedRoute>} />
             <Route path="/creator/:platform/:userId" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorReport /></ProtectedRoute>} />
+            <Route path="/creators/:platform/:userId" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorReport /></ProtectedRoute>} />
             <Route path="/compare" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Compare /></ProtectedRoute>} />
             <Route path="/monitor" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><BrandMonitoring /></ProtectedRoute>} />
             <Route path="/workspace" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CampaignWorkspace /></ProtectedRoute>} />

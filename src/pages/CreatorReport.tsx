@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DashboardLayout from '@/components/layout/Dashboard';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -192,22 +193,24 @@ const CreatorReport = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center space-x-4">
-          <Skeleton className="w-8 h-8" />
-          <Skeleton className="h-8 w-48" />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full" />
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="flex items-center space-x-4">
+            <Skeleton className="w-8 h-8" />
+            <Skeleton className="h-8 w-48" />
           </div>
-          <div className="space-y-6">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-64 w-full" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-96 w-full" />
+            </div>
+            <div className="space-y-6">
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -242,7 +245,7 @@ const CreatorReport = () => {
   const vettingScore = report.vettingScore || { score: 0, reasons: [] };
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <DashboardLayout>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -546,9 +549,9 @@ const CreatorReport = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                            No image
-                          </div>
+                           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                             No image
+                           </div>
                         )}
                       </div>
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
@@ -604,7 +607,7 @@ const CreatorReport = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </DashboardLayout>
   );
 };
 

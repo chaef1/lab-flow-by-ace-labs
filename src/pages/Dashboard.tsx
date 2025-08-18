@@ -1,5 +1,5 @@
 
-import Dashboard from "@/components/layout/Dashboard";
+import DashboardLayout from "@/components/layout/Dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import ProjectCard from "@/components/projects/ProjectCard";
@@ -113,7 +113,7 @@ const DashboardOverview = () => {
   if (currentHour >= 17) greeting = "Good evening";
 
   return (
-    <Dashboard title="Dashboard" subtitle="Overview of your agency activities">
+    <DashboardLayout>
       <div className="space-y-8">
         <h2 className="text-2xl font-medium">
           {greeting}, {userName}!
@@ -296,7 +296,7 @@ const DashboardOverview = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </Dashboard>
+    </DashboardLayout>
   );
 };
 

@@ -56,7 +56,7 @@ const Sidebar = ({ className }: SidebarProps) => {
     { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
     // MODASH FEATURES
-    { name: 'Modash Discovery', path: '/modash-discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Discovery', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
     { name: 'Creator Lists', path: '/creator-lists', icon: Users2, roles: ['admin', 'brand', 'agency'] },
     
     // Reporting - admins, agencies, and brands

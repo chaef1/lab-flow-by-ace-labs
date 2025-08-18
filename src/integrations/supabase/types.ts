@@ -234,6 +234,30 @@ export type Database = {
           },
         ]
       }
+      cached_reports: {
+        Row: {
+          fetched_at: string
+          id: string
+          platform: string
+          report_json: Json
+          user_id: string
+        }
+        Insert: {
+          fetched_at?: string
+          id?: string
+          platform: string
+          report_json: Json
+          user_id: string
+        }
+        Update: {
+          fetched_at?: string
+          id?: string
+          platform?: string
+          report_json?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       campaign_assets: {
         Row: {
           asset_type: string
@@ -338,6 +362,65 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_creators: {
+        Row: {
+          added_at: string
+          campaign_id: string
+          deadline: string | null
+          deliverables: string | null
+          id: string
+          notes: string | null
+          owner: string | null
+          platform: string
+          price: number | null
+          snapshot_kpis: Json
+          stage: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          added_at?: string
+          campaign_id: string
+          deadline?: string | null
+          deliverables?: string | null
+          id?: string
+          notes?: string | null
+          owner?: string | null
+          platform: string
+          price?: number | null
+          snapshot_kpis?: Json
+          stage?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          added_at?: string
+          campaign_id?: string
+          deadline?: string | null
+          deliverables?: string | null
+          id?: string
+          notes?: string | null
+          owner?: string | null
+          platform?: string
+          price?: number | null
+          snapshot_kpis?: Json
+          stage?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_creators_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -557,6 +640,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      campaign_workspaces: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          owners: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          owners?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owners?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       campaigns: {
         Row: {
@@ -1372,6 +1485,74 @@ export type Database = {
         }
         Relationships: []
       }
+      monitor_hits: {
+        Row: {
+          hit_at: string
+          id: string
+          metadata: Json
+          monitor_id: string
+          obj_ref: string
+          platform: string
+        }
+        Insert: {
+          hit_at?: string
+          id?: string
+          metadata?: Json
+          monitor_id: string
+          obj_ref: string
+          platform: string
+        }
+        Update: {
+          hit_at?: string
+          id?: string
+          metadata?: Json
+          monitor_id?: string
+          obj_ref?: string
+          platform?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_hits_monitor_id_fkey"
+            columns: ["monitor_id"]
+            isOneToOne: false
+            referencedRelation: "monitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitors: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          rules_json: Json
+          schedule: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          rules_json: Json
+          schedule?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          rules_json?: Json
+          schedule?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string
@@ -1679,6 +1860,33 @@ export type Database = {
           },
         ]
       }
+      saved_searches: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          payload_json: Json
+          platform: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          payload_json: Json
+          platform: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          payload_json?: Json
+          platform?: string
+        }
+        Relationships: []
+      }
       search_queries: {
         Row: {
           actual_credits: number | null
@@ -1873,6 +2081,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      watchlist_items: {
+        Row: {
+          added_at: string
+          id: string
+          platform: string
+          snapshot_kpis: Json
+          user_id: string
+          username: string
+          watchlist_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          platform: string
+          snapshot_kpis?: Json
+          user_id: string
+          username: string
+          watchlist_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          platform?: string
+          snapshot_kpis?: Json
+          user_id?: string
+          username?: string
+          watchlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_items_watchlist_id_fkey"
+            columns: ["watchlist_id"]
+            isOneToOne: false
+            referencedRelation: "watchlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watchlists: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

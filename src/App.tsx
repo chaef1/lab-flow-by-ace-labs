@@ -16,6 +16,8 @@ import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import ModashDiscovery from "./pages/ModashDiscovery";
 import CreatorLists from "./pages/CreatorLists";
+import Discovery from "./pages/Discovery";
+import CreatorReport from "./pages/CreatorReport";
 
 // Set up React Query with default error handling
 const queryClient = new QueryClient({
@@ -48,7 +50,8 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
             {/* Modash Features */}
-            <Route path="/modash-discover" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><ModashDiscovery /></ProtectedRoute>} />
+            <Route path="/discover" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Discovery /></ProtectedRoute>} />
+            <Route path="/creator/:platform/:userId" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorReport /></ProtectedRoute>} />
             <Route path="/creator-lists" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorLists /></ProtectedRoute>} />
             
             {/* Reporting */}

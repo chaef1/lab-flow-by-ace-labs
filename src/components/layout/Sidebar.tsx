@@ -9,10 +9,13 @@ import {
   Menu,
   X,
   LogOut,
-  ChartBar,
   UserCircle,
   Search,
-  Users2
+  Users2,
+  MessageSquare,
+  FolderKanban,
+  Target,
+  Settings
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,29 +34,17 @@ const Sidebar = ({ className }: SidebarProps) => {
     setIsOpen(!isOpen);
   };
 
-  const isAdmin = userProfile?.role === 'admin';
-  const isCreator = userProfile?.role === 'creator';
-  const isBrand = userProfile?.role === 'brand';
-  const isAgency = userProfile?.role === 'agency';
-  const isInfluencer = userProfile?.role === 'influencer';
-
   // Define menu items based on user role
   const menuItems = [
-    // Everyone sees Dashboard
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
-    
-    // Profile - all users
-    { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    // Everyone sees Home/Dashboard
+    { name: 'Home', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
     // MODASH FEATURES
-    { name: 'Discovery', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
-    { name: 'Creator Lists', path: '/creator-lists', icon: Users2, roles: ['admin', 'brand', 'agency'] },
-    
-    // Reporting - admins, agencies, and brands
-    { name: 'Reporting', path: '/reporting', icon: ChartBar, roles: ['admin', 'brand', 'agency'] },
-    
-    // Wallet - all users
-    { name: 'Wallet', path: '/wallet', icon: Wallet, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    { name: 'Creators', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Brands', path: '/brands', icon: Target, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Projects', path: '/projects', icon: FolderKanban, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Manage', path: '/manage', icon: Settings, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Messages', path: '/messages', icon: MessageSquare, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
     // Users - admin and agency only
     { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'agency'] },
@@ -75,12 +66,12 @@ const Sidebar = ({ className }: SidebarProps) => {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center justify-between px-4 py-2">
+      <div className="flex items-center justify-between px-4 py-4">
         <Link to="/dashboard" className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-md bg-ace-500 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">A</span>
+          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
+            <span className="text-white font-bold text-lg">🔧</span>
           </div>
-          <span className="font-bold text-lg text-ace-dark">Ace Labs</span>
+          <span className="font-bold text-lg">Modash Platform</span>
         </Link>
         {isMobile && (
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>

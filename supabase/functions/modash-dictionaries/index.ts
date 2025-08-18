@@ -1,41 +1,19 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { getServiceSupabase } from "../_shared/supabase.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.0';
 
-const MODASH_API_TOKEN = Deno.env.get('MODASH_API_TOKEN');
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-interface DictionaryEntry {
-  id: string;
-  name: string;
-  type?: string;
-}
+const MODASH_API_KEY = Deno.env.get('MODASH_API_TOKEN');
+const MODASH_BASE_URL = 'https://api.modash.io/v1';
 
-async function fetchFromModash(
-  kind: string,
-  query?: string,
-  limit?: number
-): Promise<DictionaryEntry[]> {
-  const params = new URLSearchParams();
-  if (query) params.set('query', query);
-  if (limit) params.set('limit', limit.toString());
-  
-  const queryString = params.toString();
-  const url = `https://api.modash.io/v1/dictionary/${kind}${queryString ? `?${queryString}` : ''}`;
-  
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${MODASH_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Modash API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data;
-}
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -43,91 +21,114 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
-    const { kind, query, limit } = body;
-
-    if (!kind || !['location', 'interest', 'brand', 'language'].includes(kind)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid dictionary kind' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabase = getServiceSupabase();
-
-    // Try to get from cache first (within 24 hours)
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split('/').filter(Boolean);
     
-    let cacheQuery = supabase
+    if (pathParts.length < 3) {
+      throw new Error('Invalid endpoint path');
+    }
+
+    const platform = pathParts[1]; // instagram, tiktok, youtube
+    const action = pathParts[2]; // interests, locations, languages, brands, hashtags
+    
+    if (!platform || !['instagram', 'tiktok', 'youtube'].includes(platform)) {
+      throw new Error('Invalid platform specified');
+    }
+
+    const query = url.searchParams.get('q') || '';
+    const limit = parseInt(url.searchParams.get('limit') || '50');
+
+    console.log(`Fetching ${platform} ${action} dictionary with query: ${query}`);
+
+    // Check cache first
+    const cacheKey = `${platform}-${action}-${query}-${limit}`;
+    const { data: cached } = await supabase
       .from('dictionaries')
-      .select('entry_id, name, meta')
-      .eq('kind', kind)
-      .gte('updated_at', oneDayAgo);
+      .select('*')
+      .eq('kind', `${platform}_${action}`)
+      .ilike('name', `%${query}%`)
+      .limit(limit);
 
-    if (query) {
-      cacheQuery = cacheQuery.ilike('name', `%${query}%`);
+    if (cached && cached.length > 0) {
+      console.log(`Returning ${cached.length} cached results`);
+      return new Response(JSON.stringify(cached), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    if (limit) {
-      cacheQuery = cacheQuery.limit(limit);
+    // Call Modash API
+    const modashUrl = `${MODASH_BASE_URL}/${platform}/${action}?q=${encodeURIComponent(query)}&limit=${limit}`;
+    const response = await fetch(modashUrl, {
+      headers: {
+        'Authorization': `Bearer ${MODASH_API_KEY}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`Modash API error:`, errorData);
+      throw new Error(errorData.message || `Modash API returned ${response.status}`);
     }
 
-    const { data: cachedData, error: cacheError } = await cacheQuery;
+    const data = await response.json();
+    console.log(`Found ${data.length || 0} dictionary entries`);
 
-    if (!cacheError && cachedData && cachedData.length > 0) {
-      const formattedData = cachedData.map(item => ({
-        id: item.entry_id,
+    // Cache results
+    if (data && Array.isArray(data) && data.length > 0) {
+      const cacheEntries = data.map((item: any) => ({
+        kind: `${platform}_${action}`,
+        entry_id: item.id?.toString() || item.name,
         name: item.name,
-        type: item.meta?.type || undefined
-      }));
-
-      return new Response(
-        JSON.stringify(formattedData),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        meta: { 
+          type: item.type,
+          count: item.count,
+          country: item.country,
+          code: item.code,
+          ...item 
         }
-      );
-    }
-
-    // Fetch from Modash if cache miss or stale
-    const modashData = await fetchFromModash(kind, query, limit);
-
-    // Update cache
-    if (modashData.length > 0) {
-      const cacheEntries = modashData.map(item => ({
-        kind,
-        entry_id: item.id,
-        name: item.name,
-        meta: item.type ? { type: item.type } : {},
-        updated_at: new Date().toISOString()
       }));
 
-      // Upsert entries
-      await supabase
-        .from('dictionaries')
-        .upsert(cacheEntries, { 
-          onConflict: 'kind,entry_id',
-          ignoreDuplicates: false 
-        });
+      try {
+        await supabase
+          .from('dictionaries')
+          .upsert(cacheEntries, { onConflict: 'kind,entry_id' });
+      } catch (cacheError) {
+        console.warn('Failed to cache dictionary:', cacheError);
+      }
     }
 
-    return new Response(
-      JSON.stringify(modashData),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    // Log API usage
+    const authHeader = req.headers.get('authorization');
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      
+      if (user) {
+        await supabase
+          .from('api_usage_logs')
+          .insert({
+            user_id: user.id,
+            endpoint: `dictionary_${platform}_${action}`,
+            platform,
+            query_hash: cacheKey,
+            credits_used: 0, // Dictionary calls are typically free
+            response_cached: false
+          });
       }
-    );
+    }
+
+    return new Response(JSON.stringify(data), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    console.error('Dictionary error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    console.error('Dictionary fetch error:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: 'Failed to fetch dictionary data'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

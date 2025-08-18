@@ -40,10 +40,12 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Everyone sees Home/Dashboard
     { name: 'Home', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
-    // MODASH FEATURES
+    // STORYCLASH PLATFORM FEATURES
     { name: 'Discover', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
-    { name: 'Creator Lists', path: '/creator-lists', icon: Users2, roles: ['admin', 'brand', 'agency'] },
-    { name: 'Reporting', path: '/reporting', icon: Target, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Compare', path: '/compare', icon: Users2, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Monitor', path: '/monitor', icon: Target, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Workspace', path: '/workspace', icon: FolderKanban, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Reporting', path: '/reporting', icon: Settings, roles: ['admin', 'brand', 'agency'] },
     
     // Users - admin and agency only
     { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'agency'] },

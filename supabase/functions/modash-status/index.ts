@@ -9,37 +9,38 @@ serve(async (req) => {
   }
 
   try {
-    // Fetch user info and health in parallel
-    const [userInfoResponse, healthResponse] = await Promise.all([
-      fetch('https://api.modash.io/v1/user/info', {
-        headers: {
-          'Authorization': `Bearer ${MODASH_API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-      }),
-      fetch('https://api.modash.io/v1/health', {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-    ]);
+    console.log('Checking Modash status with token:', MODASH_API_TOKEN ? 'Token present' : 'No token');
+    
+    // Test basic connectivity and authentication
+    const userInfoResponse = await fetch('https://api.modash.io/v1/user/info', {
+      headers: {
+        'Authorization': `Bearer ${MODASH_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
+    console.log('User info response status:', userInfoResponse.status);
+    
     const userInfo = userInfoResponse.ok ? await userInfoResponse.json() : null;
-    const health = healthResponse.ok ? await healthResponse.json() : null;
+    if (!userInfoResponse.ok) {
+      const errorText = await userInfoResponse.text();
+      console.error('User info error:', errorText);
+    }
 
-    // Determine if system is degraded
-    const isHealthy = health?.status === 'healthy';
-    const hasCredits = userInfo?.credits?.remaining > 10; // Threshold
-    const degraded = !isHealthy || !hasCredits;
+    // Determine if system is degraded based on authentication and credits
+    const isAuthenticated = userInfoResponse.status === 200;
+    const hasCredits = userInfo?.credits?.remaining > 10 || userInfo?.creditsRemaining > 10;
+    const degraded = !isAuthenticated || !hasCredits;
 
     const response = {
-      health: health || { status: 'unknown' },
-      credits: userInfo?.credits || { remaining: 0, total: 0 },
-      plan: userInfo?.plan || 'unknown',
+      health: { status: isAuthenticated ? 'healthy' : 'degraded' },
+      credits: userInfo?.credits || userInfo?.creditsRemaining || { remaining: 0, total: 0 },
+      plan: userInfo?.plan || userInfo?.planName || 'unknown',
       limits: userInfo?.limits || {},
       degraded,
+      authenticated: isAuthenticated,
       message: degraded 
-        ? (!isHealthy ? 'Modash service is experiencing issues' : 'Low credits remaining')
+        ? (!isAuthenticated ? 'Authentication failed - check API token' : 'Low credits remaining')
         : 'Service operational'
     };
 

@@ -29,49 +29,51 @@ serve(async (req) => {
 
     console.log(`Searching ${platform} creators with filters:`, JSON.stringify(filters, null, 2));
 
-    // Normalize filters for Modash API according to their docs
+    // Create proper Modash API payload
     const modashPayload = {
-      page: pagination?.page || 0,
-      calculationMethod: "median",
+      pagination: {
+        limit: 15,
+        offset: (pagination?.page || 0) * 15
+      },
       sort: {
-        field: sort?.field || 'followers',
-        direction: sort?.direction || 'desc'
+        field: sort?.field === 'followers' ? 'followerCount' : sort?.field || 'followerCount',
+        order: sort?.direction || 'desc'
       },
       filter: {
-        // Handle keyword search - if searching by username/handle
-        ...(filters.influencer?.keywords && {
-          handle: {
-            contains: filters.influencer.keywords
-          }
-        }),
-        // Follower range
+        // Basic filters
         followerCount: {
           min: filters.influencer?.followers?.min || 1000,
           max: filters.influencer?.followers?.max || 10000000
         },
-        // Engagement rate
         ...(filters.influencer?.engagementRate && {
           engagementRate: {
-            min: filters.influencer.engagementRate.min / 100, // Convert percentage to decimal
-            max: filters.influencer.engagementRate.max / 100
+            min: filters.influencer.engagementRate.min,
+            max: filters.influencer.engagementRate.max
           }
         }),
-        // Other filters
         ...(filters.influencer?.isVerified && { isVerified: true }),
         ...(filters.influencer?.hasContactDetails && { hasContactDetails: true }),
+        ...(filters.influencer?.keywords && {
+          keywords: [filters.influencer.keywords]
+        }),
         ...(filters.influencer?.location?.countries?.length > 0 && {
           audienceGeo: {
-            countries: filters.influencer.location.countries
+            countries: filters.influencer.location.countries.map(c => ({ code: c, weight: 50 }))
           }
         }),
         ...(filters.influencer?.gender?.length > 0 && {
-          gender: filters.influencer.gender
+          audienceGender: {
+            code: filters.influencer.gender[0],
+            weight: 50
+          }
         }),
         ...(filters.influencer?.language?.length > 0 && {
-          language: filters.influencer.language
+          audienceLanguage: filters.influencer.language.map(l => ({ code: l, weight: 50 }))
         })
       }
     };
+
+    console.log('Modash API payload:', JSON.stringify(modashPayload, null, 2));
 
     // Call Modash API
     const response = await fetch(`${MODASH_BASE_URL}/${platform}/search`, {
@@ -84,17 +86,51 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error(`Modash API error:`, errorData);
-      throw new Error(errorData.message || `Modash API returned ${response.status}`);
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`Modash API error ${response.status}:`, errorText);
+      
+      // Check if it's an authentication error
+      if (response.status === 401) {
+        throw new Error('Invalid or expired Modash API token');
+      } else if (response.status === 429) {
+        throw new Error('Modash API rate limit exceeded. Please try again later.');
+      } else if (response.status === 400) {
+        throw new Error('Invalid search parameters. Please check your filters.');
+      }
+      
+      throw new Error(`Modash API returned ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
-    console.log(`Found ${data.results?.length || 0} creators`);
+    console.log('Raw Modash response:', JSON.stringify(data, null, 2));
+    console.log(`Found ${data.data?.length || data.results?.length || 0} creators`);
+
+    // Normalize the response to match our expected format
+    const normalizedData = {
+      results: (data.data || data.results || []).map((creator: any) => ({
+        userId: creator.userId || creator.id || creator.user_id,
+        username: creator.username || creator.handle,
+        fullName: creator.fullName || creator.name || creator.full_name || '',
+        profilePicUrl: creator.profilePicUrl || creator.picture || creator.profile_pic_url || '',
+        followers: creator.followers || creator.followerCount || 0,
+        engagementRate: creator.engagementRate || creator.engagement_rate || 0,
+        avgLikes: creator.avgLikes || creator.avg_likes || 0,
+        avgViews: creator.avgViews || creator.avg_views || 0,
+        isVerified: creator.isVerified || creator.verified || false,
+        hasContactDetails: creator.hasContactDetails || creator.contactDetails || false,
+        topAudience: {
+          country: creator.audience?.geoCountries?.[0]?.name || creator.topAudience?.country,
+          city: creator.audience?.geoCities?.[0]?.name || creator.topAudience?.city
+        },
+        platform
+      })),
+      total: data.total || (data.data || data.results || []).length,
+      page: pagination?.page || 0
+    };
 
     // Cache results in our database for faster subsequent access
-    if (data.results && data.results.length > 0) {
-      for (const creator of data.results) {
+    if (normalizedData.results && normalizedData.results.length > 0) {
+      for (const creator of normalizedData.results) {
         try {
           await supabase
             .from('creators')
@@ -134,15 +170,15 @@ serve(async (req) => {
           .from('search_queries')
           .insert({
             payload: modashPayload,
-            page: modashPayload.page,
-            results_count: data.results?.length || 0,
-            estimated_credits: data.meta?.estimatedCredits || 1,
+            page: pagination?.page || 0,
+            results_count: normalizedData.results?.length || 0,
+            estimated_credits: data.meta?.estimatedCredits || data.credits_used || 1,
             created_by: user.id
           });
       }
     }
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(normalizedData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

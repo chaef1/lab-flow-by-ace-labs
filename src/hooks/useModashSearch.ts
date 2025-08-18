@@ -47,19 +47,34 @@ export const useModashSearch = () => {
   const searchQuery = useQuery({
     queryKey: ['modash-search', platform, filters, sort, currentPage],
     queryFn: async () => {
+      console.log('Making Modash search request:', { platform, filters, sort, currentPage });
+      
       const { data, error } = await supabase.functions.invoke('modash-discovery-search', {
         body: {
           platform,
           filters,
-          sort,
+          sort: {
+            field: sort.field,
+            direction: sort.direction
+          },
           pagination: { page: currentPage }
         }
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to search creators');
+      }
+      
+      console.log('Search response:', data);
       return data;
     },
     enabled: Object.keys(filters).length > 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (failureCount, error) => {
+      console.error('Search attempt failed:', error);
+      return failureCount < 2; // Retry up to 2 times
+    }
   });
 
   const search = (newFilters: SearchFilters) => {

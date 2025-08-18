@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Discover from "./pages/Discover";
+import ModashDiscover from "./pages/ModashDiscover";
 import CampaignCRM from "./pages/CampaignCRM";
 import Influencers from "./pages/Influencers";
 import InfluencerProfile from "./pages/InfluencerProfile";
@@ -65,6 +66,7 @@ const App = () => (
             
             {/* Admin, Brand routes */}
             <Route path="/discover" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Discover /></ProtectedRoute>} />
+            <Route path="/modash-discover" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><ModashDiscover /></ProtectedRoute>} />
             <Route path="/campaign-crm" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><CampaignCRM /></ProtectedRoute>} />
             <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Influencers /></ProtectedRoute>} />
             <Route path="/influencers/:id" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><InfluencerProfile /></ProtectedRoute>} />

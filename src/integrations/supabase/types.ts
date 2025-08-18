@@ -865,6 +865,63 @@ export type Database = {
           },
         ]
       }
+      creators: {
+        Row: {
+          avg_likes: number | null
+          avg_views: number | null
+          created_at: string
+          engagement_rate: number | null
+          followers: number | null
+          full_name: string | null
+          has_contact_details: boolean | null
+          id: string
+          is_verified: boolean | null
+          platform: string
+          profile_pic_url: string | null
+          top_audience_city: string | null
+          top_audience_country: string | null
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avg_likes?: number | null
+          avg_views?: number | null
+          created_at?: string
+          engagement_rate?: number | null
+          followers?: number | null
+          full_name?: string | null
+          has_contact_details?: boolean | null
+          id?: string
+          is_verified?: boolean | null
+          platform: string
+          profile_pic_url?: string | null
+          top_audience_city?: string | null
+          top_audience_country?: string | null
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avg_likes?: number | null
+          avg_views?: number | null
+          created_at?: string
+          engagement_rate?: number | null
+          followers?: number | null
+          full_name?: string | null
+          has_contact_details?: boolean | null
+          id?: string
+          is_verified?: boolean | null
+          platform?: string
+          profile_pic_url?: string | null
+          top_audience_city?: string | null
+          top_audience_country?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       deliverables: {
         Row: {
           assigned_to: string | null
@@ -914,6 +971,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dictionaries: {
+        Row: {
+          entry_id: string
+          id: string
+          kind: string
+          meta: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          entry_id: string
+          id?: string
+          kind: string
+          meta?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          entry_id?: string
+          id?: string
+          kind?: string
+          meta?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       documents: {
         Row: {
@@ -1226,6 +1310,68 @@ export type Database = {
         }
         Relationships: []
       }
+      list_items: {
+        Row: {
+          created_at: string
+          id: string
+          list_id: string
+          platform: string
+          snapshot_json: Json
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list_id: string
+          platform: string
+          snapshot_json: Json
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list_id?: string
+          platform?: string
+          snapshot_json?: Json
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lists: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string
@@ -1532,6 +1678,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      search_queries: {
+        Row: {
+          actual_credits: number | null
+          created_at: string
+          created_by: string | null
+          estimated_credits: number | null
+          id: string
+          page: number
+          payload: Json
+          results_count: number | null
+        }
+        Insert: {
+          actual_credits?: number | null
+          created_at?: string
+          created_by?: string | null
+          estimated_credits?: number | null
+          id?: string
+          page?: number
+          payload: Json
+          results_count?: number | null
+        }
+        Update: {
+          actual_credits?: number | null
+          created_at?: string
+          created_by?: string | null
+          estimated_credits?: number | null
+          id?: string
+          page?: number
+          payload?: Json
+          results_count?: number | null
+        }
+        Relationships: []
       }
       social_media_searches: {
         Row: {

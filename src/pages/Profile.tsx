@@ -30,7 +30,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import DocumentUpload from '@/components/profile/DocumentUpload';
 import ContractsList from '@/components/profile/ContractsList';
-import { SocialMediaIntegration } from '@/components/profile/SocialMediaIntegration';
+// import { SocialMediaIntegration } from '@/components/profile/SocialMediaIntegration';
 import DashboardLayout from '@/components/layout/Dashboard';
 import { Upload, Building, FileCheck, Settings, UserCog, File, Edit, ArrowLeft, Camera, Share2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -373,7 +373,9 @@ const Profile = () => {
           </TabsContent>
           
           <TabsContent value="social" className="space-y-4 animate-fadeIn">
-            <SocialMediaIntegration />
+            <div className="text-center py-4 text-muted-foreground">
+              Social media integration moved to Modash workflow
+            </div>
           </TabsContent>
           
           <TabsContent value="documents" className="space-y-4 animate-fadeIn">

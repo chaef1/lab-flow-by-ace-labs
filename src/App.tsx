@@ -8,25 +8,14 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
-import Projects from "./pages/Projects";
 import Wallet from "./pages/Wallet";
-import Content from "./pages/Content";
-import ContentDetails from "./pages/ContentDetails";
 import Users from "./pages/Users";
 import Reporting from "./pages/Reporting";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import Discover from "./pages/Discover";
 import ModashDiscovery from "./pages/ModashDiscovery";
-import CampaignCRM from "./pages/CampaignCRM";
-import Influencers from "./pages/Influencers";
-import InfluencerProfile from "./pages/InfluencerProfile";
-import Campaigns from "./pages/Campaigns";
-import SubmitContent from "./pages/SubmitContent";
-import AdvertisingManager from "./pages/AdvertisingManager";
-import ContentScheduler from "./pages/ContentScheduler";
-import MailchimpIntegration from "./pages/MailchimpIntegration";
+import CreatorLists from "./pages/CreatorLists";
 
 // Set up React Query with default error handling
 const queryClient = new QueryClient({
@@ -58,28 +47,15 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
-            {/* Admin, Creator, Brand routes */}
-            <Route path="/projects" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><Projects /></ProtectedRoute>} />
-            <Route path="/content" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><Content /></ProtectedRoute>} />
-            <Route path="/content-scheduler" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><ContentScheduler /></ProtectedRoute>} />
-            <Route path="/content/:id" element={<ProtectedRoute allowedRoles={['admin', 'creator', 'brand', 'agency']}><ContentDetails /></ProtectedRoute>} />
+            {/* Modash Features */}
+            <Route path="/modash-discover" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><ModashDiscovery /></ProtectedRoute>} />
+            <Route path="/creator-lists" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorLists /></ProtectedRoute>} />
             
-            {/* Admin, Brand routes */}
-            <Route path="/discover" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Discover /></ProtectedRoute>} />
-            <Route path="/modash-discover" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><ModashDiscovery /></ProtectedRoute>} />
-            <Route path="/campaign-crm" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><CampaignCRM /></ProtectedRoute>} />
-            <Route path="/influencers" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Influencers /></ProtectedRoute>} />
-            <Route path="/influencers/:id" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><InfluencerProfile /></ProtectedRoute>} />
-            <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><Reporting /></ProtectedRoute>} />
-            <Route path="/advertising" element={<ProtectedRoute allowedRoles={['admin', 'brand']}><AdvertisingManager /></ProtectedRoute>} />
+            {/* Reporting */}
+            <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Reporting /></ProtectedRoute>} />
             
             {/* Admin only routes */}
-            <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
-            <Route path="/mailchimp" element={<ProtectedRoute allowedRoles={['admin']}><MailchimpIntegration /></ProtectedRoute>} />
-            
-            {/* Influencer only routes */}
-            <Route path="/campaigns" element={<ProtectedRoute allowedRoles={['influencer']}><Campaigns /></ProtectedRoute>} />
-            <Route path="/submit-content" element={<ProtectedRoute allowedRoles={['influencer']}><SubmitContent /></ProtectedRoute>} />
+            <Route path="/users" element={<ProtectedRoute allowedRoles={['admin', 'agency']}><Users /></ProtectedRoute>} />
             
             {/* All authenticated users */}
             <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />

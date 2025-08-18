@@ -2,9 +2,9 @@
 import Dashboard from "@/components/layout/Dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProjectCard from "@/components/projects/ProjectCard";
+// import ProjectCard from "@/components/projects/ProjectCard";
 import WalletCard from "@/components/wallet/WalletCard";
-import ApprovalCard from "@/components/content/ApprovalCard";
+// import ApprovalCard from "@/components/content/ApprovalCard";
 import { Activity, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -191,9 +191,9 @@ const DashboardOverview = () => {
                   <CardDescription>Your latest active projects</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {recentProjects.map(project => (
-                    <ProjectCard key={project.id} project={project} />
-                  ))}
+                  <div className="text-center py-4 text-muted-foreground">
+                    Project management moved to Modash workflow
+                  </div>
                 </CardContent>
               </Card>
                 
@@ -203,9 +203,9 @@ const DashboardOverview = () => {
                   <CardDescription>Items pending your review</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {approvalContent.map(content => (
-                    <ApprovalCard key={content.id} content={content} />
-                  ))}
+                  <div className="text-center py-4 text-muted-foreground">
+                    Content approval features moved to Modash workflow
+                  </div>
                 </CardContent>
               </Card>
             </div>

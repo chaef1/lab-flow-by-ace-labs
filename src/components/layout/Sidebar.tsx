@@ -55,31 +55,9 @@ const Sidebar = ({ className }: SidebarProps) => {
     // Profile - all users
     { name: 'My Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
-    // NEW STORYCLASH FEATURES
-    { name: 'Discovery', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
+    // MODASH FEATURES
     { name: 'Modash Discovery', path: '/modash-discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
-    { name: 'Campaign CRM', path: '/campaign-crm', icon: Target, roles: ['admin', 'brand', 'agency'] },
-    
-    // Projects menu - admins, creators, agencies, and brands
-    { name: 'Projects', path: '/projects', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
-    
-    // Content Approval - admins, creators, agencies, and brands
-    { name: 'Content Approval', path: '/content', icon: FileText, roles: ['admin', 'creator', 'brand', 'agency'] },
-    
-    // Content Scheduler - admins, creators, agencies, and brands
-    { name: 'Content Scheduler', path: '/content-scheduler', icon: MessageSquare, roles: ['admin', 'creator', 'brand', 'agency'] },
-    
-    // Influencers directory - admins, agencies, and brands
-    { name: 'Influencers', path: '/influencers', icon: Star, roles: ['admin', 'brand', 'agency'] },
-    
-    // Advertising - admins, agencies, and brands
-    { name: 'Advertising', path: '/advertising', icon: BarChart3, roles: ['admin', 'brand', 'agency'] },
-    
-    // Campaigns - influencers only
-    { name: 'My Campaigns', path: '/campaigns', icon: FileText, roles: ['influencer'] },
-    
-    // Content submission - influencers only
-    { name: 'Submit Content', path: '/submit-content', icon: MessageSquare, roles: ['influencer'] },
+    { name: 'Creator Lists', path: '/creator-lists', icon: Users2, roles: ['admin', 'brand', 'agency'] },
     
     // Reporting - admins, agencies, and brands
     { name: 'Reporting', path: '/reporting', icon: ChartBar, roles: ['admin', 'brand', 'agency'] },
@@ -89,9 +67,6 @@ const Sidebar = ({ className }: SidebarProps) => {
     
     // Users - admin and agency only
     { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'agency'] },
-    
-    // Mailchimp - admin only
-    { name: 'Mailchimp', path: '/mailchimp', icon: Mail, roles: ['admin'] },
   ].filter(item => {
     // Filter items based on user role
     if (!userProfile) return false;

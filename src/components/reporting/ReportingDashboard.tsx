@@ -5,7 +5,7 @@ import ReportingHeader from './ReportingHeader';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import OrganicReporting from './organic/OrganicReporting';
 import PaidReporting from './paid/PaidReporting';
-import InstagramAnalytics from './instagram/InstagramAnalytics';
+// import InstagramAnalytics from './instagram/InstagramAnalytics';
 
 const ReportingDashboard = () => {
   const [timeRange, setTimeRange] = useState('30d');
@@ -24,7 +24,7 @@ const ReportingDashboard = () => {
         <TabsList className="mb-4">
           <TabsTrigger value="organic">Organic Content</TabsTrigger>
           <TabsTrigger value="paid">Paid Media</TabsTrigger>
-          <TabsTrigger value="instagram">Instagram Analytics</TabsTrigger>
+          <TabsTrigger value="modash">Modash Analytics</TabsTrigger>
         </TabsList>
         
         <ScrollArea className="h-[calc(100vh-300px)]">
@@ -36,8 +36,11 @@ const ReportingDashboard = () => {
             <PaidReporting timeRange={timeRange} platform={platform} />
           </TabsContent>
           
-          <TabsContent value="instagram" className="space-y-6">
-            <InstagramAnalytics timeRange={timeRange} platform={platform} />
+          <TabsContent value="modash" className="space-y-6">
+            <div className="text-center py-8">
+              <h3 className="text-lg font-medium mb-2">Modash Analytics</h3>
+              <p className="text-muted-foreground">Use Modash Discovery to find and analyze creators</p>
+            </div>
           </TabsContent>
         </ScrollArea>
       </Tabs>

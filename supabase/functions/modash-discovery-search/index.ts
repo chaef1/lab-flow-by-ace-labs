@@ -37,7 +37,40 @@ serve(async (req) => {
         field: sort?.field || 'followers',
         direction: sort?.direction || 'desc'
       },
-      filter: filters
+      filter: {
+        // Handle keyword search - if searching by username/handle
+        ...(filters.influencer?.keywords && {
+          handle: {
+            contains: filters.influencer.keywords
+          }
+        }),
+        // Follower range
+        followerCount: {
+          min: filters.influencer?.followers?.min || 1000,
+          max: filters.influencer?.followers?.max || 10000000
+        },
+        // Engagement rate
+        ...(filters.influencer?.engagementRate && {
+          engagementRate: {
+            min: filters.influencer.engagementRate.min / 100, // Convert percentage to decimal
+            max: filters.influencer.engagementRate.max / 100
+          }
+        }),
+        // Other filters
+        ...(filters.influencer?.isVerified && { isVerified: true }),
+        ...(filters.influencer?.hasContactDetails && { hasContactDetails: true }),
+        ...(filters.influencer?.location?.countries?.length > 0 && {
+          audienceGeo: {
+            countries: filters.influencer.location.countries
+          }
+        }),
+        ...(filters.influencer?.gender?.length > 0 && {
+          gender: filters.influencer.gender
+        }),
+        ...(filters.influencer?.language?.length > 0 && {
+          language: filters.influencer.language
+        })
+      }
     };
 
     // Call Modash API

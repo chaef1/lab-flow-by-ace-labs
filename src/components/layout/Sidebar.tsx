@@ -41,14 +41,16 @@ const Sidebar = ({ className }: SidebarProps) => {
     { name: 'Home', path: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
     
     // MODASH FEATURES
-    { name: 'Creators', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
-    { name: 'Brands', path: '/brands', icon: Target, roles: ['admin', 'brand', 'agency'] },
-    { name: 'Projects', path: '/projects', icon: FolderKanban, roles: ['admin', 'brand', 'agency'] },
-    { name: 'Manage', path: '/manage', icon: Settings, roles: ['admin', 'brand', 'agency'] },
-    { name: 'Messages', path: '/messages', icon: MessageSquare, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    { name: 'Discover', path: '/discover', icon: Search, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Creator Lists', path: '/creator-lists', icon: Users2, roles: ['admin', 'brand', 'agency'] },
+    { name: 'Reporting', path: '/reporting', icon: Target, roles: ['admin', 'brand', 'agency'] },
     
     // Users - admin and agency only
     { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'agency'] },
+    
+    // All authenticated users
+    { name: 'Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
+    { name: 'Wallet', path: '/wallet', icon: Wallet, roles: ['admin', 'creator', 'brand', 'agency', 'influencer'] },
   ].filter(item => {
     // Filter items based on user role
     if (!userProfile) return false;

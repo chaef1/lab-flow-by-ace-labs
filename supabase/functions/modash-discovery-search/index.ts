@@ -41,6 +41,8 @@ serve(async (req) => {
     console.log(`Searching ${platform} creators with filters:`, JSON.stringify(filters, null, 2));
 
     // Create proper Modash API payload according to documentation
+    const isUsernameSearch = filters.influencer?.keywords?.trim().startsWith('@');
+    
     const modashPayload = {
       page: pagination?.page || 0,
       sort: {
@@ -48,12 +50,14 @@ serve(async (req) => {
         direction: sort?.direction || 'desc'
       },
       filter: {
-        // Basic profile filters
-        followers: {
-          min: filters.influencer?.followers?.min || 1000,
-          max: filters.influencer?.followers?.max || 10000000
-        },
-        ...(filters.influencer?.engagementRate && {
+        // For username searches, don't apply restrictive filters that might exclude the target user
+        ...((!isUsernameSearch || filters.influencer?.followers) && {
+          followers: {
+            min: filters.influencer?.followers?.min || 1000,
+            max: filters.influencer?.followers?.max || 10000000
+          }
+        }),
+        ...((!isUsernameSearch || filters.influencer?.engagementRate) && filters.influencer?.engagementRate && {
           engagementRate: {
             min: filters.influencer.engagementRate.min,
             max: filters.influencer.engagementRate.max

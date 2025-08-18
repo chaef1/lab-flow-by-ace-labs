@@ -11,7 +11,7 @@ import {
   BookmarkPlus,
   MoreVertical,
   MapPin,
-  Zap
+  BarChart3
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -19,14 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { SaveToListDialog } from './SaveToListDialog';
-import { RawContentPreview } from './RawContentPreview';
+import { CreatorAnalyticsPanel } from './CreatorAnalyticsPanel';
 import { useNavigate } from 'react-router-dom';
 
 interface CreatorCardProps {
@@ -52,7 +46,7 @@ interface CreatorCardProps {
 
 export const CreatorCard = ({ creator, platform }: CreatorCardProps) => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [rawPreviewOpen, setRawPreviewOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const navigate = useNavigate();
 
   const formatNumber = (num: number) => {
@@ -104,9 +98,9 @@ export const CreatorCard = ({ creator, platform }: CreatorCardProps) => {
                   <ExternalLink className="w-4 h-4 mr-2" />
                   View Full Report
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setRawPreviewOpen(true)}>
-                  <Zap className="w-4 h-4 mr-2" />
-                  Live Content Preview
+                <DropdownMenuItem onClick={() => setAnalyticsOpen(true)}>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Live Analytics
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSaveDialogOpen(true)}>
                   <BookmarkPlus className="w-4 h-4 mr-2" />
@@ -173,19 +167,12 @@ export const CreatorCard = ({ creator, platform }: CreatorCardProps) => {
         creator={creator}
       />
 
-      <Dialog open={rawPreviewOpen} onOpenChange={setRawPreviewOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>Live Content Preview - @{creator.username}</DialogTitle>
-          </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh]">
-            <RawContentPreview 
-              username={creator.username} 
-              platform={platform}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreatorAnalyticsPanel
+        creator={creator}
+        platform={platform}
+        isOpen={analyticsOpen}
+        onClose={() => setAnalyticsOpen(false)}
+      />
     </>
   );
 };

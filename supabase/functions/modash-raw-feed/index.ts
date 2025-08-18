@@ -39,27 +39,27 @@ serve(async (req) => {
     switch (platform) {
       case 'instagram':
         if (feedType === 'user-feed') {
-          endpoint = `/raw/ig/user-feed?username=${identifier}&limit=${limit}`;
+          endpoint = `/raw/ig/user-feed?username=${encodeURIComponent(identifier)}&limit=${limit}`;
         } else if (feedType === 'hashtag-feed') {
-          endpoint = `/raw/ig/hashtag-feed?hashtag=${identifier}&limit=${limit}`;
+          endpoint = `/raw/ig/hashtag-feed?hashtag=${encodeURIComponent(identifier)}&limit=${limit}`;
         } else if (feedType === 'user-info') {
-          endpoint = `/raw/ig/user-info?username=${identifier}`;
+          endpoint = `/raw/ig/user-info?username=${encodeURIComponent(identifier)}`;
         }
         break;
       case 'tiktok':
         if (feedType === 'user-feed') {
-          endpoint = `/raw/tiktok/user-feed?username=${identifier}&limit=${limit}`;
+          endpoint = `/raw/tiktok/user-feed?username=${encodeURIComponent(identifier)}&limit=${limit}`;
         } else if (feedType === 'challenge-feed') {
-          endpoint = `/raw/tiktok/challenge-feed?challenge=${identifier}&limit=${limit}`;
+          endpoint = `/raw/tiktok/challenge-feed?challenge=${encodeURIComponent(identifier)}&limit=${limit}`;
         }
         break;
       case 'youtube':
         if (feedType === 'channel-info') {
-          endpoint = `/raw/youtube/channel-info?channel=${identifier}`;
+          endpoint = `/raw/youtube/channel-info?channel=${encodeURIComponent(identifier)}`;
         } else if (feedType === 'uploaded-videos') {
-          endpoint = `/raw/youtube/uploaded-videos?channel=${identifier}&limit=${limit}`;
+          endpoint = `/raw/youtube/uploaded-videos?channel=${encodeURIComponent(identifier)}&limit=${limit}`;
         } else if (feedType === 'video-info') {
-          endpoint = `/raw/youtube/video-info?video=${identifier}`;
+          endpoint = `/raw/youtube/video-info?video=${encodeURIComponent(identifier)}`;
         }
         break;
     }
@@ -80,7 +80,15 @@ serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error(`Modash RAW API error:`, errorData);
-      throw new Error(errorData.message || `Modash RAW API returned ${response.status}`);
+      
+      // Handle specific error types
+      if (errorData.code === 'not_enough_credits') {
+        throw new Error('Insufficient credits for RAW API access. Please upgrade your Modash plan.');
+      } else if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a few minutes.');
+      } else {
+        throw new Error(errorData.message || `Modash RAW API returned ${response.status}`);
+      }
     }
 
     const data = await response.json();

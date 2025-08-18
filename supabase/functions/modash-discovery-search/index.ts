@@ -62,7 +62,9 @@ serve(async (req) => {
         ...(filters.influencer?.isVerified && { isVerified: true }),
         ...(filters.influencer?.hasContactDetails && { hasContactDetails: true }),
         ...(filters.influencer?.keywords && {
-          text: filters.influencer.keywords
+          text: filters.influencer.keywords.trim().startsWith('@') 
+            ? filters.influencer.keywords.trim() 
+            : filters.influencer.keywords
         }),
         // Audience filters
         ...(filters.influencer?.location?.countries?.length > 0 && {

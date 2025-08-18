@@ -17,12 +17,12 @@ import {
   BookmarkPlus,
   Filter,
   X,
-  Settings,
   TrendingUp,
   MapPin,
   Hash,
   AtSign,
-  Zap
+  RefreshCw,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,6 +31,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface CreatorResult {
   platform: string;
@@ -63,6 +64,7 @@ interface SearchFilters {
   hasContactDetails: boolean;
   isVerified: boolean;
   postedWithinDays: number;
+  handleSearch: string;
 }
 
 const Discovery = () => {
@@ -76,6 +78,7 @@ const Discovery = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   // Filter state
   const [filters, setFilters] = useState<SearchFilters>({
@@ -92,14 +95,15 @@ const Discovery = () => {
     interests: [],
     hasContactDetails: false,
     isVerified: false,
-    postedWithinDays: 30
+    postedWithinDays: 30,
+    handleSearch: ''
   });
 
   const [keywordInput, setKeywordInput] = useState('');
   const [hashtagInput, setHashtagInput] = useState('');
   const [brandInput, setBrandInput] = useState('');
 
-  // Search mutation
+  // Search mutation with debouncing
   const searchMutation = useMutation({
     mutationFn: async () => {
       const modashFilters = {
@@ -109,7 +113,7 @@ const Discovery = () => {
           hasContactDetails: filters.hasContactDetails,
           isVerified: filters.isVerified,
           postedWithinDays: filters.postedWithinDays,
-          keywords: filters.keywords,
+          keywords: filters.handleSearch ? [filters.handleSearch] : filters.keywords,
           hashtags: filters.hashtags.map(h => h.startsWith('#') ? h : `#${h}`),
           brands: filters.brands,
           interests: filters.interests.map(i => ({ id: i }))
@@ -254,7 +258,8 @@ const Discovery = () => {
       interests: [],
       hasContactDetails: false,
       isVerified: false,
-      postedWithinDays: 30
+      postedWithinDays: 30,
+      handleSearch: ''
     });
     setCurrentPage(0);
   }, []);
@@ -265,6 +270,7 @@ const Discovery = () => {
     if (filters.hashtags.length > 0) count++;
     if (filters.brands.length > 0) count++;
     if (filters.location) count++;
+    if (filters.handleSearch) count++;
     if (filters.hasContactDetails) count++;
     if (filters.isVerified) count++;
     if (filters.followersMin > 1000 || filters.followersMax < 1000000) count++;
@@ -272,28 +278,43 @@ const Discovery = () => {
     return count;
   }, [filters]);
 
+  // Auto-search on filter changes with debouncing
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (activeFiltersCount > 0 || filters.handleSearch) {
+        searchMutation.mutate();
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [filters, sortBy, sortOrder, currentPage]);
+
   // CreatorCard component
   const CreatorCard = ({ creator }: { creator: CreatorResult }) => {
     const isSelected = selectedCreators.has(creator.userId);
     
     return (
-      <Card className={`hover:shadow-lg transition-all cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+      <Card className={`hover:shadow-lg transition-all duration-200 cursor-pointer group ${isSelected ? 'ring-2 ring-primary' : ''}`}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center space-x-3">
-              <Avatar className="w-12 h-12">
+              <Avatar className="w-12 h-12 ring-2 ring-border">
                 <AvatarImage src={creator.profilePicUrl} alt={creator.username} />
-                <AvatarFallback>{creator.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {creator.username.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <div className="flex items-center space-x-1">
-                  <h3 className="font-semibold text-sm">{creator.fullName || creator.username}</h3>
+                  <h3 className="font-semibold text-sm line-clamp-1">{creator.fullName || creator.username}</h3>
                   {creator.isVerified && (
-                    <Badge variant="secondary" className="text-xs">✓</Badge>
+                    <Badge variant="secondary" className="text-xs px-1 py-0">✓</Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">@{creator.username}</p>
-                <p className="text-xs text-muted-foreground capitalize">{creator.platform}</p>
+                <Badge variant="outline" className="text-xs mt-1 capitalize">
+                  {creator.platform}
+                </Badge>
               </div>
             </div>
             
@@ -311,27 +332,27 @@ const Discovery = () => {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mb-3 text-xs">
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-1">
-                <Users className="w-3 h-3" />
-                <span className="font-medium">{formatNumber(creator.followers)}</span>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="text-center p-2 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center space-x-1 mb-1">
+                <Users className="w-3 h-3 text-primary" />
+                <span className="font-semibold text-sm">{formatNumber(creator.followers)}</span>
               </div>
-              <div className="text-muted-foreground">Followers</div>
+              <div className="text-xs text-muted-foreground">Followers</div>
             </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-1">
-                <Heart className="w-3 h-3" />
-                <span className="font-medium">{creator.engagementRate.toFixed(1)}%</span>
+            <div className="text-center p-2 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center space-x-1 mb-1">
+                <Heart className="w-3 h-3 text-primary" />
+                <span className="font-semibold text-sm">{creator.engagementRate.toFixed(1)}%</span>
               </div>
-              <div className="text-muted-foreground">Engagement</div>
+              <div className="text-xs text-muted-foreground">Engagement</div>
             </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-1">
-                <Eye className="w-3 h-3" />
-                <span className="font-medium">{formatNumber(creator.avgViews)}</span>
+            <div className="text-center p-2 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center space-x-1 mb-1">
+                <Eye className="w-3 h-3 text-primary" />
+                <span className="font-semibold text-sm">{formatNumber(creator.avgViews)}</span>
               </div>
-              <div className="text-muted-foreground">Avg Views</div>
+              <div className="text-xs text-muted-foreground">Avg Views</div>
             </div>
           </div>
 
@@ -346,17 +367,20 @@ const Discovery = () => {
           )}
 
           <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground flex items-center">
               {creator.topAudience.country && (
-                <span>{creator.topAudience.country}</span>
+                <>
+                  <MapPin className="w-3 h-3 mr-1" />
+                  <span>{creator.topAudience.country}</span>
+                </>
               )}
             </div>
             
-            <div className="flex space-x-1">
+            <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {watchlists && watchlists.length > 0 && (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                       <BookmarkPlus className="w-3 h-3" />
                     </Button>
                   </DialogTrigger>
@@ -383,7 +407,7 @@ const Discovery = () => {
                 </Dialog>
               )}
               
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
                 <a 
                   href={`https://${creator.platform}.com/${creator.username}`} 
                   target="_blank" 
@@ -400,298 +424,361 @@ const Discovery = () => {
   };
 
   return (
-    <div className="flex h-screen">
-      {/* Left Filter Panel */}
-      <div className="w-80 border-r bg-muted/30 p-4 overflow-y-auto">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Filters</h2>
-            <div className="flex items-center space-x-2">
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary">{activeFiltersCount}</Badge>
-              )}
-              <Button variant="ghost" size="sm" onClick={resetFilters}>
-                Reset
-              </Button>
-            </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b bg-card">
+        <div className="flex items-center justify-between p-4">
+          <div>
+            <h1 className="text-2xl font-bold">Creator Discovery</h1>
+            <p className="text-sm text-muted-foreground">Find and analyze creators across Instagram, TikTok, and YouTube</p>
           </div>
-
-          {/* Platform Selection */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Platform</label>
-            <Tabs
-              value={filters.platforms[0]}
-              onValueChange={(value) => setFilters(prev => ({ ...prev, platforms: [value] }))}
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="lg:hidden"
             >
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="instagram">IG</TabsTrigger>
-                <TabsTrigger value="tiktok">TikTok</TabsTrigger>
-                <TabsTrigger value="youtube">YouTube</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-
-          {/* Followers Range */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Followers</label>
-            <div className="space-y-2">
-              <Slider
-                value={[filters.followersMin]}
-                onValueChange={([value]) => setFilters(prev => ({ ...prev, followersMin: value }))}
-                max={10000000}
-                min={100}
-                step={1000}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{formatNumber(filters.followersMin)}+</span>
-                <span>to {formatNumber(filters.followersMax)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Engagement Rate */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Engagement Rate (%)</label>
-            <div className="space-y-2">
-              <Slider
-                value={[filters.engagementRateMin, filters.engagementRateMax]}
-                onValueChange={([min, max]) => setFilters(prev => ({ 
-                  ...prev, 
-                  engagementRateMin: min, 
-                  engagementRateMax: max 
-                }))}
-                max={20}
-                min={0}
-                step={0.1}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{filters.engagementRateMin}%</span>
-                <span>{filters.engagementRateMax}%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Keywords */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Keywords</label>
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Enter keyword..."
-                value={keywordInput}
-                onChange={(e) => setKeywordInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
-                className="flex-1"
-              />
-              <Button onClick={addKeyword} size="sm">Add</Button>
-            </div>
-            {filters.keywords.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {filters.keywords.map((keyword, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {keyword}
-                    <button
-                      onClick={() => removeFilter('keywords', keyword)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Hashtags */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Hashtags</label>
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Enter hashtag..."
-                value={hashtagInput}
-                onChange={(e) => setHashtagInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addHashtag()}
-                className="flex-1"
-              />
-              <Button onClick={addHashtag} size="sm">Add</Button>
-            </div>
-            {filters.hashtags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {filters.hashtags.map((hashtag, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    #{hashtag}
-                    <button
-                      onClick={() => removeFilter('hashtags', hashtag)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Brands */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Brand Mentions</label>
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Enter brand..."
-                value={brandInput}
-                onChange={(e) => setBrandInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addBrand()}
-                className="flex-1"
-              />
-              <Button onClick={addBrand} size="sm">Add</Button>
-            </div>
-            {filters.brands.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {filters.brands.map((brand, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {brand}
-                    <button
-                      onClick={() => removeFilter('brands', brand)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Additional Filters */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="verified"
-                checked={filters.isVerified}
-                onCheckedChange={(checked) => setFilters(prev => ({ ...prev, isVerified: !!checked }))}
-              />
-              <label htmlFor="verified" className="text-sm">Verified accounts only</label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="contact"
-                checked={filters.hasContactDetails}
-                onCheckedChange={(checked) => setFilters(prev => ({ ...prev, hasContactDetails: !!checked }))}
-              />
-              <label htmlFor="contact" className="text-sm">Has contact details</label>
-            </div>
+              <SlidersHorizontal className="w-4 h-4 mr-2" />
+              Filters
+              {activeFiltersCount > 0 && (
+                <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>
+              )}
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="border-b p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Discovery</h1>
-              <p className="text-muted-foreground">
-                Find the perfect creators for your campaigns
-              </p>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="followers">Followers</SelectItem>
-                  <SelectItem value="engagement">Engagement</SelectItem>
-                  <SelectItem value="relevance">Relevance</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Button 
-                onClick={() => searchMutation.mutate()}
-                disabled={searchMutation.isPending}
-                className="min-w-24"
-              >
-                {searchMutation.isPending ? 'Searching...' : 'Search'}
-              </Button>
+      <div className="flex">
+        {/* Mobile Filter Drawer */}
+        <div className={`fixed inset-0 z-50 lg:hidden ${isFilterOpen ? 'block' : 'hidden'}`}>
+          <div className="fixed inset-0 bg-black/50" onClick={() => setIsFilterOpen(false)} />
+          <div className="fixed left-0 top-0 bottom-0 w-80 bg-background border-r overflow-y-auto">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Filters</h2>
+                <Button variant="ghost" size="sm" onClick={() => setIsFilterOpen(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              {/* Filter content will go here */}
             </div>
           </div>
-          
-          {searchResults.length > 0 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">
-                Found {totalResults} creators
-              </p>
-              
-              {selectedCreators.size > 0 && (
-                <div className="flex items-center space-x-2">
-                  <Badge>{selectedCreators.size} selected</Badge>
-                  <Button variant="outline" size="sm">
-                    Add to Watchlist
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Compare
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Export
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Results */}
-        <div className="flex-1 p-4 overflow-y-auto">
-          {searchMutation.isPending && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <Skeleton className="w-12 h-12 rounded-full" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-3 w-20" />
+        {/* Desktop Filter Panel */}
+        <div className="hidden lg:block w-80 border-r bg-muted/30 p-4 overflow-y-auto h-[calc(100vh-73px)]">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Filters</h2>
+              <div className="flex items-center space-x-2">
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary">{activeFiltersCount}</Badge>
+                )}
+                <Button variant="ghost" size="sm" onClick={resetFilters}>
+                  Reset
+                </Button>
+              </div>
+            </div>
+
+            {/* Handle Search */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center">
+                <AtSign className="w-4 h-4 mr-2" />
+                Search by Handle
+              </label>
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="e.g., username"
+                  value={filters.handleSearch}
+                  onChange={(e) => setFilters(prev => ({ ...prev, handleSearch: e.target.value }))}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={() => searchMutation.mutate()} 
+                  size="sm"
+                  disabled={searchMutation.isPending}
+                >
+                  {searchMutation.isPending ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Platform Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Platform</label>
+              <Tabs
+                value={filters.platforms[0]}
+                onValueChange={(value) => setFilters(prev => ({ ...prev, platforms: [value] }))}
+              >
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="instagram">Instagram</TabsTrigger>
+                  <TabsTrigger value="tiktok">TikTok</TabsTrigger>
+                  <TabsTrigger value="youtube">YouTube</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Followers Range */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Followers Range</label>
+              <div className="space-y-2">
+                <Slider
+                  value={[filters.followersMin]}
+                  onValueChange={([value]) => setFilters(prev => ({ ...prev, followersMin: value }))}
+                  max={10000000}
+                  min={100}
+                  step={1000}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{formatNumber(filters.followersMin)}+</span>
+                  <span>to {formatNumber(filters.followersMax)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Engagement Rate */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium">Engagement Rate (%)</label>
+              <div className="space-y-2">
+                <Slider
+                  value={[filters.engagementRateMin, filters.engagementRateMax]}
+                  onValueChange={([min, max]) => setFilters(prev => ({ 
+                    ...prev, 
+                    engagementRateMin: min, 
+                    engagementRateMax: max 
+                  }))}
+                  max={20}
+                  min={0}
+                  step={0.1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{filters.engagementRateMin}%</span>
+                  <span>{filters.engagementRateMax}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Advanced Filters */}
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between">
+                  <span className="text-sm font-medium">Advanced Filters</span>
+                  <SlidersHorizontal className="w-4 h-4" />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 mt-4">
+                {/* Keywords */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Keywords</label>
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder="Enter keyword..."
+                      value={keywordInput}
+                      onChange={(e) => setKeywordInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
+                      className="flex-1"
+                    />
+                    <Button onClick={addKeyword} size="sm">Add</Button>
+                  </div>
+                  {filters.keywords.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {filters.keywords.map((keyword, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {keyword}
+                          <button
+                            onClick={() => removeFilter('keywords', keyword)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Hashtags */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Hashtags</label>
+                  <div className="flex space-x-2">
+                    <Input
+                      placeholder="Enter hashtag..."
+                      value={hashtagInput}
+                      onChange={(e) => setHashtagInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addHashtag()}
+                      className="flex-1"
+                    />
+                    <Button onClick={addHashtag} size="sm">Add</Button>
+                  </div>
+                  {filters.hashtags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {filters.hashtags.map((hashtag, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          #{hashtag}
+                          <button
+                            onClick={() => removeFilter('hashtags', hashtag)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quality Filters */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Quality Filters</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="verified"
+                        checked={filters.isVerified}
+                        onCheckedChange={(checked) => 
+                          setFilters(prev => ({ ...prev, isVerified: !!checked }))
+                        }
+                      />
+                      <label htmlFor="verified" className="text-sm">Verified accounts only</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="contact"
+                        checked={filters.hasContactDetails}
+                        onCheckedChange={(checked) => 
+                          setFilters(prev => ({ ...prev, hasContactDetails: !!checked }))
+                        }
+                      />
+                      <label htmlFor="contact" className="text-sm">Has contact details</label>
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        </div>
+
+        {/* Results Panel */}
+        <div className="flex-1 p-4 overflow-y-auto h-[calc(100vh-73px)]">
+          <div className="space-y-4">
+            {/* Search Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-muted-foreground">
+                  {searchMutation.isPending ? (
+                    "Searching..."
+                  ) : searchResults.length > 0 ? (
+                    `${searchResults.length} creators found`
+                  ) : (
+                    "No results"
+                  )}
+                </div>
+                {searchMutation.isPending && (
+                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="followers">Followers</SelectItem>
+                    <SelectItem value="engagementRate">Engagement Rate</SelectItem>
+                    <SelectItem value="avgViews">Avg Views</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                >
+                  <TrendingUp className={`w-4 h-4 ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Results Grid */}
+            {searchMutation.isPending ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Card key={index}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <Skeleton className="w-12 h-12 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-16" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-full" />
-                    </div>
-                    <Skeleton className="h-6 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                      <div className="grid grid-cols-3 gap-2">
+                        <Skeleton className="h-12 rounded-lg" />
+                        <Skeleton className="h-12 rounded-lg" />
+                        <Skeleton className="h-12 rounded-lg" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : searchResults.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {searchResults.map((creator) => (
+                  <CreatorCard key={`${creator.platform}-${creator.userId}`} creator={creator} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No creators found</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Try adjusting your filters or search for a specific handle
+                </p>
+                <Button variant="outline" onClick={resetFilters}>
+                  Reset Filters
+                </Button>
+              </div>
+            )}
 
-          {!searchMutation.isPending && searchResults.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {searchResults.map((creator) => (
-                <CreatorCard key={creator.userId} creator={creator} />
-              ))}
-            </div>
-          )}
-
-          {!searchMutation.isPending && searchResults.length === 0 && !searchMutation.isError && (
-            <div className="text-center py-12">
-              <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Start your discovery</h3>
-              <p className="text-muted-foreground mb-4">
-                Use the filters on the left and click Search to find creators
-              </p>
-              <Button onClick={() => searchMutation.mutate()}>
-                Search Creators
-              </Button>
-            </div>
-          )}
+            {/* Pagination */}
+            {searchResults.length > 0 && (
+              <div className="flex items-center justify-center space-x-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (currentPage > 0) {
+                      setCurrentPage(currentPage - 1);
+                    }
+                  }}
+                  disabled={currentPage === 0 || searchMutation.isPending}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage + 1}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={searchResults.length < 15 || searchMutation.isPending}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

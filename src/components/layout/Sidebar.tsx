@@ -4,25 +4,15 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
-  FileText,
   Wallet,
   Users,
   Menu,
   X,
   LogOut,
   ChartBar,
-  MessageSquare,
-  Star,
   UserCircle,
-  BarChart3,
-  Mail,
   Search,
-  Target,
-  FolderOpen,
-  Users2,
-  Upload,
-  Megaphone,
-  Calendar
+  Users2
 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -78,7 +68,10 @@ const Sidebar = ({ className }: SidebarProps) => {
   };
 
   // Check if the path matches the current location
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/dashboard' && location.pathname === '/') return true;
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
 
   const sidebarContent = (
     <>
@@ -115,11 +108,13 @@ const Sidebar = ({ className }: SidebarProps) => {
             <Button
               variant={isActive(item.path) ? "secondary" : "ghost"}
               className={cn(
-                "w-full justify-start font-medium",
-                isActive(item.path) ? "bg-ace-100 text-ace-700" : "text-muted-foreground"
+                "w-full justify-start font-medium transition-all duration-200",
+                isActive(item.path) 
+                  ? "bg-primary/10 text-primary border-l-2 border-primary" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
             >
-              <item.icon className={cn("w-5 h-5 mr-3", isActive(item.path) ? "text-ace-500" : "")} />
+              <item.icon className={cn("w-5 h-5 mr-3", isActive(item.path) ? "text-primary" : "")} />
               {item.name}
             </Button>
           </Link>

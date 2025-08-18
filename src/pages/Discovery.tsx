@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useModashDiscovery } from '@/hooks/useModashDiscovery';
 import { useModashSearch } from '@/hooks/useModashSearch';
+import { supabase } from '@/integrations/supabase/client';
 import { CreatorCard } from '@/components/discovery/CreatorCard';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, Link } from 'react-router-dom';
@@ -85,6 +86,11 @@ const Discovery = () => {
   const handleSearch = async () => {
     if (!searchKeyword.trim()) return;
     
+    console.log('=== STARTING SEARCH ===');
+    console.log('Search keyword:', searchKeyword);
+    console.log('Platform:', platform);
+    console.log('Filters:', filters);
+    
     const searchFilters = {
       influencer: {
         keywords: searchKeyword,
@@ -94,7 +100,28 @@ const Discovery = () => {
       }
     };
     
+    console.log('Final search filters:', searchFilters);
     search(searchFilters);
+  };
+
+  const testModashAPI = async () => {
+    console.log('Testing Modash API directly...');
+    try {
+      const { data, error } = await supabase.functions.invoke('test-modash');
+      console.log('Test result:', data);
+      if (error) console.error('Test error:', error);
+      toast({
+        title: "API Test Complete",
+        description: "Check browser console for results"
+      });
+    } catch (err) {
+      console.error('Test failed:', err);
+      toast({
+        title: "API Test Failed",
+        description: "Check browser console for details",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatNumber = (num: number) => {
@@ -115,6 +142,14 @@ const Discovery = () => {
             </p>
           </div>
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={testModashAPI}
+              className="text-xs"
+            >
+              Test API
+            </Button>
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary">
               Powered by Modash ⚡
             </Badge>

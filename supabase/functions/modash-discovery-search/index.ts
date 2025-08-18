@@ -10,6 +10,9 @@ const corsHeaders = {
 const MODASH_API_KEY = Deno.env.get('MODASH_API_TOKEN');
 const MODASH_BASE_URL = 'https://api.modash.io/v1';
 
+console.log('MODASH_API_KEY available:', !!MODASH_API_KEY);
+console.log('MODASH_API_KEY length:', MODASH_API_KEY?.length || 0);
+
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -21,7 +24,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== MODASH DISCOVERY SEARCH START ===');
     const { platform, filters, sort, pagination } = await req.json();
+    
+    console.log('Request body:', JSON.stringify({ platform, filters, sort, pagination }, null, 2));
+    
+    if (!MODASH_API_KEY) {
+      console.error('MODASH_API_TOKEN not found in environment');
+      throw new Error('Modash API token not configured');
+    }
     
     if (!platform || !['instagram', 'tiktok', 'youtube'].includes(platform)) {
       throw new Error('Invalid platform specified');
@@ -74,6 +85,12 @@ serve(async (req) => {
     };
 
     console.log('Modash API payload:', JSON.stringify(modashPayload, null, 2));
+
+    console.log('Making request to:', `${MODASH_BASE_URL}/${platform}/search`);
+    console.log('Request headers:', {
+      'Authorization': `Bearer ${MODASH_API_KEY?.substring(0, 10)}...`,
+      'Content-Type': 'application/json'
+    });
 
     // Call Modash API
     const response = await fetch(`${MODASH_BASE_URL}/${platform}/search`, {

@@ -18,6 +18,9 @@ import ModashDiscovery from "./pages/ModashDiscovery";
 import CreatorLists from "./pages/CreatorLists";
 import Discovery from "./pages/Discovery";
 import CreatorReport from "./pages/CreatorReport";
+import Compare from "./pages/Compare";
+import BrandMonitoring from "./pages/BrandMonitoring";
+import CampaignWorkspace from "./pages/CampaignWorkspace";
 
 // Set up React Query with default error handling
 const queryClient = new QueryClient({
@@ -49,9 +52,14 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
-            {/* Modash Features */}
+            {/* Influencer Intelligence Platform */}
             <Route path="/discover" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Discovery /></ProtectedRoute>} />
             <Route path="/creator/:platform/:userId" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorReport /></ProtectedRoute>} />
+            <Route path="/compare" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Compare /></ProtectedRoute>} />
+            <Route path="/monitor" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><BrandMonitoring /></ProtectedRoute>} />
+            <Route path="/workspace" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CampaignWorkspace /></ProtectedRoute>} />
+            
+            {/* Legacy routes */}
             <Route path="/creator-lists" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorLists /></ProtectedRoute>} />
             
             {/* Reporting */}

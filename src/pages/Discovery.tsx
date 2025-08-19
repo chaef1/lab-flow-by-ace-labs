@@ -24,6 +24,7 @@ import { useModashDiscovery } from '@/hooks/useModashDiscovery';
 import { useModashSearch } from '@/hooks/useModashSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { CreatorCard } from '@/components/discovery/CreatorCard';
+import { AdvancedFilters } from '@/components/discovery/AdvancedFilters';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, Link } from 'react-router-dom';
 import Dashboard from '@/components/layout/Dashboard';
@@ -43,7 +44,7 @@ const platformIcons = {
 const Discovery = () => {
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { searchKeyword, setSearchKeyword, useDictionary } = useModashDiscovery();
+  const { searchKeyword, setSearchKeyword } = useModashDiscovery();
   const { 
     platform, 
     results, 
@@ -53,13 +54,12 @@ const Discovery = () => {
     nextPage,
     prevPage,
     currentPage,
-    totalResults
+    totalResults,
+    filters,
+    setFilters
   } = useModashSearch();
   
-  const [filters, setFilters] = useState<any>({});
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [followerRange, setFollowerRange] = useState([1000, 10000000]);
-  const [engagementRange, setEngagementRange] = useState([0, 20]);
 
   // Initialize search from URL params
   React.useEffect(() => {
@@ -84,8 +84,6 @@ const Discovery = () => {
   }, [platform, searchKeyword, setSearchParams]);
 
   const handleSearch = async () => {
-    if (!searchKeyword.trim()) return;
-    
     console.log('=== STARTING SEARCH ===');
     console.log('Search keyword:', searchKeyword);
     console.log('Platform:', platform);
@@ -93,15 +91,17 @@ const Discovery = () => {
     
     const searchFilters = {
       influencer: {
-        keywords: searchKeyword,
-        followers: { min: followerRange[0], max: followerRange[1] },
-        engagementRate: { min: engagementRange[0] / 100, max: engagementRange[1] / 100 },
+        ...(searchKeyword.trim() && { keywords: searchKeyword }),
         ...filters.influencer
       }
     };
     
     console.log('Final search filters:', searchFilters);
     search(searchFilters);
+  };
+
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(newFilters);
   };
 
 
@@ -229,22 +229,24 @@ const Discovery = () => {
                     </Card>
                   ))}
                 </div>
-              ) : searchKeyword || Object.keys(filters).length > 0 ? (
+              ) : searchKeyword || (filters.influencer && Object.keys(filters.influencer).some(key => 
+                key !== 'followers' && key !== 'engagementRate' && filters.influencer[key]
+              )) ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground">No creators found matching your criteria</p>
                   <Button variant="outline" className="mt-4" onClick={() => {
                     setSearchKeyword('');
-                    setFilters({});
+                    setFilters({
+                      influencer: {
+                        followers: { min: 10000, max: 10000000 },
+                        engagementRate: { min: 0.01, max: 0.15 }
+                      }
+                    });
                   }}>
                     Clear Search
                   </Button>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <h3 className="text-lg font-medium mb-2">Start Your Discovery</h3>
-                  <p className="text-muted-foreground">Search for creators by username, email, or use filters to find the perfect match</p>
-                </div>
-              )}
+              ) : null}
             </div>
           </TabsContent>
         </Tabs>
@@ -256,85 +258,12 @@ const Discovery = () => {
               <DialogTitle>Advanced Filters</DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-6">
-              {/* Audience Size */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Follower Count</Label>
-                <Slider
-                  value={followerRange}
-                  onValueChange={setFollowerRange}
-                  max={10000000}
-                  min={1000}
-                  step={1000}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{formatNumber(followerRange[0])}</span>
-                  <span>{formatNumber(followerRange[1])}</span>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Engagement Rate */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Engagement Rate (%)</Label>
-                <Slider
-                  value={engagementRange}
-                  onValueChange={setEngagementRange}
-                  max={20}
-                  min={0}
-                  step={0.1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{engagementRange[0]}%</span>
-                  <span>{engagementRange[1]}%</span>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Additional Filters */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Additional Options</Label>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="verified"
-                      checked={filters.verified}
-                      onCheckedChange={(checked) => setFilters(prev => ({ ...prev, verified: checked }))}
-                    />
-                    <Label htmlFor="verified" className="text-sm">Verified accounts only</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="contact"
-                      checked={filters.hasContact}
-                      onCheckedChange={(checked) => setFilters(prev => ({ ...prev, hasContact: checked }))}
-                    />
-                    <Label htmlFor="contact" className="text-sm">Has contact details</Label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setFollowerRange([1000, 10000000]);
-                    setEngagementRange([0, 20]);
-                    setFilters({});
-                  }}
-                  className="flex-1"
-                >
-                  Reset Filters
-                </Button>
-                <Button onClick={() => setIsFilterOpen(false)} className="flex-1">
-                  Apply Filters
-                </Button>
-              </div>
-            </div>
+            <AdvancedFilters
+              platform={platform}
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClose={() => setIsFilterOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>

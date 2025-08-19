@@ -14,9 +14,13 @@ export interface SearchFilters {
     brands?: string[];
     location?: {
       countries?: string[];
+      cities?: string[];
     };
     language?: string[];
     gender?: string[];
+    ageRange?: string[];
+    contentThemes?: string[];
+    accountType?: string;
   };
 }
 
@@ -40,7 +44,13 @@ export interface SearchResult {
 
 export const useModashSearch = () => {
   const [platform, setPlatform] = useState<'instagram' | 'tiktok' | 'youtube'>('instagram');
-  const [filters, setFilters] = useState<SearchFilters>({});
+  const [filters, setFilters] = useState<SearchFilters>({
+    // Default filters for initial load
+    influencer: {
+      followers: { min: 10000, max: 10000000 },
+      engagementRate: { min: 0.01, max: 0.15 }
+    }
+  });
   const [sort, setSort] = useState({ field: 'followers', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -69,7 +79,7 @@ export const useModashSearch = () => {
       console.log('Search response:', data);
       return data;
     },
-    enabled: Object.keys(filters).length > 0,
+    enabled: true, // Always enabled to show initial results
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error) => {
       console.error('Search attempt failed:', error);
@@ -103,6 +113,7 @@ export const useModashSearch = () => {
   return {
     platform,
     filters,
+    setFilters,
     sort,
     currentPage,
     results: searchQuery.data?.results || [],

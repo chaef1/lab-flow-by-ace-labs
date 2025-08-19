@@ -336,13 +336,13 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       <div className="space-y-3">
         <Label className="text-sm font-medium">Audience Gender</Label>
         <Select
-          value={filters.influencer?.gender?.[0] || ''}
+          value={filters.influencer?.gender?.[0] || 'any'}
           onValueChange={(value) => 
             onFiltersChange({
               ...filters,
               influencer: { 
                 ...filters.influencer, 
-                gender: value ? [value] : undefined 
+                gender: value === 'any' ? undefined : [value]
               }
             })
           }
@@ -351,7 +351,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             <SelectValue placeholder="Select gender preference" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Any</SelectItem>
+            <SelectItem value="any">Any</SelectItem>
             <SelectItem value="MALE">Male</SelectItem>
             <SelectItem value="FEMALE">Female</SelectItem>
           </SelectContent>

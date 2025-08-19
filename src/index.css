@@ -7,59 +7,59 @@
 
 @layer base {
 :root {
-  /* Base colors - White background with nude accents */
-  --background: 255 255 255;
-  --foreground: 51 51 51;
-  --card: 255 255 255;
-  --card-foreground: 51 51 51;
-  --popover: 255 255 255;
-  --popover-foreground: 51 51 51;
-  --primary: 168 148 126; /* Nude/beige */
-  --primary-foreground: 255 255 255;
-  --secondary: 156 163 175; /* Grey for navigation */
-  --secondary-foreground: 75 85 99;
-  --muted: 249 250 251;
-  --muted-foreground: 107 114 128;
-  --accent: 168 148 126; /* Nude accent */
-  --accent-foreground: 255 255 255;
-  --destructive: 239 68 68;
-  --destructive-foreground: 255 255 255;
-  --border: 229 231 235;
-  --input: 249 250 251;
-  --ring: 168 148 126;
+  /* Base colors - Clean white background with blue accents */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --primary: 221 83% 53%; /* Blue accent */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 96%; /* Light grey */
+  --secondary-foreground: 0 0% 20%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 221 83% 53%; /* Blue accent */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 91%;
+  --input: 0 0% 100%;
+  --ring: 221 83% 53%;
   --radius: 8px;
   
   /* TikTok gradient colors */
-  --tiktok-pink: 254 44 85;
-  --tiktok-red: 255 0 80;
+  --tiktok-pink: 328 85% 70%;
+  --tiktok-red: 348 83% 47%;
   --tiktok-gradient: linear-gradient(135deg, hsl(var(--tiktok-pink)), hsl(var(--tiktok-red)));
   
   /* Custom semantic colors */
-  --panel: 248 250 252;
-  --elev: 255 255 255;
-  --ok: 34 197 94;
-  --warn: 251 146 60;
-  --err: 239 68 68;
+  --panel: 220 14% 96%;
+  --elev: 0 0% 100%;
+  --ok: 142 76% 36%;
+  --warn: 38 92% 50%;
+  --err: 0 84% 60%;
     
     /* Chart colors (accessible categorical) */
-    --chart-1: 124 58 237;    /* #7c3aed */
-    --chart-2: 6 182 212;     /* #06b6d4 */
-    --chart-3: 132 204 22;    /* #84cc16 */
-    --chart-4: 245 158 11;    /* #f59e0b */
-    --chart-5: 239 68 68;     /* #ef4444 */
-    --chart-6: 20 184 166;    /* #14b8a6 */
-    --chart-7: 168 85 247;    /* #a855f7 */
-    --chart-8: 96 165 250;    /* #60a5fa */
+    --chart-1: 262 83% 58%;    /* Purple */
+    --chart-2: 189 94% 43%;    /* Cyan */
+    --chart-3: 84 81% 44%;     /* Green */
+    --chart-4: 45 93% 47%;     /* Orange */
+    --chart-5: 0 84% 60%;      /* Red */
+    --chart-6: 173 58% 39%;    /* Teal */
+    --chart-7: 271 81% 56%;    /* Purple */
+    --chart-8: 221 91% 60%;    /* Blue */
     
     /* Sidebar - Grey navigation */
-    --sidebar-background: 249 250 251; /* Light grey */
-    --sidebar-foreground: 75 85 99;
-    --sidebar-primary: 156 163 175; /* Grey */
-    --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 243 244 246;
-    --sidebar-accent-foreground: 75 85 99;
-    --sidebar-border: 229 231 235;
-    --sidebar-ring: 156 163 175;
+    --sidebar-background: 220 14% 96%; /* Light grey */
+    --sidebar-foreground: 215 25% 27%;
+    --sidebar-primary: 221 83% 53%; /* Blue for active states */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 215 25% 27%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 221 83% 53%;
     
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -72,27 +72,27 @@
     --shadow-elevation: 0 6px 24px rgba(0, 0, 0, 0.25);
   }
 
-  /* Light mode overrides (opt-in) */
-  .light {
-    --background: 255 255 255;
-    --foreground: 15 23 42;
-    --card: 255 255 255;
-    --card-foreground: 15 23 42;
-    --popover: 255 255 255;
-    --popover-foreground: 15 23 42;
-    --primary: var(--pri-500);
-    --primary-foreground: 255 255 255;
-    --secondary: 248 250 252;
-    --secondary-foreground: 15 23 42;
-    --muted: 248 250 252;
-    --muted-foreground: 100 116 139;
-    --accent: 248 250 252;
-    --accent-foreground: 15 23 42;
-    --destructive: var(--err);
-    --destructive-foreground: 255 255 255;
-    --border: 226 232 240;
-    --input: 226 232 240;
-    --ring: var(--pri-500);
+  /* Dark mode (optional) */
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 213 31% 91%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 28% 17%;
+    --secondary-foreground: 213 31% 91%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --accent: 215 28% 17%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 213 31% 91%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 221 83% 53%;
   }
 }
 

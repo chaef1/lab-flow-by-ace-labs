@@ -132,12 +132,23 @@ const Discovery = () => {
     // Clear any previous errors
     setSearchError(null);
     
-    const searchFilters = {
-      influencer: {
+    const raw = searchKeyword.trim();
+    const isUsernameLike = !!raw && /^@?[A-Za-z0-9._]+$/.test(raw) && !raw.includes(' ');
+    const normalizedKeyword = isUsernameLike && !raw.startsWith('#')
+      ? (raw.startsWith('@') ? raw : `@${raw}`)
+      : raw;
+
+    // For username-like searches, relax restrictive filters so we search the full index
+    const searchFilters = raw ? {
+      influencer: isUsernameLike ? {
+        keywords: normalizedKeyword,
+        followers: { min: 1, max: 1000000000 },
+        engagementRate: { min: 0, max: 1 }
+      } : {
         ...filters.influencer,
-        ...(searchKeyword.trim() && { keywords: searchKeyword })
+        keywords: normalizedKeyword
       }
-    };
+    } : { influencer: { ...filters.influencer } };
     
     console.log('Final search filters:', searchFilters);
     

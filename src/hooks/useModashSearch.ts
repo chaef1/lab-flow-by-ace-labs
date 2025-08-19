@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -89,7 +89,7 @@ export const useModashSearch = () => {
     }
   });
 
-  const searchSuggestionsForText = async (searchText: string): Promise<SearchResult[]> => {
+  const searchSuggestionsForText = useCallback(async (searchText: string): Promise<SearchResult[]> => {
     if (!searchText || searchText.trim().length < 3) {
       return [];
     }
@@ -131,7 +131,7 @@ export const useModashSearch = () => {
     } finally {
       setIsLoadingSuggestions(false);
     }
-  };
+  }, [platform]);
 
   const search = (newFilters: SearchFilters) => {
     setFilters(newFilters);

@@ -120,7 +120,7 @@ const Discovery = () => {
     } else {
       setSearchSuggestions([]);
     }
-  }, [searchKeyword, platform, searchSuggestionsForText, setSearchSuggestions]);
+  }, [searchKeyword, platform]);
 
   const handleSearch = async () => {
     console.log('=== STARTING SEARCH ===');
@@ -174,6 +174,17 @@ const Discovery = () => {
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
   };
+
+  const displayResults = React.useMemo(() => {
+    if (!results?.length) return [] as any[];
+    const q = searchKeyword?.trim().replace(/^@/, '').toLowerCase();
+    if (!q) return results;
+    const idx = results.findIndex(r => r.username?.toLowerCase() === q);
+    if (idx <= 0) return results;
+    const clone = [...results];
+    const [match] = clone.splice(idx, 1);
+    return [match, ...clone];
+  }, [results, searchKeyword]);
 
   return (
     <Dashboard>
@@ -266,7 +277,7 @@ const Discovery = () => {
               {/* Creator Cards */}
               {results.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {results.map((creator, index) => (
+                  {displayResults.map((creator, index) => (
                     <CreatorCard key={`${creator.userId}-${index}`} creator={creator} platform={platform} />
                   ))}
                 </div>

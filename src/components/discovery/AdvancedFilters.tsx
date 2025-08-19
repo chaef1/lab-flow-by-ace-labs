@@ -53,9 +53,9 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   const [languageQuery, setLanguageQuery] = useState('');
 
   // Fetch dictionaries
-  const locationsQuery = useDictionary('location');
-  const interestsQuery = useDictionary('interest');
-  const languagesQuery = useDictionary('language');
+  const locationsQuery = useDictionary('location', locationQuery);
+  const interestsQuery = useDictionary('interest', interestQuery);
+  const languagesQuery = useDictionary('language', languageQuery);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;

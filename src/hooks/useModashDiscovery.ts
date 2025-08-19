@@ -12,21 +12,21 @@ export const useModashDiscovery = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
 
   // Fetch dictionaries with caching
-  const useDictionary = (kind: 'location' | 'interest' | 'brand' | 'language') => {
+  const useDictionary = (kind: 'location' | 'interest' | 'brand' | 'language', query: string = '') => {
     return useQuery({
-      queryKey: ['modash-dictionary', kind, searchKeyword],
+      queryKey: ['modash-dictionary', kind, query],
       queryFn: async () => {
         const { data, error } = await supabase.functions.invoke('modash-dictionaries', {
           body: { 
             kind,
-            query: searchKeyword, 
+            query: query || searchKeyword, 
             limit: 50 
           }
         });
         if (error) throw error;
         return data as DictionaryEntry[];
       },
-      enabled: searchKeyword.length >= 2,
+      enabled: (query || searchKeyword).length >= 2,
       staleTime: 5 * 60 * 1000, // 5 minutes
     });
   };

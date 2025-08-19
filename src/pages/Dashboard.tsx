@@ -1,5 +1,4 @@
 
-import DashboardLayout from "@/components/layout/Dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import ProjectCard from "@/components/projects/ProjectCard";
@@ -113,190 +112,188 @@ const DashboardOverview = () => {
   if (currentHour >= 17) greeting = "Good evening";
 
   return (
-    <DashboardLayout>
-      <div className="space-y-8">
-        <h2 className="text-2xl font-medium">
-          {greeting}, {userName}!
-        </h2>
+    <div className="space-y-8">
+      <h2 className="text-2xl font-medium">
+        {greeting}, {userName}!
+      </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Active Projects</p>
-                  <p className="text-2xl font-bold">12</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-agency-100 flex items-center justify-center text-agency-700">
-                  <Activity size={20} />
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Active Projects</p>
+                <p className="text-2xl font-bold">12</p>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Pending Approvals</p>
-                  <p className="text-2xl font-bold">7</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
-                  <Clock size={20} />
-                </div>
+              <div className="h-10 w-10 rounded-full bg-agency-100 flex items-center justify-center text-agency-700">
+                <Activity size={20} />
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Completed</p>
-                  <p className="text-2xl font-bold">24</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-700">
-                  <CheckCircle size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Overdue</p>
-                  <p className="text-2xl font-bold">2</p>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-700">
-                  <AlertCircle size={20} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="finances">Finances</TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Projects</CardTitle>
-                  <CardDescription>Your latest active projects</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center py-4 text-muted-foreground">
-                    Project management moved to Modash workflow
-                  </div>
-                </CardContent>
-              </Card>
-                
-              <Card>
-                <CardHeader>
-                  <CardTitle>Content Requiring Approval</CardTitle>
-                  <CardDescription>Items pending your review</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center py-4 text-muted-foreground">
-                    Content approval features moved to Modash workflow
-                  </div>
-                </CardContent>
-              </Card>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="projects" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Progress</CardTitle>
-                  <CardDescription>Current status of active projects</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Summer Campaign</span>
-                        <span>45%</span>
-                      </div>
-                      <Progress value={45} className="h-2" />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Product Launch Video</span>
-                        <span>20%</span>
-                      </div>
-                      <Progress value={20} className="h-2" />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Brand Redesign</span>
-                        <span>80%</span>
-                      </div>
-                      <Progress value={80} className="h-2" />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Email Campaign</span>
-                        <span>60%</span>
-                      </div>
-                      <Progress value={60} className="h-2" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Pending Approvals</p>
+                <p className="text-2xl font-bold">7</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
+                <Clock size={20} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Completed</p>
+                <p className="text-2xl font-bold">24</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-700">
+                <CheckCircle size={20} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Overdue</p>
+                <p className="text-2xl font-bold">2</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-700">
+                <AlertCircle size={20} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="projects">Projects</TabsTrigger>
+          <TabsTrigger value="finances">Finances</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Projects</CardTitle>
+                <CardDescription>Your latest active projects</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center py-4 text-muted-foreground">
+                  Project management moved to Modash workflow
+                </div>
+              </CardContent>
+            </Card>
               
-              <Card>
-                <CardHeader>
-                  <CardTitle>Project Status</CardTitle>
-                  <CardDescription>Distribution of project states</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between mb-4">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">Planning</span>
-                      <span className="text-lg font-semibold">3</span>
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Requiring Approval</CardTitle>
+                <CardDescription>Items pending your review</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center py-4 text-muted-foreground">
+                  Content approval features moved to Modash workflow
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="projects" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Progress</CardTitle>
+                <CardDescription>Current status of active projects</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Summer Campaign</span>
+                      <span>45%</span>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">In Progress</span>
-                      <span className="text-lg font-semibold">5</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">In Review</span>
-                      <span className="text-lg font-semibold">4</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-muted-foreground">Completed</span>
-                      <span className="text-lg font-semibold">24</span>
-                    </div>
+                    <Progress value={45} className="h-2" />
                   </div>
                   
-                  <div className="flex h-4 rounded-md overflow-hidden">
-                    <div className="bg-blue-500 w-[20%]" />
-                    <div className="bg-amber-500 w-[30%]" />
-                    <div className="bg-purple-500 w-[20%]" />
-                    <div className="bg-green-500 w-[30%]" />
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Product Launch Video</span>
+                      <span>20%</span>
+                    </div>
+                    <Progress value={20} className="h-2" />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="finances" className="space-y-4">
-            <WalletCard balance={walletData.balance} transactions={walletData.transactions} />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </DashboardLayout>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Brand Redesign</span>
+                      <span>80%</span>
+                    </div>
+                    <Progress value={80} className="h-2" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Email Campaign</span>
+                      <span>60%</span>
+                    </div>
+                    <Progress value={60} className="h-2" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Status</CardTitle>
+                <CardDescription>Distribution of project states</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between mb-4">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">Planning</span>
+                    <span className="text-lg font-semibold">3</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">In Progress</span>
+                    <span className="text-lg font-semibold">5</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">In Review</span>
+                    <span className="text-lg font-semibold">4</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">Completed</span>
+                    <span className="text-lg font-semibold">24</span>
+                  </div>
+                </div>
+                
+                <div className="flex h-4 rounded-md overflow-hidden">
+                  <div className="bg-blue-500 w-[20%]" />
+                  <div className="bg-amber-500 w-[30%]" />
+                  <div className="bg-purple-500 w-[20%]" />
+                  <div className="bg-green-500 w-[30%]" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="finances" className="space-y-4">
+          <WalletCard balance={walletData.balance} transactions={walletData.transactions} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

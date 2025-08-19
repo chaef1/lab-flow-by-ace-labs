@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import DashboardLayout from '@/components/layout/Dashboard';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -193,24 +192,22 @@ const CreatorReport = () => {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex items-center space-x-4">
-            <Skeleton className="w-8 h-8" />
-            <Skeleton className="h-8 w-48" />
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <Skeleton className="w-8 h-8" />
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-96 w-full" />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-96 w-full" />
-            </div>
-            <div className="space-y-6">
-              <Skeleton className="h-48 w-full" />
-              <Skeleton className="h-64 w-full" />
-            </div>
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-64 w-full" />
           </div>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
@@ -245,9 +242,9 @@ const CreatorReport = () => {
   const vettingScore = report.vettingScore || { score: 0, reasons: [] };
 
   return (
-    <DashboardLayout>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">{/* ... keep existing code */}
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-4 h-4" />
@@ -607,7 +604,7 @@ const CreatorReport = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </DashboardLayout>
+    </div>
   );
 };
 

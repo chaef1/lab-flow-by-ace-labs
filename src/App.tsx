@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import AppLayout from "./components/layout/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -47,32 +48,34 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            
-            {/* Influencer Intelligence Platform */}
-            <Route path="/discover" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Discovery /></ProtectedRoute>} />
-            <Route path="/creator/:platform/:userId" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorReport /></ProtectedRoute>} />
-            <Route path="/creators/:platform/:userId" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorReport /></ProtectedRoute>} />
-            <Route path="/compare" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Compare /></ProtectedRoute>} />
-            <Route path="/monitor" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><BrandMonitoring /></ProtectedRoute>} />
-            <Route path="/workspace" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CampaignWorkspace /></ProtectedRoute>} />
-            
-            {/* Legacy routes */}
-            <Route path="/creator-lists" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorLists /></ProtectedRoute>} />
-            
-            {/* Reporting */}
-            <Route path="/reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Reporting /></ProtectedRoute>} />
-            
-            {/* Admin only routes */}
-            <Route path="/users" element={<ProtectedRoute allowedRoles={['admin', 'agency']}><Users /></ProtectedRoute>} />
-            
-            {/* All authenticated users */}
-            <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
-            
             <Route path="*" element={<NotFound />} />
+            
+            {/* Protected Routes with Layout */}
+            <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="wallet" element={<Wallet />} />
+              
+              {/* Influencer Intelligence Platform */}
+              <Route path="discover" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Discovery /></ProtectedRoute>} />
+              <Route path="creator/:platform/:userId" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorReport /></ProtectedRoute>} />
+              <Route path="creators/:platform/:userId" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorReport /></ProtectedRoute>} />
+              <Route path="compare" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Compare /></ProtectedRoute>} />
+              <Route path="monitor" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><BrandMonitoring /></ProtectedRoute>} />
+              <Route path="workspace" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CampaignWorkspace /></ProtectedRoute>} />
+              
+              {/* Legacy routes */}
+              <Route path="creator-lists" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><CreatorLists /></ProtectedRoute>} />
+              
+              {/* Reporting */}
+              <Route path="reporting" element={<ProtectedRoute allowedRoles={['admin', 'brand', 'agency']}><Reporting /></ProtectedRoute>} />
+              
+              {/* Admin only routes */}
+              <Route path="users" element={<ProtectedRoute allowedRoles={['admin', 'agency']}><Users /></ProtectedRoute>} />
+            </Route>
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

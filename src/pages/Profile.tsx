@@ -30,8 +30,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import DocumentUpload from '@/components/profile/DocumentUpload';
 import ContractsList from '@/components/profile/ContractsList';
-// import { SocialMediaIntegration } from '@/components/profile/SocialMediaIntegration';
-import DashboardLayout from '@/components/layout/Dashboard';
 import { Upload, Building, FileCheck, Settings, UserCog, File, Edit, ArrowLeft, Camera, Share2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -152,26 +150,22 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
-          <div className="relative w-16 h-16">
-            <div className="absolute top-0 left-0 w-full h-full border-4 border-primary/20 rounded-full"></div>
-            <div className="absolute top-0 left-0 w-full h-full border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
-          </div>
+      <div className="flex items-center justify-center h-full">
+        <div className="relative w-16 h-16">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-primary/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
         </div>
-      </DashboardLayout>
+      </div>
     );
   }
 
   if (!user || !userProfile) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center h-full">
-          <h2 className="text-2xl font-semibold mb-4">Authentication Required</h2>
-          <p className="text-muted-foreground mb-4">Please sign in to view your profile</p>
-          <Button onClick={() => navigate('/auth')} variant="gradient">Sign In</Button>
-        </div>
-      </DashboardLayout>
+      <div className="flex flex-col items-center justify-center h-full">
+        <h2 className="text-2xl font-semibold mb-4">Authentication Required</h2>
+        <p className="text-muted-foreground mb-4">Please sign in to view your profile</p>
+        <Button onClick={() => navigate('/auth')} variant="gradient">Sign In</Button>
+      </div>
     );
   }
 
@@ -180,8 +174,7 @@ const Profile = () => {
     : user.email?.substring(0, 2).toUpperCase() || 'U';
 
   return (
-    <DashboardLayout>
-      <div className="container mx-auto py-6 space-y-8 max-w-6xl">
+    <div className="container mx-auto py-6 space-y-8 max-w-6xl">{/* ... keep existing code */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Button 
@@ -450,9 +443,8 @@ const Profile = () => {
               </Card>
             </TabsContent>
           )}
-        </Tabs>
-      </div>
-    </DashboardLayout>
+      </Tabs>
+    </div>
   );
 };
 

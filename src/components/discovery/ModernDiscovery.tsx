@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Search, SlidersHorizontal, Plus, Download, Eye, Bookmark, Grid, List, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,8 +24,9 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useModashDiscovery, Platform } from '@/hooks/useModashDiscovery';
+import { Platform } from '@/hooks/useModashDiscovery';
 import { useCreatorProfile } from '@/hooks/useCreatorProfile';
+import { useLocalCreatorSearch } from '@/hooks/useLocalCreatorSearch';
 import { RateLimitNotice } from './RateLimitNotice';
 import { ModernFilterRail } from './ModernFilterRail';
 import { ModernCreatorCard } from './ModernCreatorCard';
@@ -62,34 +65,76 @@ const platforms: PlatformConfig[] = [
 ];
 
 export const ModernDiscovery = () => {
-  const {
-    platform,
-    changePlatform,
-    searchKeyword,
-    setSearchKeyword,
-    filters,
-    updateFilters,
-    sort,
-    updateSort,
-    results,
-    totalResults,
-    isLoading,
-    error,
-    suggestions,
-    isLoadingSuggestions,
-    searchSuggestions,
-    nextPage,
-    prevPage,
-    canGoNext,
-    canGoPrev,
-    currentPage,
-    watchlists,
-    createWatchlist,
-    addToWatchlist,
-    resetSearch,
-  } = useModashDiscovery();
+  // State management
+  const [platform, setPlatform] = useState<Platform>('instagram');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [filters, setFilters] = useState({
+    followers: { min: 10000, max: 10000000 },
+    engagementRate: { min: 0.01, max: 0.15 }
+  });
+  const [currentPage, setCurrentPage] = useState(0);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-  const [isRateLimited, setIsRateLimited] = useState(false);
+  // Hooks
+  const { searchCreators, isSearching, searchData } = useLocalCreatorSearch();
+
+  // Watchlists
+  const { data: watchlists } = useQuery({
+    queryKey: ['creator-lists'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lists')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const addToWatchlistMutation = useMutation({
+    mutationFn: async ({ 
+      watchlistId, 
+      creator 
+    }: { 
+      watchlistId: string; 
+      creator: any;
+    }) => {
+      const { data: existingItem } = await supabase
+        .from('list_items')
+        .select('id')
+        .eq('list_id', watchlistId)
+        .eq('user_id', creator.user_id || creator.userId)
+        .eq('platform', creator.platform)
+        .single();
+      
+      if (existingItem) {
+        throw new Error('Creator already exists in this list');
+      }
+
+      const { data, error } = await supabase
+        .from('list_items')
+        .insert({
+          list_id: watchlistId,
+          platform: creator.platform,
+          user_id: creator.user_id || creator.userId,
+          username: creator.username,
+          snapshot_json: creator,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Search state
+  const results = searchData?.results || [];
+  const totalResults = searchData?.total || 0;
+  const isLoading = isSearching;
+  const error = searchData?.error ? new Error(searchData.error) : null;
+  const isRateLimited = searchData?.rateLimited || false;
 
   const {
     profileData,
@@ -104,28 +149,51 @@ export const ModernDiscovery = () => {
   const [showFilters, setShowFilters] = useState(true);
   const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set());
 
-  // Check for rate limiting in the error state
-  useEffect(() => {
-    if (error && (
-      error.message?.includes('rate limit') || 
-      error.message?.includes('429') ||
-      (error as any)?.rateLimited
-    )) {
-      setIsRateLimited(true);
-    } else {
-      setIsRateLimited(false);
-    }
-  }, [error]);
-
-  // Debounced search suggestions
+  // Search execution
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchKeyword && searchKeyword.length >= 3) {
-        searchSuggestions(searchKeyword);
-      }
-    }, 400);
+      searchCreators({
+        platform,
+        query: searchKeyword,
+        filters,
+        limit: 15,
+        offset: currentPage * 15
+      });
+    }, 500);
+
     return () => clearTimeout(timer);
-  }, [searchKeyword, searchSuggestions]);
+  }, [platform, searchKeyword, filters, currentPage]);
+
+  // Utility functions
+  const changePlatform = useCallback((newPlatform: Platform) => {
+    setPlatform(newPlatform);
+    setCurrentPage(0);
+  }, []);
+
+  const updateFilters = useCallback((newFilters: any) => {
+    setFilters(newFilters);
+    setCurrentPage(0);
+  }, []);
+
+  const resetSearch = useCallback(() => {
+    setSearchKeyword('');
+    setFilters({
+      followers: { min: 10000, max: 10000000 },
+      engagementRate: { min: 0.01, max: 0.15 }
+    });
+    setCurrentPage(0);
+  }, []);
+
+  const nextPage = useCallback(() => {
+    setCurrentPage(prev => prev + 1);
+  }, []);
+
+  const prevPage = useCallback(() => {
+    setCurrentPage(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const canGoNext = results.length >= 15;
+  const canGoPrev = currentPage > 0;
 
   const handleSelectCreator = (creatorId: string, selected: boolean) => {
     const newSelected = new Set(selectedCreators);
@@ -141,10 +209,10 @@ export const ModernDiscovery = () => {
     if (selectedCreators.size === 0 || !watchlists?.length) return;
     
     const defaultWatchlist = watchlists[0];
-    const selectedResults = results.filter(r => selectedCreators.has(r.userId));
+    const selectedResults = results.filter(r => selectedCreators.has(r.user_id));
     
     for (const creator of selectedResults) {
-      await addToWatchlist({ watchlistId: defaultWatchlist.id, creator });
+      await addToWatchlistMutation.mutateAsync({ watchlistId: defaultWatchlist.id, creator });
     }
     
     setSelectedCreators(new Set());
@@ -219,14 +287,12 @@ export const ModernDiscovery = () => {
               {/* Search */}
               <div>
                 <Label className="text-sm font-medium mb-2 block">Search</Label>
-                <ModernSearchInput
-                  value={searchKeyword}
-                  onChange={setSearchKeyword}
-                  suggestions={suggestions}
-                  isLoading={isLoadingSuggestions}
-                  platform={platform}
-                  placeholder="@username, email, or keyword..."
-                />
+                  <Input
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    placeholder="@username, email, or keyword..."
+                    className="w-full"
+                  />
               </div>
               
               {/* Filters */}
@@ -275,13 +341,7 @@ export const ModernDiscovery = () => {
                       {/* Sort */}
                       <div className="flex items-center gap-2">
                         <Label className="text-sm">Sort by:</Label>
-                        <Select
-                          value={`${sort.field}-${sort.direction}`}
-                          onValueChange={(value) => {
-                            const [field, direction] = value.split('-');
-                            updateSort(field, direction as 'asc' | 'desc');
-                          }}
-                        >
+                        <Select defaultValue="followers-desc">
                           <SelectTrigger className="w-40">
                             <SelectValue />
                           </SelectTrigger>
@@ -346,12 +406,22 @@ export const ModernDiscovery = () => {
               `}>
                 {results.map((creator) => (
                   <ModernCreatorCard
-                    key={`${creator.platform}-${creator.userId}`}
-                    creator={creator}
-                    isSelected={selectedCreators.has(creator.userId)}
+                    key={`${creator.platform}-${creator.user_id}`}
+                    creator={{
+                      ...creator,
+                      userId: creator.user_id,
+                      profilePicUrl: creator.profile_pic_url,
+                      fullName: creator.full_name,
+                      isVerified: creator.is_verified,
+                      hasContactDetails: creator.has_contact_details,
+                      engagementRate: creator.engagement_rate,
+                      avgLikes: creator.avg_likes,
+                      avgViews: creator.avg_views
+                    }}
+                    isSelected={selectedCreators.has(creator.user_id)}
                     onSelect={handleSelectCreator}
                     watchlists={watchlists || []}
-                    onAddToWatchlist={addToWatchlist}
+                    onAddToWatchlist={addToWatchlistMutation.mutate}
                     onViewProfile={openProfile}
                     variant={viewMode}
                   />

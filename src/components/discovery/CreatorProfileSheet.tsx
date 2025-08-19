@@ -23,13 +23,13 @@ import {
   Briefcase
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
-import { CreatorProfileData } from '@/hooks/useCreatorProfile';
+import { CreatorProfile } from '@/hooks/useCreatorProfile';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface CreatorProfileSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  profileData?: CreatorProfileData | null;
+  profileData?: CreatorProfile | null;
   isLoading: boolean;
   error?: any;
 }
@@ -43,7 +43,7 @@ export const CreatorProfileSheet: React.FC<CreatorProfileSheetProps> = ({
 }) => {
   if (!profileData && !isLoading) return null;
 
-  const creator = profileData?.creator;
+  const creator = profileData;
 
   const getPlatformColor = (platform: string) => {
     switch (platform) {
@@ -147,144 +147,26 @@ export const CreatorProfileSheet: React.FC<CreatorProfileSheetProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Detailed Report Data */}
-              {profileData?.report && (
+              {/* Recent Posts */}
+              {creator.recentPosts && creator.recentPosts.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Profile Details</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {profileData.report.profile?.following && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Following:</span>
-                        <span className="font-semibold">{formatNumber(profileData.report.profile.following)}</span>
-                      </div>
-                    )}
-                    
-                    {profileData.report.profile?.posts && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total Posts:</span>
-                        <span className="font-semibold">{formatNumber(profileData.report.profile.posts)}</span>
-                      </div>
-                    )}
-                    
-                    {profileData.report.profile?.engagements && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total Engagements:</span>
-                        <span className="font-semibold">{formatNumber(profileData.report.profile.engagements)}</span>
-                      </div>
-                    )}
-
-                    {profileData.report.audience?.countries && (
-                      <>
-                        <Separator />
-                        <div>
-                          <h4 className="font-semibold mb-2">Top Audience Locations</h4>
-                          <div className="space-y-2">
-                            {profileData.report.audience.countries.slice(0, 3).map((country: any, index: number) => (
-                              <div key={index} className="flex justify-between items-center">
-                                <span className="text-sm">{country.name || country.code}</span>
-                                <span className="text-sm font-medium">{(country.weight * 100).toFixed(1)}%</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Performance Data */}
-              {profileData?.performance && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      Recent Performance
-                    </CardTitle>
+                    <CardTitle className="text-lg">Recent Posts</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {profileData.performance.summary && (
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="text-center">
-                          <div className="text-lg font-bold">{formatNumber(profileData.performance.summary.avgLikes || 0)}</div>
-                          <div className="text-xs text-muted-foreground">Avg Likes (30d)</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {creator.recentPosts.slice(0, 6).map((post: any, index: number) => (
+                        <div key={index} className="aspect-square bg-muted rounded-lg overflow-hidden">
+                          {post.mediaUrl && (
+                            <img 
+                              src={post.mediaUrl} 
+                              alt="Post"
+                              className="w-full h-full object-cover"
+                            />
+                          )}
                         </div>
-                        
-                        <div className="text-center">
-                          <div className="text-lg font-bold">{formatNumber(profileData.performance.summary.avgComments || 0)}</div>
-                          <div className="text-xs text-muted-foreground">Avg Comments (30d)</div>
-                        </div>
-                        
-                        <div className="text-center">
-                          <div className="text-lg font-bold">{formatNumber(profileData.performance.summary.avgViews || 0)}</div>
-                          <div className="text-xs text-muted-foreground">Avg Views (30d)</div>
-                        </div>
-                        
-                        <div className="text-center">
-                          <div className="text-lg font-bold text-primary">
-                            {profileData.performance.summary.avgEngagementRate ? 
-                              `${(profileData.performance.summary.avgEngagementRate * 100).toFixed(2)}%` : 'N/A'}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Avg ER (30d)</div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {profileData.performance.summary?.recentTrend && (
-                      <div className="p-3 bg-muted/30 rounded-lg">
-                        <div className="text-sm font-medium mb-1">Trend</div>
-                        <div className={`text-sm ${
-                          profileData.performance.summary.recentTrend === 'increasing' ? 'text-green-600' : 
-                          profileData.performance.summary.recentTrend === 'decreasing' ? 'text-red-600' : 
-                          'text-muted-foreground'
-                        }`}>
-                          {profileData.performance.summary.recentTrend === 'increasing' && '↗ Engagement is increasing'}
-                          {profileData.performance.summary.recentTrend === 'decreasing' && '↘ Engagement is decreasing'}
-                          {profileData.performance.summary.recentTrend === 'stable' && '→ Engagement is stable'}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Brand Collaborations */}
-              {profileData?.collaborations && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Briefcase className="w-5 h-5" />
-                      Brand Collaborations
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {profileData.collaborations.summary ? (
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Total Brands:</span>
-                          <span className="font-semibold">{profileData.collaborations.summary.totalBrands || 0}</span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Collaboration Posts:</span>
-                          <span className="font-semibold">{profileData.collaborations.summary.totalPosts || 0}</span>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Avg Performance:</span>
-                          <span className="font-semibold">
-                            {profileData.collaborations.summary.avgPerformance ? 
-                              `${(profileData.collaborations.summary.avgPerformance * 100).toFixed(1)}%` : 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">
-                        No collaboration data available
-                      </p>
-                    )}
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               )}

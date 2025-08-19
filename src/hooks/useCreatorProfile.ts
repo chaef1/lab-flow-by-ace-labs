@@ -1,58 +1,114 @@
 import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { modashClient, ModashCreator } from '@/lib/modash-client';
+import { useModashRaw } from './useModashRaw';
+import { useLocalCreatorSearch } from './useLocalCreatorSearch';
 
-export interface CreatorProfileData {
-  creator: ModashCreator;
-  report?: any;
-  performance?: any;
-  collaborations?: any;
-  posts?: any;
+export interface CreatorProfile {
+  userId: string;
+  username: string;
+  fullName: string;
+  profilePicUrl: string;
+  followers: number;
+  following: number;
+  posts: number;
+  isVerified: boolean;
+  isPrivate: boolean;
+  hasContactDetails?: boolean;
+  biography?: string;
+  externalUrl?: string;
+  category?: string;
+  engagementRate?: number;
+  avgLikes?: number;
+  avgViews?: number;
+  recentPosts?: any[];
+  collaborations?: any[];
+  audienceInsights?: any;
+  platform: string;
 }
 
 export const useCreatorProfile = () => {
-  const [selectedCreator, setSelectedCreator] = useState<ModashCreator | null>(null);
+  const [profileData, setProfileData] = useState<CreatorProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Fetch detailed creator data when a creator is selected
-  const { data: profileData, isLoading, error } = useQuery({
-    queryKey: ['creator-profile', selectedCreator?.platform, selectedCreator?.userId],
-    queryFn: async () => {
-      if (!selectedCreator) return null;
+  const { 
+    fetchUserInfo, 
+    fetchUserFeed,
+    fetchUserReels 
+  } = useModashRaw();
+  const { getCreatorDetails } = useLocalCreatorSearch();
 
-      const [report, performance, collaborations] = await Promise.allSettled([
-        modashClient.getCreatorReport(selectedCreator.platform, selectedCreator.userId),
-        modashClient.getPerformanceData(selectedCreator.platform, selectedCreator.userId, {
-          period: 30,
-          postCount: 20
-        }),
-        modashClient.getCollaborationSummary({
-          platform: selectedCreator.platform,
-          userId: selectedCreator.userId,
-          period: 90
-        })
+  const openProfile = useCallback(async (creator: { 
+    username: string; 
+    platform: string; 
+    userId?: string;
+  }) => {
+    setIsLoading(true);
+    setError(null);
+    setIsOpen(true);
+
+    try {
+      console.log('Loading profile for:', creator.username, creator.platform);
+
+      // Get basic profile info (from database cache if available, otherwise API)
+      const profileInfo = await getCreatorDetails(creator.username, creator.platform);
+
+      // Get additional data from RAW API
+      const [feedData, reelsData] = await Promise.allSettled([
+        fetchUserFeed(creator.username, creator.platform, 12),
+        creator.platform === 'instagram' ? fetchUserReels(creator.username, 6) : Promise.resolve({ posts: [] })
       ]);
 
-      return {
-        creator: selectedCreator,
-        report: report.status === 'fulfilled' ? report.value : null,
-        performance: performance.status === 'fulfilled' ? performance.value : null,
-        collaborations: collaborations.status === 'fulfilled' ? collaborations.value : null,
-      } as CreatorProfileData;
-    },
-    enabled: !!selectedCreator,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+      // Combine all data - handle both LocalCreator and RawUserInfo types
+      const combinedProfile: CreatorProfile = {
+        userId: (profileInfo as any).user_id || (profileInfo as any).userId || creator.userId || '',
+        username: profileInfo.username || creator.username,
+        fullName: (profileInfo as any).full_name || (profileInfo as any).fullName || '',
+        profilePicUrl: (profileInfo as any).profile_pic_url || (profileInfo as any).profilePicUrl || '',
+        followers: profileInfo.followers || 0,
+        following: profileInfo.following || 0,
+        posts: profileInfo.posts || 0,
+        isVerified: (profileInfo as any).is_verified || (profileInfo as any).isVerified || false,
+        isPrivate: (profileInfo as any).raw_data?.isPrivate || (profileInfo as any).isPrivate || false,
+        hasContactDetails: (profileInfo as any).has_contact_details || (profileInfo as any).hasContactDetails || false,
+        biography: (profileInfo as any).biography || (profileInfo as any).bio || '',
+        externalUrl: (profileInfo as any).external_url || (profileInfo as any).externalUrl || '',
+        category: (profileInfo as any).category || '',
+        engagementRate: (profileInfo as any).engagement_rate || (profileInfo as any).engagementRate || 0,
+        avgLikes: (profileInfo as any).avg_likes || (profileInfo as any).avgLikes || 0,
+        avgViews: (profileInfo as any).avg_views || (profileInfo as any).avgViews || 0,
+        platform: creator.platform,
+        recentPosts: feedData.status === 'fulfilled' ? feedData.value.posts : [],
+        collaborations: [], // We can implement this later with collaboration API
+        audienceInsights: (profileInfo as any).raw_data?.audienceInsights || (profileInfo as any).audienceInsights || null
+      };
 
-  const openProfile = useCallback((creator: ModashCreator) => {
-    setSelectedCreator(creator);
-    setIsOpen(true);
-  }, []);
+      // Add reels to recent posts for Instagram
+      if (creator.platform === 'instagram' && reelsData.status === 'fulfilled') {
+        const reels = reelsData.value.posts.map(post => ({
+          ...post,
+          isReel: true
+        }));
+        combinedProfile.recentPosts = [
+          ...(combinedProfile.recentPosts || []),
+          ...reels
+        ];
+      }
+
+      setProfileData(combinedProfile);
+
+    } catch (err: any) {
+      console.error('Failed to load creator profile:', err);
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchUserInfo, fetchUserFeed, fetchUserReels, getCreatorDetails]);
 
   const closeProfile = useCallback(() => {
     setIsOpen(false);
-    // Keep selectedCreator for a smooth close animation
-    setTimeout(() => setSelectedCreator(null), 300);
+    setProfileData(null);
+    setError(null);
   }, []);
 
   return {
@@ -61,6 +117,6 @@ export const useCreatorProfile = () => {
     error,
     isOpen,
     openProfile,
-    closeProfile,
+    closeProfile
   };
 };

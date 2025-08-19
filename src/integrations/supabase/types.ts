@@ -1226,15 +1226,22 @@ export type Database = {
         Row: {
           avg_likes: number | null
           avg_views: number | null
+          biography: string | null
+          category: string | null
           created_at: string
           engagement_rate: number | null
+          external_url: string | null
           followers: number | null
+          following: number | null
           full_name: string | null
           has_contact_details: boolean | null
           id: string
           is_verified: boolean | null
+          last_updated: string | null
           platform: string
+          posts: number | null
           profile_pic_url: string | null
+          raw_data: Json | null
           top_audience_city: string | null
           top_audience_country: string | null
           updated_at: string
@@ -1244,15 +1251,22 @@ export type Database = {
         Insert: {
           avg_likes?: number | null
           avg_views?: number | null
+          biography?: string | null
+          category?: string | null
           created_at?: string
           engagement_rate?: number | null
+          external_url?: string | null
           followers?: number | null
+          following?: number | null
           full_name?: string | null
           has_contact_details?: boolean | null
           id?: string
           is_verified?: boolean | null
+          last_updated?: string | null
           platform: string
+          posts?: number | null
           profile_pic_url?: string | null
+          raw_data?: Json | null
           top_audience_city?: string | null
           top_audience_country?: string | null
           updated_at?: string
@@ -1262,15 +1276,22 @@ export type Database = {
         Update: {
           avg_likes?: number | null
           avg_views?: number | null
+          biography?: string | null
+          category?: string | null
           created_at?: string
           engagement_rate?: number | null
+          external_url?: string | null
           followers?: number | null
+          following?: number | null
           full_name?: string | null
           has_contact_details?: boolean | null
           id?: string
           is_verified?: boolean | null
+          last_updated?: string | null
           platform?: string
+          posts?: number | null
           profile_pic_url?: string | null
+          raw_data?: Json | null
           top_audience_city?: string | null
           top_audience_country?: string | null
           updated_at?: string

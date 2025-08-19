@@ -53,6 +53,8 @@ export const useModashSearch = () => {
   });
   const [sort, setSort] = useState({ field: 'followers', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(0);
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchResult[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const searchQuery = useQuery({
     queryKey: ['modash-search', platform, filters, sort, currentPage],
@@ -86,6 +88,36 @@ export const useModashSearch = () => {
       return failureCount < 2; // Retry up to 2 times
     }
   });
+
+  const searchSuggestionsForText = async (searchText: string): Promise<SearchResult[]> => {
+    if (!searchText || searchText.trim().length < 2) {
+      return [];
+    }
+
+    setIsLoadingSuggestions(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('modash-text-search', {
+        body: {
+          platform,
+          query: searchText,
+          limit: 10
+        }
+      });
+      
+      if (error) {
+        console.error('Text search error:', error);
+        return [];
+      }
+      
+      return data.suggestions || [];
+    } catch (error) {
+      console.error('Text search failed:', error);
+      return [];
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
 
   const search = (newFilters: SearchFilters) => {
     setFilters(newFilters);
@@ -125,6 +157,10 @@ export const useModashSearch = () => {
     prevPage,
     changePlatform,
     changeSort,
-    refetch: searchQuery.refetch
+    refetch: searchQuery.refetch,
+    searchSuggestionsForText,
+    searchSuggestions,
+    setSearchSuggestions,
+    isLoadingSuggestions
   };
 };

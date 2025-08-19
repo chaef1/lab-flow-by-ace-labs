@@ -21,10 +21,11 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { useModashDiscovery } from '@/hooks/useModashDiscovery';
-import { useModashSearch } from '@/hooks/useModashSearch';
+import { useModashSearch, SearchResult } from '@/hooks/useModashSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { CreatorCard } from '@/components/discovery/CreatorCard';
 import { AdvancedFilters } from '@/components/discovery/AdvancedFilters';
+import { SearchInput } from '@/components/discovery/SearchInput';
 import { useToast } from '@/hooks/use-toast';
 import { useSearchParams, Link } from 'react-router-dom';
 import Dashboard from '@/components/layout/Dashboard';
@@ -56,7 +57,11 @@ const Discovery = () => {
     currentPage,
     totalResults,
     filters,
-    setFilters
+    setFilters,
+    searchSuggestionsForText,
+    searchSuggestions,
+    setSearchSuggestions,
+    isLoadingSuggestions
   } = useModashSearch();
   
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -83,6 +88,20 @@ const Discovery = () => {
     setSearchParams(params);
   }, [platform, searchKeyword, setSearchParams]);
 
+  // Load suggestions when search keyword changes
+  React.useEffect(() => {
+    if (searchKeyword && searchKeyword.trim().length >= 2) {
+      const debounceTimer = setTimeout(async () => {
+        const suggestions = await searchSuggestionsForText(searchKeyword);
+        setSearchSuggestions(suggestions);
+      }, 300);
+
+      return () => clearTimeout(debounceTimer);
+    } else {
+      setSearchSuggestions([]);
+    }
+  }, [searchKeyword, platform, searchSuggestionsForText, setSearchSuggestions]);
+
   const handleSearch = async () => {
     console.log('=== STARTING SEARCH ===');
     console.log('Search keyword:', searchKeyword);
@@ -102,6 +121,23 @@ const Discovery = () => {
 
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
+  };
+
+  const handleSuggestionSelect = (suggestion: SearchResult) => {
+    console.log('Selected suggestion:', suggestion);
+    
+    // Perform search with the selected creator as primary result
+    const searchFilters = {
+      influencer: {
+        keywords: suggestion.username,
+        // Remove restrictive filters for exact username matches
+        followers: { min: 1, max: 1000000000 },
+        engagementRate: { min: 0, max: 1 }
+      }
+    };
+    
+    search(searchFilters);
+    setSearchSuggestions([]);
   };
 
 
@@ -147,16 +183,17 @@ const Discovery = () => {
           <TabsContent value={platform} className="space-y-6">
             {/* Search Controls */}
             <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder={`Search ${platform} creators by @username, email or keyword...`}
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-10"
-                />
-              </div>
+              <SearchInput
+                value={searchKeyword}
+                onChange={setSearchKeyword}
+                onSearch={handleSearch}
+                onSuggestionSelect={handleSuggestionSelect}
+                suggestions={searchSuggestions}
+                isLoadingSuggestions={isLoadingSuggestions}
+                isSearching={isLoading}
+                platform={platform}
+                placeholder={`Search ${platform} creators by @username, keyword, or hashtag...`}
+              />
               <Button
                 variant="outline"
                 onClick={() => setIsFilterOpen(true)}
@@ -164,10 +201,6 @@ const Discovery = () => {
               >
                 <SlidersHorizontal className="w-4 h-4" />
                 Filters
-              </Button>
-              <Button onClick={handleSearch} disabled={isLoading}>
-                {isLoading && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-                Search
               </Button>
             </div>
 

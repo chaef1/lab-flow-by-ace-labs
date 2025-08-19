@@ -41,7 +41,9 @@ serve(async (req) => {
     console.log(`Searching ${platform} creators with filters:`, JSON.stringify(filters, null, 2));
 
     // Create proper Modash API payload according to documentation
-    const isUsernameSearch = filters.influencer?.keywords?.trim().startsWith('@');
+    const searchKeywords = filters.influencer?.keywords?.trim();
+    const isUsernameSearch = searchKeywords?.startsWith('@');
+    const isHashtagSearch = searchKeywords?.startsWith('#');
     
     const modashPayload = {
       page: pagination?.page || 0,
@@ -50,10 +52,10 @@ serve(async (req) => {
         direction: sort?.direction || 'desc'
       },
       filter: {
-        // For username searches, don't apply restrictive filters that might exclude the target user
+        // For username searches, use more lenient filters
         ...((!isUsernameSearch || filters.influencer?.followers) && {
           followers: {
-            min: filters.influencer?.followers?.min || 1000,
+            min: filters.influencer?.followers?.min || (isUsernameSearch ? 1 : 1000),
             max: filters.influencer?.followers?.max || 10000000
           }
         }),
@@ -65,10 +67,19 @@ serve(async (req) => {
         }),
         ...(filters.influencer?.isVerified && { isVerified: true }),
         ...(filters.influencer?.hasContactDetails && { hasContactDetails: true }),
-        ...(filters.influencer?.keywords && {
-          text: filters.influencer.keywords.trim().startsWith('@') 
-            ? filters.influencer.keywords.trim() 
-            : filters.influencer.keywords
+        // Handle different search types properly
+        ...(searchKeywords && {
+          ...(isUsernameSearch && {
+            text: searchKeywords.substring(1) // Remove @ symbol for API
+          }),
+          ...(isHashtagSearch && {
+            textTags: {
+              hashtags: [searchKeywords.substring(1)] // Remove # symbol for API
+            }
+          }),
+          ...(!isUsernameSearch && !isHashtagSearch && {
+            text: searchKeywords
+          })
         }),
         // Audience filters
         ...(filters.influencer?.location?.countries?.length > 0 && {

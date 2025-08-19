@@ -85,6 +85,9 @@ verify_jwt = true
 [functions.test-ayrshare]
 verify_jwt = false
 
+[functions.modash-text-search]
+verify_jwt = true
+
 [analytics]
 enabled = false
 port = 54327

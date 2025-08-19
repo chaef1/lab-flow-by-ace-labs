@@ -10,17 +10,17 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-ace-500 text-white hover:bg-ace-600 shadow-sm",
+        default: "bg-gradient-to-r from-tiktok-pink to-tiktok-red text-white hover:opacity-90 shadow-sm",
         destructive:
-          "bg-ace-red text-white hover:bg-ace-red/90 shadow-sm",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
         outline:
           "border border-input bg-background hover:bg-accent/10 hover:text-accent-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent/10 hover:text-accent-foreground",
-        link: "text-ace-500 underline-offset-4 hover:underline",
-        gradient: "bg-gradient-to-r from-ace-500 to-ace-yellow text-white hover:brightness-105 shadow-sm",
-        success: "bg-ace-green text-white hover:bg-ace-green/90 shadow-sm",
+        link: "text-primary underline-offset-4 hover:underline",
+        gradient: "bg-gradient-to-r from-tiktok-pink to-tiktok-red text-white hover:opacity-90 shadow-sm",
+        success: "bg-success text-white hover:bg-success/90 shadow-sm",
       },
       size: {
         default: "h-10 px-4 py-2",

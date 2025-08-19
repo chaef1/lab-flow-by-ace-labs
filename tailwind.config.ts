@@ -37,6 +37,11 @@ export default {
 					600: 'hsl(var(--pri-600))',
 					700: 'hsl(var(--pri-700))',
 				},
+				// TikTok gradient colors
+				tiktok: {
+					pink: 'hsl(var(--tiktok-pink))',
+					red: 'hsl(var(--tiktok-red))',
+				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
@@ -97,6 +102,9 @@ export default {
 				sm: 'calc(var(--radius) - 4px)',
 				xl: '20px',
 				'2xl': '24px',
+			},
+			backgroundImage: {
+				'tiktok-gradient': 'linear-gradient(135deg, hsl(254 44 85), hsl(255 0 80))',
 			},
 			boxShadow: {
 				sm: 'var(--shadow-sm)',

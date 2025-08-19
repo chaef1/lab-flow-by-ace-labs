@@ -117,7 +117,7 @@ export const useModashDiscovery = () => {
 
   // Watchlist management
   const { data: watchlists, refetch: refetchWatchlists } = useQuery({
-    queryKey: ['watchlists'],
+    queryKey: ['creator-lists'], // Use consistent key
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lists')
@@ -142,7 +142,7 @@ export const useModashDiscovery = () => {
       return data;
     },
     onSuccess: () => {
-      refetchWatchlists();
+      queryClient.invalidateQueries({ queryKey: ['creator-lists'] });
     },
   });
 
@@ -154,6 +154,19 @@ export const useModashDiscovery = () => {
       watchlistId: string; 
       creator: ModashCreator;
     }) => {
+      // Check if creator already exists in this list
+      const { data: existingItem } = await supabase
+        .from('list_items')
+        .select('id')
+        .eq('list_id', watchlistId)
+        .eq('user_id', creator.userId)
+        .eq('platform', creator.platform)
+        .single();
+      
+      if (existingItem) {
+        throw new Error('Creator already exists in this list');
+      }
+
       const { data, error } = await supabase
         .from('list_items')
         .insert({
@@ -162,9 +175,16 @@ export const useModashDiscovery = () => {
           user_id: creator.userId,
           username: creator.username,
           snapshot_json: creator as any,
-        });
+        })
+        .select()
+        .single();
+      
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['creator-lists'] });
+      queryClient.invalidateQueries({ queryKey: ['list-items'] });
     },
   });
 

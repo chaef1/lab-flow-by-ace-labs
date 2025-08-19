@@ -33,7 +33,7 @@ export const useOrganicReportingData = (timeRange: string, platform: string) => 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Use existing Ayrshare analytics function instead of non-existent endpoint
+        // Use Ayrshare analytics function with proper error handling
         const { data: responseData, error } = await supabase.functions.invoke('ayrshare-analytics', {
           body: { 
             action: 'account_insights',
@@ -46,21 +46,36 @@ export const useOrganicReportingData = (timeRange: string, platform: string) => 
           throw new Error(error.message || 'Failed to fetch organic reporting data');
         }
 
+        // Check if the response indicates success
+        if (!responseData?.success) {
+          throw new Error(responseData?.error || 'Ayrshare API returned an error');
+        }
+
         // Transform Ayrshare response to expected format
+        const analyticsData = responseData.data;
         const transformedData = {
           metrics: {
-            reach: responseData?.instagram?.analytics?.audienceCity ? 
-              Object.values(responseData.instagram.analytics.audienceCity).reduce((sum: number, val: any) => sum + val, 0).toLocaleString() : '0',
+            reach: analyticsData?.totalImpressions ? 
+              analyticsData.totalImpressions.toLocaleString() : '0',
             reachChange: '+12%', // Default since Ayrshare doesn't provide change data
-            engagement: responseData?.instagram?.analytics?.engagementRate ? 
-              `${(responseData.instagram.analytics.engagementRate * 100).toFixed(1)}%` : '0%',
+            engagement: analyticsData?.averageEngagementRate ? 
+              `${(analyticsData.averageEngagementRate * 100).toFixed(1)}%` : '0%',
             engagementChange: '+5%', // Default since Ayrshare doesn't provide change data
-            contentCount: responseData?.instagram?.analytics?.postsCount || 0
+            contentCount: analyticsData?.totalPosts || 0
           },
-          contentPerformanceData: [], // Could be populated from posts data if available
-          engagementData: [], // Could be populated from analytics data if available
-          topPerformingContent: [], // Could be populated from posts data if available
-          creatorStats: [] // Could be populated from analytics data if available
+          contentPerformanceData: analyticsData?.posts?.map((post: any, index: number) => ({
+            name: `Post ${index + 1}`,
+            impressions: post.impressions || 0,
+            engagement: post.engagement || 0,
+            reach: post.reach || 0
+          })) || [],
+          engagementData: analyticsData?.dailyStats?.map((day: any) => ({
+            date: day.date,
+            engagement: day.engagementRate || 0,
+            reach: day.reach || 0
+          })) || [],
+          topPerformingContent: analyticsData?.topPosts?.slice(0, 5) || [],
+          creatorStats: []
         };
 
         setData(transformedData);

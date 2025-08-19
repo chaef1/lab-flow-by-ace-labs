@@ -44,12 +44,14 @@ const Compare = () => {
 
   // Parse creator IDs from URL
   React.useEffect(() => {
-    const parsedCreators = creatorIds.map(id => {
-      const [platform, userId] = id.split(':');
-      return { platform, userId, username: userId };
-    });
-    setCreators(parsedCreators);
-  }, [creatorIds]);
+    if (creatorIds.length > 0) {
+      const parsedCreators = creatorIds.map(id => {
+        const [platform, userId] = id.split(':');
+        return { platform, userId, username: userId };
+      });
+      setCreators(parsedCreators);
+    }
+  }, [creatorIds.join(',')]); // Use join to create a stable dependency
 
   // Fetch reports for all creators
   const { data: reports, isLoading } = useQuery({

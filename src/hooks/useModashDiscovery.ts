@@ -92,8 +92,7 @@ export const useModashDiscovery = () => {
     });
   };
 
-  // Text search for suggestions
-  const [suggestions, setSuggestions] = useState<ModashCreator[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const searchSuggestions = useCallback(async (query: string) => {
@@ -105,7 +104,9 @@ export const useModashDiscovery = () => {
     setIsLoadingSuggestions(true);
     try {
       const results = await modashClient.searchText(platform, query.trim(), 8);
-      setSuggestions(results);
+      // Convert creator objects to suggestion strings
+      const suggestionStrings = results.map(creator => creator.username || creator.userId);
+      setSuggestions(suggestionStrings);
     } catch (error) {
       console.error('Suggestion search failed:', error);
       setSuggestions([]);

@@ -25,7 +25,7 @@ export const SaveToListDialog = ({ open, onOpenChange, creator }: SaveToListDial
   const [newListName, setNewListName] = useState('');
   const [showNewList, setShowNewList] = useState(false);
   
-  const { lists, createList, addToList, isCreatingList, isAddingToList } = useModashDiscovery();
+  const { lists, createList, addToWatchlist, isCreatingList, isAddingToWatchlist } = useModashDiscovery();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -52,7 +52,7 @@ export const SaveToListDialog = ({ open, onOpenChange, creator }: SaveToListDial
         return;
       }
 
-      await addToList({ listId, creator });
+      await addToWatchlist({ watchlistId: listId, creator });
       
       toast({
         title: "Success",
@@ -146,11 +146,11 @@ export const SaveToListDialog = ({ open, onOpenChange, creator }: SaveToListDial
               disabled={
                 (!selectedListId && !newListName.trim()) ||
                 isCreatingList ||
-                isAddingToList
+                isAddingToWatchlist
               }
               className="flex-1"
             >
-              {isCreatingList || isAddingToList ? 'Saving...' : 'Save'}
+              {isCreatingList || isAddingToWatchlist ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>

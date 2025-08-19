@@ -6,29 +6,35 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Dark-first Storyclash design tokens */
-    --bg: 11 13 18;           /* #0b0d12 - base background */
-    --panel: 15 18 24;        /* #0f1218 - card/nav panels */
-    --elev: 19 23 34;         /* #131722 - elevated cards */
-    --muted: 164 172 185;     /* #a4acb9 - secondary text */
-    --text: 232 237 246;      /* #e8edf6 - primary text */
-    
-    /* Brand colors */
-    --pri-50: 241 234 255;    /* #f1eaff */
-    --pri-100: 227 214 255;   /* #e3d6ff */
-    --pri-500: 124 58 237;    /* #7c3aed - primary */
-    --pri-600: 109 40 217;    /* #6d28d9 */
-    --pri-700: 91 33 182;     /* #5b21b6 */
-    
-    /* Status colors */
-    --ok: 16 185 129;         /* #10b981 - success */
-    --warn: 245 158 11;       /* #f59e0b - warning */
-    --err: 239 68 68;         /* #ef4444 - error */
-    
-    /* Interactive */
-    --ring: 124 58 237;       /* #7c3aed - focus ring */
-    --radius: 16px;
+:root {
+  /* Base colors - Clean light design */
+  --background: 255 255 255;
+  --foreground: 15 23 42;
+  --card: 248 250 252;
+  --card-foreground: 15 23 42;
+  --popover: 255 255 255;
+  --popover-foreground: 15 23 42;
+  --primary: 37 99 235;
+  --primary-foreground: 248 250 252;
+  --secondary: 241 245 249;
+  --secondary-foreground: 51 65 85;
+  --muted: 248 250 252;
+  --muted-foreground: 100 116 139;
+  --accent: 241 245 249;
+  --accent-foreground: 15 23 42;
+  --destructive: 239 68 68;
+  --destructive-foreground: 248 250 252;
+  --border: 226 232 240;
+  --input: 248 250 252;
+  --ring: 37 99 235;
+  --radius: 8px;
+  
+  /* Custom semantic colors */
+  --panel: 248 250 252;
+  --elev: 255 255 255;
+  --ok: 34 197 94;
+  --warn: 251 146 60;
+  --err: 239 68 68;
     
     /* Chart colors (accessible categorical) */
     --chart-1: 124 58 237;    /* #7c3aed */
@@ -40,36 +46,36 @@
     --chart-7: 168 85 247;    /* #a855f7 */
     --chart-8: 96 165 250;    /* #60a5fa */
     
-    /* Base theme mapping - dark as default */
-    --background: var(--bg);
-    --foreground: var(--text);
-    --card: var(--panel);
-    --card-foreground: var(--text);
-    --popover: var(--elev);
-    --popover-foreground: var(--text);
-    --primary: var(--pri-500);
+    /* Base theme mapping - light as default */
+    --background: 255 255 255;
+    --foreground: 15 23 42;
+    --card: 248 250 252;
+    --card-foreground: 15 23 42;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+    --primary: 37 99 235;
     --primary-foreground: 255 255 255;
-    --secondary: var(--panel);
-    --secondary-foreground: var(--text);
-    --muted: var(--panel);
-    --muted-foreground: var(--muted);
-    --accent: var(--elev);
-    --accent-foreground: var(--text);
-    --destructive: var(--err);
+    --secondary: 241 245 249;
+    --secondary-foreground: 51 65 85;
+    --muted: 248 250 252;
+    --muted-foreground: 100 116 139;
+    --accent: 241 245 249;
+    --accent-foreground: 15 23 42;
+    --destructive: 239 68 68;
     --destructive-foreground: 255 255 255;
-    --border: var(--elev);
-    --input: var(--elev);
-    --ring: var(--pri-500);
+    --border: 226 232 240;
+    --input: 248 250 252;
+    --ring: 37 99 235;
     
     /* Sidebar */
-    --sidebar-background: var(--bg);
-    --sidebar-foreground: var(--text);
-    --sidebar-primary: var(--pri-500);
+    --sidebar-background: 255 255 255;
+    --sidebar-foreground: 15 23 42;
+    --sidebar-primary: 37 99 235;
     --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: var(--panel);
-    --sidebar-accent-foreground: var(--text);
-    --sidebar-border: var(--elev);
-    --sidebar-ring: var(--pri-500);
+    --sidebar-accent: 241 245 249;
+    --sidebar-accent-foreground: 15 23 42;
+    --sidebar-border: 226 232 240;
+    --sidebar-ring: 37 99 235;
     
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);

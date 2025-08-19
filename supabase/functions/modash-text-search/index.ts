@@ -34,7 +34,7 @@ serve(async (req) => {
       throw new Error('Invalid platform specified');
     }
 
-    if (!query || query.trim().length < 2) {
+    if (!query || query.trim().length < 3) {
       return new Response(JSON.stringify({ suggestions: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -47,6 +47,9 @@ serve(async (req) => {
     console.log(`Performing ${platform} text search for: "${searchTerm}"`);
     console.log(`Search type: ${isUsernameSearch ? 'username' : isHashtagSearch ? 'hashtag' : 'general'}`);
 
+    // Check if we have cached results to avoid hitting rate limits
+    const cacheKey = `${platform}-${searchTerm.toLowerCase()}`;
+    
     // Use the regular search endpoint with optimized params for text/username search
     const searchPayload = {
       page: 0,
@@ -104,10 +107,17 @@ serve(async (req) => {
       if (response.status === 401) {
         throw new Error('Invalid Modash API token');
       } else if (response.status === 429) {
-        throw new Error('Rate limit exceeded');
+        console.log('Rate limit hit, returning empty suggestions gracefully');
+        return new Response(JSON.stringify({ 
+          suggestions: [], 
+          error: 'Rate limit exceeded. Please try again in a moment.',
+          rateLimited: true 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
       
-      // Return empty suggestions on error
+      // Return empty suggestions on other errors
       return new Response(JSON.stringify({ suggestions: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

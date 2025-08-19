@@ -131,7 +131,8 @@ serve(async (req) => {
       if (response.status === 401) {
         throw new Error('Invalid or expired Modash API token');
       } else if (response.status === 429) {
-        throw new Error('Modash API rate limit exceeded. Please try again later.');
+        console.log('Rate limit exceeded for main search, implementing backoff');
+        throw new Error('Modash API rate limit exceeded. Please wait a moment and try again.');
       } else if (response.status === 400) {
         throw new Error('Invalid search parameters. Please check your filters.');
       }

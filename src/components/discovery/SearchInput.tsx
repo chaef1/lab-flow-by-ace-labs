@@ -46,7 +46,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     onChange(newValue);
     setSelectedIndex(-1);
     
-    if (newValue.trim().length >= 2) {
+    if (newValue.trim().length >= 3) { // Increased minimum length to reduce API calls
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
@@ -125,7 +125,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             onFocus={() => {
-              if (value.trim().length >= 2 && suggestions.length > 0) {
+              if (value.trim().length >= 3 && suggestions.length > 0) {
                 setShowSuggestions(true);
               }
             }}

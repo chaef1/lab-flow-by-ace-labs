@@ -90,23 +90,37 @@ export const useModashSearch = () => {
   });
 
   const searchSuggestionsForText = async (searchText: string): Promise<SearchResult[]> => {
-    if (!searchText || searchText.trim().length < 2) {
+    if (!searchText || searchText.trim().length < 3) {
       return [];
     }
 
     setIsLoadingSuggestions(true);
     
     try {
+      // Check for recent rate limit errors
+      const rateLimitKey = 'modash-rate-limit-until';
+      const rateLimitUntil = localStorage.getItem(rateLimitKey);
+      if (rateLimitUntil && Date.now() < parseInt(rateLimitUntil)) {
+        console.log('Rate limited, skipping API call');
+        return [];
+      }
+
       const { data, error } = await supabase.functions.invoke('modash-text-search', {
         body: {
           platform,
           query: searchText,
-          limit: 10
+          limit: 8
         }
       });
       
       if (error) {
         console.error('Text search error:', error);
+        
+        // If it's a rate limit error, store the time to avoid more calls for a while
+        if (error.message?.includes('rate limit') || error.message?.includes('Rate limit')) {
+          localStorage.setItem(rateLimitKey, (Date.now() + 60000).toString()); // Wait 1 minute
+        }
+        
         return [];
       }
       

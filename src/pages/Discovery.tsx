@@ -27,6 +27,7 @@ import { CreatorCard } from '@/components/discovery/CreatorCard';
 import { AdvancedFilters } from '@/components/discovery/AdvancedFilters';
 import { SearchInput } from '@/components/discovery/SearchInput';
 import { useToast } from '@/hooks/use-toast';
+import { ToastErrorHandler } from '@/components/ui/toast-error-handler';
 import { useSearchParams, Link } from 'react-router-dom';
 import Dashboard from '@/components/layout/Dashboard';
 import {
@@ -61,10 +62,12 @@ const Discovery = () => {
     searchSuggestionsForText,
     searchSuggestions,
     setSearchSuggestions,
-    isLoadingSuggestions
+    isLoadingSuggestions,
+    error: searchQueryError
   } = useModashSearch();
   
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   // Initialize search from URL params
   React.useEffect(() => {
@@ -88,13 +91,30 @@ const Discovery = () => {
     setSearchParams(params);
   }, [platform, searchKeyword, setSearchParams]);
 
-  // Load suggestions when search keyword changes
+  // Load suggestions when search keyword changes with longer debounce and caching
   React.useEffect(() => {
-    if (searchKeyword && searchKeyword.trim().length >= 2) {
+    if (searchKeyword && searchKeyword.trim().length >= 3) {
       const debounceTimer = setTimeout(async () => {
+        // Check cache first to reduce API calls
+        const cacheKey = `${platform}-${searchKeyword.toLowerCase()}`;
+        const cachedSuggestions = localStorage.getItem(`modash-suggestions-${cacheKey}`);
+        const cacheTime = localStorage.getItem(`modash-suggestions-time-${cacheKey}`);
+        
+        // Use cached results if they're less than 5 minutes old
+        if (cachedSuggestions && cacheTime && (Date.now() - parseInt(cacheTime)) < 5 * 60 * 1000) {
+          setSearchSuggestions(JSON.parse(cachedSuggestions));
+          return;
+        }
+
         const suggestions = await searchSuggestionsForText(searchKeyword);
         setSearchSuggestions(suggestions);
-      }, 300);
+        
+        // Cache successful results
+        if (suggestions.length > 0) {
+          localStorage.setItem(`modash-suggestions-${cacheKey}`, JSON.stringify(suggestions));
+          localStorage.setItem(`modash-suggestions-time-${cacheKey}`, Date.now().toString());
+        }
+      }, 1000); // Increased debounce to 1 second
 
       return () => clearTimeout(debounceTimer);
     } else {
@@ -108,6 +128,9 @@ const Discovery = () => {
     console.log('Platform:', platform);
     console.log('Filters:', filters);
     
+    // Clear any previous errors
+    setSearchError(null);
+    
     const searchFilters = {
       influencer: {
         ...(searchKeyword.trim() && { keywords: searchKeyword }),
@@ -116,7 +139,12 @@ const Discovery = () => {
     };
     
     console.log('Final search filters:', searchFilters);
-    search(searchFilters);
+    
+    try {
+      search(searchFilters);
+    } catch (error: any) {
+      setSearchError(error?.message || 'Search failed. Please try again.');
+    }
   };
 
   const handleFiltersChange = (newFilters: any) => {
@@ -299,6 +327,11 @@ const Discovery = () => {
             />
           </DialogContent>
         </Dialog>
+        
+        <ToastErrorHandler 
+          error={searchError || searchQueryError?.message} 
+          onClear={() => setSearchError(null)} 
+        />
       </div>
     </Dashboard>
   );

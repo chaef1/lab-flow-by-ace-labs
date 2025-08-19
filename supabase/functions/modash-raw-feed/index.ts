@@ -21,29 +21,63 @@ serve(async (req) => {
   }
 
   try {
-    const { platform, feedType, identifier, limit = 12 } = await req.json();
+    const { platform, feedType, identifier, limit = 12, query, cursor, commentId } = await req.json();
 
-    if (!platform || !feedType || !identifier) {
-      throw new Error('Platform, feedType, and identifier are required');
+    if (!platform || !feedType) {
+      throw new Error('Platform and feedType are required');
     }
 
     if (!['instagram', 'tiktok', 'youtube'].includes(platform)) {
       throw new Error('Invalid platform specified');
     }
 
-    console.log(`Fetching ${platform} ${feedType} feed for ${identifier}`);
+    console.log(`Fetching ${platform} ${feedType} for ${identifier}`);
 
     let endpoint = '';
     
     // Map to Modash RAW API endpoints
     switch (platform) {
       case 'instagram':
-        if (feedType === 'user-feed') {
-          endpoint = `/raw/ig/user-feed?username=${encodeURIComponent(identifier)}&limit=${limit}`;
-        } else if (feedType === 'hashtag-feed') {
-          endpoint = `/raw/ig/hashtag-feed?hashtag=${encodeURIComponent(identifier)}&limit=${limit}`;
-        } else if (feedType === 'user-info') {
-          endpoint = `/raw/ig/user-info?username=${encodeURIComponent(identifier)}`;
+        switch (feedType) {
+          case 'search':
+            endpoint = `/raw/ig/search?query=${encodeURIComponent(query || '')}&limit=${limit}`;
+            break;
+          case 'user-info':
+            endpoint = `/raw/ig/user-info?username=${encodeURIComponent(identifier)}`;
+            break;
+          case 'user-feed':
+            endpoint = `/raw/ig/user-feed?username=${encodeURIComponent(identifier)}&limit=${limit}`;
+            if (cursor) endpoint += `&cursor=${encodeURIComponent(cursor)}`;
+            break;
+          case 'user-reels':
+            endpoint = `/raw/ig/user-reels?username=${encodeURIComponent(identifier)}&limit=${limit}`;
+            if (cursor) endpoint += `&cursor=${encodeURIComponent(cursor)}`;
+            break;
+          case 'user-tags-feed':
+            endpoint = `/raw/ig/user-tags-feed?username=${encodeURIComponent(identifier)}&limit=${limit}`;
+            if (cursor) endpoint += `&cursor=${encodeURIComponent(cursor)}`;
+            break;
+          case 'hashtag-feed':
+            endpoint = `/raw/ig/hashtag-feed?hashtag=${encodeURIComponent(identifier)}&limit=${limit}`;
+            if (cursor) endpoint += `&cursor=${encodeURIComponent(cursor)}`;
+            break;
+          case 'media-info':
+            endpoint = `/raw/ig/media-info?shortcode=${encodeURIComponent(identifier)}`;
+            break;
+          case 'media-comments':
+            endpoint = `/raw/ig/media-comments?shortcode=${encodeURIComponent(identifier)}&limit=${limit}`;
+            if (cursor) endpoint += `&cursor=${encodeURIComponent(cursor)}`;
+            break;
+          case 'media-comment-replies':
+            endpoint = `/raw/ig/media-comment-replies?comment_id=${encodeURIComponent(commentId || identifier)}&limit=${limit}`;
+            if (cursor) endpoint += `&cursor=${encodeURIComponent(cursor)}`;
+            break;
+          case 'audio-info':
+            endpoint = `/raw/ig/audio-info?audio_id=${encodeURIComponent(identifier)}&limit=${limit}`;
+            if (cursor) endpoint += `&cursor=${encodeURIComponent(cursor)}`;
+            break;
+          default:
+            throw new Error(`Invalid feedType '${feedType}' for Instagram`);
         }
         break;
       case 'tiktok':

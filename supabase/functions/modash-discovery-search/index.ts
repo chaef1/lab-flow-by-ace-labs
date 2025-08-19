@@ -53,16 +53,14 @@ serve(async (req) => {
       modashPayload = {
         page: pagination?.page || 0,
         sort: {
-          field: 'relevance', // Use relevance for username searches
+          field: 'followers', // Use followers sort for username searches too
           direction: 'desc'
         },
         filter: {
           // Very broad filters to capture the specific user
           followers: { min: 0, max: 1000000000 },
           engagementRate: { min: 0, max: 1 },
-          // Search for exact username
-          username: cleanUsername,
-          // Also search in bio/text as backup
+          // Search for username in text/bio
           text: cleanUsername
         }
       };
@@ -259,8 +257,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Discovery search error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause
+    });
+    
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: error.message || 'Unknown error occurred',
       details: 'Failed to search creators'
     }), {
       status: 500,

@@ -75,20 +75,39 @@ export const useModashSearch = () => {
           }
         }));
         
-        // If database search succeeds but returns no results, fallback to Modash API
+        // If database search succeeds but returns no results, try text search first
         if (!error && data && (data.results?.length === 0 || data.total === 0)) {
-          console.log('Database search returned no results, falling back to Modash API');
-          ({ data, error } = await supabase.functions.invoke('modash-discovery-search', {
+          console.log('Database search returned no results, trying text search first');
+          ({ data, error } = await supabase.functions.invoke('modash-text-search', {
             body: {
               platform,
-              filters,
-              sort: {
-                field: sort.field,
-                direction: sort.direction
-              },
-              pagination: { page: currentPage }
+              query: keyword.replace('@', ''), // Remove @ for text search
+              limit: 15
             }
           }));
+          
+          // If text search also returns no results, fallback to discovery search
+          if (!error && data && (!data.suggestions || data.suggestions.length === 0)) {
+            console.log('Text search returned no results, falling back to discovery search');
+            ({ data, error } = await supabase.functions.invoke('modash-discovery-search', {
+              body: {
+                platform,
+                filters,
+                sort: {
+                  field: sort.field,
+                  direction: sort.direction
+                },
+                pagination: { page: currentPage }
+              }
+            }));
+          } else if (!error && data?.suggestions) {
+            // Transform text search results to match discovery format
+            data = {
+              results: data.suggestions,
+              total: data.suggestions.length,
+              page: currentPage
+            };
+          }
         }
       } else {
         // Use Modash API directly for hashtag searches or non-keyword searches

@@ -48,7 +48,7 @@ serve(async (req) => {
     let modashPayload;
     
     if (isUsernameSearch && searchKeywords) {
-      // For username searches, use exact matching with narrower filters
+      // For username searches, use simple direct matching
       const cleanUsername = searchKeywords.substring(1);
       modashPayload = {
         page: pagination?.page || 0,
@@ -57,11 +57,24 @@ serve(async (req) => {
           direction: 'desc'
         },
         filter: {
-          // Narrower filters for more precise results
-          followers: { min: 100, max: 50000000 },
-          engagementRate: { min: 0.001, max: 0.25 },
-          // Use username search for exact matching
+          followers: { min: 100, max: 100000000 },
+          engagementRate: { min: 0.001, max: 1 },
+          // Try username field first
           username: cleanUsername
+        }
+      };
+    } else if (!isHashtagSearch && searchKeywords) {
+      // For general text searches, search in bio/text
+      modashPayload = {
+        page: pagination?.page || 0,
+        sort: {
+          field: 'followers',
+          direction: 'desc'
+        },
+        filter: {
+          followers: { min: 100, max: 50000000 },
+          engagementRate: { min: 0.001, max: 1 },
+          text: searchKeywords
         }
       };
     } else {

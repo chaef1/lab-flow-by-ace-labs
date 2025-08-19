@@ -25,9 +25,16 @@ serve(async (req) => {
 
   try {
     console.log('=== MODASH DISCOVERY SEARCH START ===');
-    const { platform, filters, sort, pagination } = await req.json();
+    const requestBody = await req.json();
+    console.log('Raw request body:', JSON.stringify(requestBody, null, 2));
     
-    console.log('Request body:', JSON.stringify({ platform, filters, sort, pagination }, null, 2));
+    // Handle both old and new request formats
+    const platform = requestBody.platform;
+    const filters = requestBody.filters || { influencer: requestBody.filter || {} };
+    const sort = requestBody.sort;
+    const pagination = requestBody.pagination || { page: requestBody.page || 0, limit: requestBody.limit || 15 };
+    
+    console.log('Normalized request:', JSON.stringify({ platform, filters, sort, pagination }, null, 2));
     
     if (!MODASH_API_KEY) {
       console.error('MODASH_API_TOKEN not found in environment');
@@ -41,7 +48,8 @@ serve(async (req) => {
     console.log(`Searching ${platform} creators with filters:`, JSON.stringify(filters, null, 2));
 
     // Create proper Modash API payload according to documentation
-    const searchKeywords = filters.influencer?.keywords?.trim();
+    // Handle keywords from either nested or direct filter structure
+    const searchKeywords = filters.influencer?.keywords?.trim() || filters.keywords?.trim() || requestBody.keywords?.trim();
     const isUsernameSearch = searchKeywords?.startsWith('@');
     const isHashtagSearch = searchKeywords?.startsWith('#');
     
@@ -86,15 +94,15 @@ serve(async (req) => {
           direction: sort?.direction || 'desc'
         },
         filter: {
-          // Apply user's filters or defaults
+          // Apply user's filters or defaults - handle both nested and direct structure
           followers: {
-            min: filters.influencer?.followers?.min || 1000,
-            max: filters.influencer?.followers?.max || 10000000
+            min: filters.influencer?.followers?.min || filters.followers?.min || requestBody.filter?.followers?.min || 1000,
+            max: filters.influencer?.followers?.max || filters.followers?.max || requestBody.filter?.followers?.max || 10000000
           },
-          ...(filters.influencer?.engagementRate && {
+          ...((filters.influencer?.engagementRate || filters.engagementRate || requestBody.filter?.engagementRate) && {
             engagementRate: {
-              min: filters.influencer.engagementRate.min,
-              max: filters.influencer.engagementRate.max
+              min: filters.influencer?.engagementRate?.min || filters.engagementRate?.min || requestBody.filter?.engagementRate?.min || 0.001,
+              max: filters.influencer?.engagementRate?.max || filters.engagementRate?.max || requestBody.filter?.engagementRate?.max || 0.15
             }
           }),
           ...(filters.influencer?.isVerified && { isVerified: true }),

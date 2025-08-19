@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, SlidersHorizontal, Plus, Download, Eye, Bookmark } from 'lucide-react';
+import { Search, SlidersHorizontal, Plus, Download, Eye, Bookmark, Grid, List, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -33,14 +33,29 @@ import { formatNumber } from '@/lib/utils';
 interface PlatformConfig {
   id: Platform;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   color: string;
 }
 
 const platforms: PlatformConfig[] = [
-  { id: 'instagram', label: 'Instagram', icon: '📸', color: 'bg-gradient-to-br from-purple-600 to-pink-500' },
-  { id: 'youtube', label: 'YouTube', icon: '📺', color: 'bg-gradient-to-br from-red-500 to-red-600' },
-  { id: 'tiktok', label: 'TikTok', icon: '🎵', color: 'bg-gradient-to-br from-black to-gray-800' },
+  { 
+    id: 'instagram', 
+    label: 'Instagram', 
+    icon: <div className="w-4 h-4 rounded bg-gradient-to-br from-purple-500 to-pink-500" />,
+    color: 'bg-gradient-to-br from-purple-600 to-pink-500' 
+  },
+  { 
+    id: 'youtube', 
+    label: 'YouTube', 
+    icon: <div className="w-4 h-4 rounded bg-red-600" />,
+    color: 'bg-gradient-to-br from-red-500 to-red-600' 
+  },
+  { 
+    id: 'tiktok', 
+    label: 'TikTok', 
+    icon: <div className="w-4 h-4 rounded bg-black" />,
+    color: 'bg-gradient-to-br from-black to-gray-800' 
+  },
 ];
 
 export const ModernDiscovery = () => {
@@ -71,13 +86,9 @@ export const ModernDiscovery = () => {
     resetSearch,
   } = useModashDiscovery();
 
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showFilters, setShowFilters] = useState(true);
   const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set());
-  const [displaySettings, setDisplaySettings] = useState({
-    showEmailOnly: false,
-    hideWatchlisted: false,
-    columns: ['avatar', 'followers', 'engagement', 'actions']
-  });
 
   // Debounced search suggestions
   useEffect(() => {
@@ -112,186 +123,197 @@ export const ModernDiscovery = () => {
     setSelectedCreators(new Set());
   };
 
-  const handleExportSelected = () => {
-    const selectedResults = results.filter(r => selectedCreators.has(r.userId));
-    const csvData = selectedResults.map(creator => ({
-      username: creator.username,
-      platform: creator.platform,
-      followers: creator.followers,
-      engagement_rate: creator.engagementRate,
-      avg_likes: creator.avgLikes,
-      verified: creator.isVerified,
-      has_contact: creator.hasContactDetails
-    }));
-    
-    const csv = [
-      Object.keys(csvData[0]).join(','),
-      ...csvData.map(row => Object.values(row).join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `creators-${platform}-${Date.now()}.csv`;
-    a.click();
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 glass-panel border-b border-border/50 backdrop-blur-md">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-semibold text-foreground">
-                  Creator Discovery
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Find and analyze creators across platforms
-                </p>
-              </div>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                ⚡ Powered by Modash
-              </Badge>
+      {/* Clean Header */}
+      <div className="sticky top-0 z-50 bg-background border-b border-border">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">Discover Creators</h1>
+              <p className="text-sm text-muted-foreground">Find and analyze influencers across platforms</p>
             </div>
             
-            {selectedCreators.size > 0 && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">
-                  {selectedCreators.size} selected
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleBulkSave}
-                  className="flex items-center gap-1"
-                >
-                  <Bookmark className="w-3 h-3" />
-                  Save
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleExportSelected}
-                  className="flex items-center gap-1"
-                >
-                  <Download className="w-3 h-3" />
-                  Export
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              >
+                {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid className="h-4 w-4" />}
+              </Button>
+              
+              <Button
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+              
+              {selectedCreators.size > 0 && (
+                <>
+                  <Badge variant="secondary">
+                    {selectedCreators.size} selected
+                  </Badge>
+                  <Button size="sm" onClick={handleBulkSave}>
+                    <Bookmark className="h-4 w-4 mr-2" />
+                    Save Selected
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
+
+          {/* Platform Tabs */}
+          <Tabs value={platform} onValueChange={changePlatform}>
+            <TabsList className="grid w-full max-w-md grid-cols-3">
+              {platforms.map(p => (
+                <TabsTrigger
+                  key={p.id}
+                  value={p.id}
+                  className="flex items-center gap-2"
+                >
+                  {p.icon}
+                  {p.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
-      </header>
+      </div>
 
-      <div className="container mx-auto px-6 py-6">
-        <div className="flex gap-6">
-          {/* Filter Rail */}
-          <div className="w-80 shrink-0">
-            <div className="sticky top-24">
-              {/* Platform Tabs */}
-              <Tabs value={platform} onValueChange={changePlatform}>
-                <TabsList className="grid w-full grid-cols-3 mb-6">
-                  {platforms.map(p => (
-                    <TabsTrigger
-                      key={p.id}
-                      value={p.id}
-                      className="flex items-center gap-2 text-xs"
-                    >
-                      <span>{p.icon}</span>
-                      {p.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-
+      <div className="flex">
+        {/* Left Filter Panel */}
+        {showFilters && (
+          <div className="w-80 border-r border-border bg-muted/20">
+            <div className="p-6 space-y-6">
               {/* Search */}
-              <div className="mb-6">
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Search</Label>
                 <ModernSearchInput
                   value={searchKeyword}
                   onChange={setSearchKeyword}
                   suggestions={suggestions}
                   isLoading={isLoadingSuggestions}
                   platform={platform}
-                  placeholder={`@username, email, or keyword...`}
+                  placeholder="@username, email, or keyword..."
                 />
               </div>
-
-              {/* Filter Rail */}
+              
+              {/* Filters */}
               <ModernFilterRail
                 platform={platform}
                 filters={filters}
                 onFiltersChange={updateFilters}
-                displaySettings={displaySettings}
-                onDisplaySettingsChange={setDisplaySettings}
+                displaySettings={{
+                  showEmailOnly: false,
+                  hideWatchlisted: false,
+                  columns: ['avatar', 'followers', 'engagement', 'actions']
+                }}
+                onDisplaySettingsChange={() => {}}
               />
             </div>
           </div>
+        )}
 
-          {/* Results */}
-          <div className="flex-1">
+        {/* Main Results Area */}
+        <div className="flex-1">
+          <div className="p-6">
             {/* Results Header */}
-            {(totalResults > 0 || isLoading) && (
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <p className="text-sm text-muted-foreground">
-                    {isLoading ? 'Searching...' : `${formatNumber(totalResults)} creators`}
-                  </p>
-                  
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs text-muted-foreground">Sort:</Label>
-                    <Select
-                      value={`${sort.field}-${sort.direction}`}
-                      onValueChange={(value) => {
-                        const [field, direction] = value.split('-');
-                        updateSort(field, direction as 'asc' | 'desc');
-                      }}
-                    >
-                      <SelectTrigger className="w-40 h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="followers-desc">Followers ↓</SelectItem>
-                        <SelectItem value="followers-asc">Followers ↑</SelectItem>
-                        <SelectItem value="engagementRate-desc">Engagement ↓</SelectItem>
-                        <SelectItem value="engagementRate-asc">Engagement ↑</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+            {!isLoading && !error && (
+              <Card className="mb-6">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium">
+                          {formatNumber(totalResults)} profiles found
+                        </span>
+                      </div>
+                      
+                      {searchKeyword && (
+                        <Badge variant="secondary">
+                          Search: "{searchKeyword}"
+                        </Badge>
+                      )}
+                    </div>
 
-                {/* Pagination */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={prevPage}
-                    disabled={!canGoPrev || isLoading}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-xs text-muted-foreground px-2">
-                    Page {currentPage + 1}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={nextPage}
-                    disabled={!canGoNext || isLoading}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
+                    <div className="flex items-center gap-4">
+                      {/* Sort */}
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm">Sort by:</Label>
+                        <Select
+                          value={`${sort.field}-${sort.direction}`}
+                          onValueChange={(value) => {
+                            const [field, direction] = value.split('-');
+                            updateSort(field, direction as 'asc' | 'desc');
+                          }}
+                        >
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="followers-desc">Most Followers</SelectItem>
+                            <SelectItem value="followers-asc">Least Followers</SelectItem>
+                            <SelectItem value="engagementRate-desc">Highest Engagement</SelectItem>
+                            <SelectItem value="engagementRate-asc">Lowest Engagement</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Pagination */}
+                      {totalResults > 15 && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={prevPage}
+                            disabled={!canGoPrev || isLoading}
+                          >
+                            Previous
+                          </Button>
+                          <span className="text-sm text-muted-foreground">
+                            Page {currentPage + 1}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={nextPage}
+                            disabled={!canGoNext || isLoading}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            {/* Results Grid */}
+            {/* Results */}
             {isLoading ? (
               <LoadingSpinner />
+            ) : error ? (
+              <EmptyState 
+                title="Something went wrong"
+                description={error.message || 'Failed to load creators'}
+                action={
+                  <Button onClick={() => window.location.reload()}>
+                    Retry
+                  </Button>
+                }
+              />
             ) : results.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className={`
+                ${viewMode === 'grid' 
+                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' 
+                  : 'space-y-3'
+                }
+              `}>
                 {results.map((creator) => (
                   <ModernCreatorCard
                     key={`${creator.platform}-${creator.userId}`}
@@ -300,37 +322,20 @@ export const ModernDiscovery = () => {
                     onSelect={handleSelectCreator}
                     watchlists={watchlists || []}
                     onAddToWatchlist={addToWatchlist}
+                    variant={viewMode}
                   />
                 ))}
               </div>
-            ) : searchKeyword || Object.keys(filters).some(key => 
-              key !== 'followers' && key !== 'engagementRate' && filters[key as keyof typeof filters]
-            ) ? (
+            ) : (
               <EmptyState 
                 title="No creators found"
-                description="Try adjusting your filters or search terms"
+                description="Try adjusting your search terms or filters"
                 action={
                   <Button variant="outline" onClick={resetSearch}>
                     Clear all filters
                   </Button>
                 }
               />
-            ) : (
-              <EmptyState 
-                title="Start discovering creators"
-                description="Use the search bar or filters to find creators"
-              />
-            )}
-
-            {error && (
-              <div className="text-center py-8">
-                <p className="text-destructive mb-4">
-                  {error.message || 'An error occurred while searching'}
-                </p>
-                <Button variant="outline" onClick={() => window.location.reload()}>
-                  Retry
-                </Button>
-              </div>
             )}
           </div>
         </div>

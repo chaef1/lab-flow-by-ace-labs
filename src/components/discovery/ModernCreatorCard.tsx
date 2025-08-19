@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Eye, Bookmark, MoreVertical, CheckCircle, Mail } from 'lucide-react';
+import { Eye, Bookmark, MoreVertical, CheckCircle, Mail, ExternalLink } from 'lucide-react';
 import { ModashCreator } from '@/lib/modash-client';
 import { formatNumber } from '@/lib/utils';
 
@@ -20,6 +20,7 @@ interface ModernCreatorCardProps {
   onSelect: (creatorId: string, selected: boolean) => void;
   watchlists: Array<{ id: string; name: string }>;
   onAddToWatchlist: (data: { watchlistId: string; creator: ModashCreator }) => void;
+  variant?: 'grid' | 'list';
 }
 
 export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
@@ -28,6 +29,8 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
   onSelect,
   watchlists,
   onAddToWatchlist,
+  variant = 'grid',
+  ...props
 }) => {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -45,21 +48,99 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
 
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
-      case 'instagram': return '📸';
-      case 'youtube': return '📺';
-      case 'tiktok': return '🎵';
-      default: return '📱';
+      case 'instagram': 
+        return <div className="w-3 h-3 rounded-sm bg-gradient-to-br from-purple-500 to-pink-500" />;
+      case 'youtube': 
+        return <div className="w-3 h-3 rounded-sm bg-red-600" />;
+      case 'tiktok': 
+        return <div className="w-3 h-3 rounded-sm bg-black" />;
+      default: 
+        return <div className="w-3 h-3 rounded-sm bg-gray-500" />;
     }
   };
 
   const getPlatformColor = (platform: string) => {
     switch (platform) {
-      case 'instagram': return 'bg-gradient-to-br from-purple-500 to-pink-500';
-      case 'youtube': return 'bg-red-500';
-      case 'tiktok': return 'bg-black';
-      default: return 'bg-gray-500';
+      case 'instagram': return 'from-purple-500 to-pink-500';
+      case 'youtube': return 'from-red-500 to-red-600';
+      case 'tiktok': return 'from-gray-800 to-black';
+      default: return 'from-gray-400 to-gray-600';
     }
   };
+
+  // Handle different variants
+  if (variant === 'list') {
+    return (
+      <Card className="group hover:bg-muted/30 transition-all duration-200">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            {/* Selection & Creator Info */}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked) => onSelect(creator.userId, !!checked)}
+              />
+              
+              <Avatar className="h-10 w-10 flex-shrink-0">
+                <AvatarImage src={creator.profilePicUrl} alt={creator.username} />
+                <AvatarFallback>{creator.username[0]?.toUpperCase()}</AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  {getPlatformIcon(creator.platform)}
+                  <h3 className="font-semibold text-sm truncate">{creator.username}</h3>
+                  {creator.isVerified && (
+                    <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  )}
+                  {creator.hasContactDetails && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Mail className="h-3 w-3 mr-1" />
+                      Email
+                    </Badge>
+                  )}
+                </div>
+                
+                {creator.fullName && (
+                  <p className="text-sm text-muted-foreground truncate">{creator.fullName}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Metrics */}
+            <div className="flex items-center gap-8 mr-4">
+              <div className="text-center min-w-0">
+                <p className="text-xs text-muted-foreground">Followers</p>
+                <p className="font-semibold text-sm">{formatNumber(creator.followers)}</p>
+              </div>
+              
+              <div className="text-center min-w-0">
+                <p className="text-xs text-muted-foreground">ER%</p>
+                <p className="font-semibold text-sm">{(creator.engagementRate * 100).toFixed(1)}%</p>
+              </div>
+
+              <div className="text-center min-w-0">
+                <p className="text-xs text-muted-foreground">Avg Likes</p>
+                <p className="font-semibold text-sm">{formatNumber(creator.avgLikes)}</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 flex-shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleSave()}>
+                <Bookmark className="h-3 w-3 mr-1" />
+                Save
+              </Button>
+              <Button size="sm" onClick={() => window.open(`/creator/${creator.platform}/${creator.userId}`, '_blank')}>
+                <ExternalLink className="h-3 w-3 mr-1" />
+                View
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="group relative hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">

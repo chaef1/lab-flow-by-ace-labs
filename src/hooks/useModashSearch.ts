@@ -59,22 +59,35 @@ export const useModashSearch = () => {
   const searchQuery = useQuery({
     queryKey: ['modash-search', platform, filters, sort, currentPage],
     queryFn: async () => {
-      console.log('Making Modash search request:', { platform, filters, sort, currentPage });
-      
-      const { data, error } = await supabase.functions.invoke('modash-discovery-search', {
-        body: {
-          platform,
-          filters,
-          sort: {
-            field: sort.field,
-            direction: sort.direction
-          },
-          pagination: { page: currentPage }
-        }
-      });
+      const keyword = filters.influencer?.keywords?.trim();
+      const useDatabase = !!keyword && !keyword.startsWith('#');
+      console.log('Search request:', { platform, filters, sort, currentPage, useDatabase });
+
+      let data: any, error: any;
+      if (useDatabase) {
+        ({ data, error } = await supabase.functions.invoke('creators-search', {
+          body: {
+            platform,
+            query: keyword,
+            pagination: { page: currentPage }
+          }
+        }));
+      } else {
+        ({ data, error } = await supabase.functions.invoke('modash-discovery-search', {
+          body: {
+            platform,
+            filters,
+            sort: {
+              field: sort.field,
+              direction: sort.direction
+            },
+            pagination: { page: currentPage }
+          }
+        }));
+      }
       
       if (error) {
-        console.error('Supabase function error:', error);
+        console.error('Search function error:', error);
         throw new Error(error.message || 'Failed to search creators');
       }
       

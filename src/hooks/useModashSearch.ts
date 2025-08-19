@@ -64,6 +64,8 @@ export const useModashSearch = () => {
       console.log('Search request:', { platform, filters, sort, currentPage, useDatabase });
 
       let data: any, error: any;
+      
+      // Try database search first for keywords
       if (useDatabase) {
         ({ data, error } = await supabase.functions.invoke('creators-search', {
           body: {
@@ -72,7 +74,24 @@ export const useModashSearch = () => {
             pagination: { page: currentPage }
           }
         }));
+        
+        // If database search succeeds but returns no results, fallback to Modash API
+        if (!error && data && (data.results?.length === 0 || data.total === 0)) {
+          console.log('Database search returned no results, falling back to Modash API');
+          ({ data, error } = await supabase.functions.invoke('modash-discovery-search', {
+            body: {
+              platform,
+              filters,
+              sort: {
+                field: sort.field,
+                direction: sort.direction
+              },
+              pagination: { page: currentPage }
+            }
+          }));
+        }
       } else {
+        // Use Modash API directly for hashtag searches or non-keyword searches
         ({ data, error } = await supabase.functions.invoke('modash-discovery-search', {
           body: {
             platform,

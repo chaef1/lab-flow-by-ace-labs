@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useModashDiscovery, Platform } from '@/hooks/useModashDiscovery';
 import { useCreatorProfile } from '@/hooks/useCreatorProfile';
+import { RateLimitNotice } from './RateLimitNotice';
 import { ModernFilterRail } from './ModernFilterRail';
 import { ModernCreatorCard } from './ModernCreatorCard';
 import { ModernSearchInput } from './ModernSearchInput';
@@ -88,6 +89,8 @@ export const ModernDiscovery = () => {
     resetSearch,
   } = useModashDiscovery();
 
+  const [isRateLimited, setIsRateLimited] = useState(false);
+
   const {
     profileData,
     isLoading: isLoadingProfile,
@@ -100,6 +103,19 @@ export const ModernDiscovery = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(true);
   const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set());
+
+  // Check for rate limiting in the error state
+  useEffect(() => {
+    if (error && (
+      error.message?.includes('rate limit') || 
+      error.message?.includes('429') ||
+      (error as any)?.rateLimited
+    )) {
+      setIsRateLimited(true);
+    } else {
+      setIsRateLimited(false);
+    }
+  }, [error]);
 
   // Debounced search suggestions
   useEffect(() => {
@@ -232,6 +248,9 @@ export const ModernDiscovery = () => {
         {/* Main Results Area */}
         <div className="flex-1">
           <div className="p-6">
+            {/* Rate Limit Notice */}
+            <RateLimitNotice show={isRateLimited} />
+            
             {/* Results Header */}
             {!isLoading && !error && (
               <Card className="mb-6">

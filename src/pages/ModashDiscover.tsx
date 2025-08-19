@@ -218,7 +218,7 @@ const ModashDiscover = () => {
   };
 
   return (
-    <Dashboard title="Creator Discovery" subtitle="Find creators with Modash">
+    <div className="container mx-auto p-6">
       <div className="flex flex-col gap-6">
         {/* Status Banner */}
         {modashStatus && (
@@ -617,7 +617,7 @@ const ModashDiscover = () => {
           </div>
         </div>
       </div>
-    </Dashboard>
+    </div>
   );
 };
 

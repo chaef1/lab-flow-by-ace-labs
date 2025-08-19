@@ -50,43 +50,51 @@ serve(async (req) => {
     // Check if we have cached results to avoid hitting rate limits
     const cacheKey = `${platform}-${searchTerm.toLowerCase()}`;
     
-    // Use the regular search endpoint with optimized params for text/username search
-    const searchPayload = {
-      page: 0,
-      sort: {
-        field: 'followers',
-        direction: 'desc'
-      },
-      filter: {
-        // Use very broad follower range to capture all potential matches
-        followers: {
-          min: 1,
-          max: 1000000000
+    // Use different search strategies based on search type
+    let searchPayload;
+    
+    if (isUsernameSearch) {
+      const cleanUsername = searchTerm.substring(1); // Remove @ symbol
+      // For username search, use exact username matching
+      searchPayload = {
+        page: 0,
+        sort: {
+          field: 'relevance', // Use relevance for username searches
+          direction: 'desc'
         },
-        // Use broad engagement rate
-        engagementRate: {
-          min: 0,
-          max: 1
-        },
-        // Add text search based on type
-        ...(searchTerm && {
-          ...(isUsernameSearch && {
-            // For username search, search in bio/description text
-            text: searchTerm.substring(1) // Remove @ symbol
-          }),
-          ...(isHashtagSearch && {
-            // For hashtag search, use textTags
-            textTags: {
-              hashtags: [searchTerm.substring(1)] // Remove # symbol
-            }
-          }),
-          ...(!isUsernameSearch && !isHashtagSearch && {
-            // For general text search, search in bio
-            text: searchTerm
-          })
-        })
-      }
-    };
+        filter: {
+          // Very broad filters to capture any account
+          followers: { min: 0, max: 1000000000 },
+          engagementRate: { min: 0, max: 1 },
+          // Search for exact username matches
+          username: cleanUsername,
+          // Also search in text as backup
+          text: cleanUsername
+        }
+      };
+    } else if (isHashtagSearch) {
+      const cleanHashtag = searchTerm.substring(1); // Remove # symbol
+      searchPayload = {
+        page: 0,
+        sort: { field: 'followers', direction: 'desc' },
+        filter: {
+          followers: { min: 1000, max: 1000000000 },
+          engagementRate: { min: 0.01, max: 1 },
+          textTags: { hashtags: [cleanHashtag] }
+        }
+      };
+    } else {
+      // General text search
+      searchPayload = {
+        page: 0,
+        sort: { field: 'followers', direction: 'desc' },
+        filter: {
+          followers: { min: 1000, max: 1000000000 },
+          engagementRate: { min: 0.01, max: 1 },
+          text: searchTerm
+        }
+      };
+    }
 
     console.log('Search payload for suggestions:', JSON.stringify(searchPayload, null, 2));
 

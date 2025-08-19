@@ -45,65 +45,84 @@ serve(async (req) => {
     const isUsernameSearch = searchKeywords?.startsWith('@');
     const isHashtagSearch = searchKeywords?.startsWith('#');
     
-    const modashPayload = {
-      page: pagination?.page || 0,
-      sort: {
-        field: sort?.field === 'followers' ? 'followers' : sort?.field || 'followers',
-        direction: sort?.direction || 'desc'
-      },
-      filter: {
-        // For username searches, use more lenient filters
-        ...((!isUsernameSearch || filters.influencer?.followers) && {
+    let modashPayload;
+    
+    if (isUsernameSearch && searchKeywords) {
+      // For username searches, prioritize exact matches
+      const cleanUsername = searchKeywords.substring(1);
+      modashPayload = {
+        page: pagination?.page || 0,
+        sort: {
+          field: 'relevance', // Use relevance for username searches
+          direction: 'desc'
+        },
+        filter: {
+          // Very broad filters to capture the specific user
+          followers: { min: 0, max: 1000000000 },
+          engagementRate: { min: 0, max: 1 },
+          // Search for exact username
+          username: cleanUsername,
+          // Also search in bio/text as backup
+          text: cleanUsername
+        }
+      };
+    } else {
+      // Standard search for non-username queries
+      modashPayload = {
+        page: pagination?.page || 0,
+        sort: {
+          field: sort?.field === 'followers' ? 'followers' : sort?.field || 'followers',
+          direction: sort?.direction || 'desc'
+        },
+        filter: {
+          // Apply user's filters or defaults
           followers: {
-            min: filters.influencer?.followers?.min || (isUsernameSearch ? 1 : 1000),
+            min: filters.influencer?.followers?.min || 1000,
             max: filters.influencer?.followers?.max || 10000000
-          }
-        }),
-        ...((!isUsernameSearch || filters.influencer?.engagementRate) && filters.influencer?.engagementRate && {
-          engagementRate: {
-            min: filters.influencer.engagementRate.min,
-            max: filters.influencer.engagementRate.max
-          }
-        }),
-        ...(filters.influencer?.isVerified && { isVerified: true }),
-        ...(filters.influencer?.hasContactDetails && { hasContactDetails: true }),
-        // Handle different search types properly
-        ...(searchKeywords && {
-          ...(isUsernameSearch && {
-            text: searchKeywords.substring(1) // Remove @ symbol for API
-          }),
-          ...(isHashtagSearch && {
-            textTags: {
-              hashtags: [searchKeywords.substring(1)] // Remove # symbol for API
+          },
+          ...(filters.influencer?.engagementRate && {
+            engagementRate: {
+              min: filters.influencer.engagementRate.min,
+              max: filters.influencer.engagementRate.max
             }
           }),
-          ...(!isUsernameSearch && !isHashtagSearch && {
-            text: searchKeywords
+          ...(filters.influencer?.isVerified && { isVerified: true }),
+          ...(filters.influencer?.hasContactDetails && { hasContactDetails: true }),
+          // Handle different search types
+          ...(searchKeywords && {
+            ...(isHashtagSearch && {
+              textTags: {
+                hashtags: [searchKeywords.substring(1)] // Remove # symbol
+              }
+            }),
+            ...(!isHashtagSearch && {
+              text: searchKeywords
+            })
+          }),
+          // Audience filters
+          ...(filters.influencer?.location?.countries?.length > 0 && {
+            audience: {
+              geo: {
+                countries: filters.influencer.location.countries.map(c => ({ id: c, weight: 0.3 }))
+              }
+            }
+          }),
+          ...(filters.influencer?.gender?.length > 0 && {
+            audience: {
+              gender: {
+                code: filters.influencer.gender[0],
+                weight: 0.3
+              }
+            }
+          }),
+          ...(filters.influencer?.language?.length > 0 && {
+            audience: {
+              languages: filters.influencer.language.map(l => ({ id: l, weight: 0.3 }))
+            }
           })
-        }),
-        // Audience filters
-        ...(filters.influencer?.location?.countries?.length > 0 && {
-          audience: {
-            geo: {
-              countries: filters.influencer.location.countries.map(c => ({ id: c, weight: 0.3 }))
-            }
-          }
-        }),
-        ...(filters.influencer?.gender?.length > 0 && {
-          audience: {
-            gender: {
-              code: filters.influencer.gender[0],
-              weight: 0.3
-            }
-          }
-        }),
-        ...(filters.influencer?.language?.length > 0 && {
-          audience: {
-            languages: filters.influencer.language.map(l => ({ id: l, weight: 0.3 }))
-          }
-        })
-      }
-    };
+        }
+      };
+    }
 
     console.log('Modash API payload:', JSON.stringify(modashPayload, null, 2));
 
@@ -131,8 +150,16 @@ serve(async (req) => {
       if (response.status === 401) {
         throw new Error('Invalid or expired Modash API token');
       } else if (response.status === 429) {
-        console.log('Rate limit exceeded for main search, implementing backoff');
-        throw new Error('Modash API rate limit exceeded. Please wait a moment and try again.');
+        console.log('Rate limit exceeded for main search');
+        return new Response(JSON.stringify({ 
+          error: 'Modash API rate limit exceeded. Please try again later.',
+          results: [],
+          total: 0,
+          rateLimited: true 
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       } else if (response.status === 400) {
         throw new Error('Invalid search parameters. Please check your filters.');
       }

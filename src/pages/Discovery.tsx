@@ -28,6 +28,7 @@ import { AdvancedFilters } from '@/components/discovery/AdvancedFilters';
 import { SearchInput } from '@/components/discovery/SearchInput';
 import { useToast } from '@/hooks/use-toast';
 import { ToastErrorHandler } from '@/components/ui/toast-error-handler';
+import { RateLimitNotice } from '@/components/discovery/RateLimitNotice';
 import { useSearchParams, Link } from 'react-router-dom';
 import Dashboard from '@/components/layout/Dashboard';
 import {
@@ -154,10 +155,13 @@ const Discovery = () => {
   const handleSuggestionSelect = (suggestion: SearchResult) => {
     console.log('Selected suggestion:', suggestion);
     
+    // Update the search keyword to match the selected suggestion
+    setSearchKeyword(`@${suggestion.username}`);
+    
     // Perform search with the selected creator as primary result
     const searchFilters = {
       influencer: {
-        keywords: suggestion.username,
+        keywords: `@${suggestion.username}`,
         // Remove restrictive filters for exact username matches
         followers: { min: 1, max: 1000000000 },
         engagementRate: { min: 0, max: 1 }
@@ -242,6 +246,9 @@ const Discovery = () => {
                 Filters
               </Button>
             </div>
+
+            {/* Rate Limit Notice */}
+            <RateLimitNotice show={!!searchQueryError?.message?.includes('rate limit')} />
 
             {/* Results */}
             <div className="space-y-4">

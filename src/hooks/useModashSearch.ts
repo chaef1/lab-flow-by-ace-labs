@@ -103,7 +103,20 @@ export const useModashSearch = () => {
           } else if (!error && data?.suggestions) {
             // Transform text search results to match discovery format
             data = {
-              results: data.suggestions,
+              results: data.suggestions.map((suggestion: any) => ({
+                userId: suggestion.userId,
+                username: suggestion.username,
+                fullName: suggestion.fullName || '',
+                profilePicUrl: suggestion.profilePicUrl || '',
+                followers: suggestion.followers || 0,
+                engagementRate: 0, // Text search doesn't provide engagement rate
+                avgLikes: 0, // Text search doesn't provide avg likes
+                avgViews: 0, // Text search doesn't provide avg views
+                isVerified: suggestion.isVerified || false,
+                hasContactDetails: false,
+                topAudience: {},
+                platform: suggestion.platform || platform
+              })),
               total: data.suggestions.length,
               page: currentPage
             };

@@ -49,7 +49,8 @@ export const CreatorCard = ({ creator, platform }: CreatorCardProps) => {
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const navigate = useNavigate();
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | undefined) => {
+    if (num === undefined || num === null || isNaN(num)) return '0';
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
@@ -123,7 +124,7 @@ export const CreatorCard = ({ creator, platform }: CreatorCardProps) => {
             <div className="text-center">
               <div className="flex items-center justify-center space-x-1">
                 <Heart className="w-4 h-4 text-muted-foreground" />
-                <span className="font-semibold">{(creator.engagementRate * 100).toFixed(1)}%</span>
+                <span className="font-semibold">{((creator.engagementRate || 0) * 100).toFixed(1)}%</span>
               </div>
               <p className="text-xs text-muted-foreground">Engagement</p>
             </div>

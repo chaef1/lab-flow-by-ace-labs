@@ -48,20 +48,20 @@ serve(async (req) => {
     let modashPayload;
     
     if (isUsernameSearch && searchKeywords) {
-      // For username searches, prioritize exact matches
+      // For username searches, use exact matching with narrower filters
       const cleanUsername = searchKeywords.substring(1);
       modashPayload = {
         page: pagination?.page || 0,
         sort: {
-          field: 'followers', // Use followers sort for username searches too
+          field: 'followers',
           direction: 'desc'
         },
         filter: {
-          // Very broad filters to capture the specific user
-          followers: { min: 0, max: 1000000000 },
-          engagementRate: { min: 0, max: 1 },
-          // Search for username in text/bio
-          text: cleanUsername
+          // Narrower filters for more precise results
+          followers: { min: 100, max: 50000000 },
+          engagementRate: { min: 0.001, max: 0.25 },
+          // Use username search for exact matching
+          username: cleanUsername
         }
       };
     } else {

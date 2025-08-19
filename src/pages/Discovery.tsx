@@ -134,8 +134,8 @@ const Discovery = () => {
     
     const searchFilters = {
       influencer: {
-        ...(searchKeyword.trim() && { keywords: searchKeyword }),
-        ...filters.influencer
+        ...filters.influencer,
+        ...(searchKeyword.trim() && { keywords: searchKeyword })
       }
     };
     

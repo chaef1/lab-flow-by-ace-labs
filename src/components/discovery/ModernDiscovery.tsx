@@ -23,11 +23,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useModashDiscovery, Platform } from '@/hooks/useModashDiscovery';
+import { useCreatorProfile } from '@/hooks/useCreatorProfile';
 import { ModernFilterRail } from './ModernFilterRail';
 import { ModernCreatorCard } from './ModernCreatorCard';
 import { ModernSearchInput } from './ModernSearchInput';
 import { LoadingSpinner } from './LoadingSpinner';
 import { EmptyState } from './EmptyState';
+import { CreatorProfileSheet } from './CreatorProfileSheet';
 import { formatNumber } from '@/lib/utils';
 
 interface PlatformConfig {
@@ -85,6 +87,15 @@ export const ModernDiscovery = () => {
     addToWatchlist,
     resetSearch,
   } = useModashDiscovery();
+
+  const {
+    profileData,
+    isLoading: isLoadingProfile,
+    error: profileError,
+    isOpen: isProfileOpen,
+    openProfile,
+    closeProfile,
+  } = useCreatorProfile();
 
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(true);
@@ -322,6 +333,7 @@ export const ModernDiscovery = () => {
                     onSelect={handleSelectCreator}
                     watchlists={watchlists || []}
                     onAddToWatchlist={addToWatchlist}
+                    onViewProfile={openProfile}
                     variant={viewMode}
                   />
                 ))}
@@ -340,6 +352,14 @@ export const ModernDiscovery = () => {
           </div>
         </div>
       </div>
+
+      <CreatorProfileSheet
+        isOpen={isProfileOpen}
+        onClose={closeProfile}
+        profileData={profileData}
+        isLoading={isLoadingProfile}
+        error={profileError}
+      />
     </div>
   );
 };

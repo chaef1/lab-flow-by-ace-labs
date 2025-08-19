@@ -20,6 +20,7 @@ interface ModernCreatorCardProps {
   onSelect: (creatorId: string, selected: boolean) => void;
   watchlists: Array<{ id: string; name: string }>;
   onAddToWatchlist: (data: { watchlistId: string; creator: ModashCreator }) => void;
+  onViewProfile: (creator: ModashCreator) => void;
   variant?: 'grid' | 'list';
 }
 
@@ -29,8 +30,8 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
   onSelect,
   watchlists,
   onAddToWatchlist,
+  onViewProfile,
   variant = 'grid',
-  ...props
 }) => {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -111,17 +112,17 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
             <div className="flex items-center gap-8 mr-4">
               <div className="text-center min-w-0">
                 <p className="text-xs text-muted-foreground">Followers</p>
-                <p className="font-semibold text-sm">{formatNumber(creator.followers)}</p>
+                <p className="font-semibold text-sm">{formatNumber(creator.followers || 0)}</p>
               </div>
               
               <div className="text-center min-w-0">
                 <p className="text-xs text-muted-foreground">ER%</p>
-                <p className="font-semibold text-sm">{(creator.engagementRate * 100).toFixed(1)}%</p>
+                <p className="font-semibold text-sm">{creator.engagementRate ? `${(creator.engagementRate * 100).toFixed(1)}%` : 'N/A'}</p>
               </div>
 
               <div className="text-center min-w-0">
                 <p className="text-xs text-muted-foreground">Avg Likes</p>
-                <p className="font-semibold text-sm">{formatNumber(creator.avgLikes)}</p>
+                <p className="font-semibold text-sm">{formatNumber(creator.avgLikes || 0)}</p>
               </div>
             </div>
 
@@ -131,9 +132,9 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
                 <Bookmark className="h-3 w-3 mr-1" />
                 Save
               </Button>
-              <Button size="sm" onClick={() => window.open(`/creator/${creator.platform}/${creator.userId}`, '_blank')}>
-                <ExternalLink className="h-3 w-3 mr-1" />
-                View
+              <Button size="sm" onClick={() => onViewProfile(creator)}>
+                <Eye className="h-3 w-3 mr-1" />
+                View Details
               </Button>
             </div>
           </div>
@@ -167,8 +168,10 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
                   {creator.username?.slice(1, 3).toUpperCase() || 'CR'}
                 </AvatarFallback>
               </Avatar>
-              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs ${getPlatformColor(creator.platform)}`}>
-                <span className="text-white">{getPlatformIcon(creator.platform)}</span>
+              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-r ${getPlatformColor(creator.platform)} flex items-center justify-center`}>
+                <span className="text-white text-xs font-bold">
+                  {creator.platform[0]?.toUpperCase()}
+                </span>
               </div>
             </div>
             
@@ -201,7 +204,7 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => window.open(`/creator/${creator.platform}/${creator.userId}`, '_blank')}>
+              <DropdownMenuItem onClick={() => onViewProfile(creator)}>
                 <Eye className="w-4 h-4 mr-2" />
                 View Profile
               </DropdownMenuItem>
@@ -223,7 +226,7 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="text-center">
             <div className="text-lg font-semibold">
-              {formatNumber(creator.followers)}
+              {formatNumber(creator.followers || 0)}
             </div>
             <div className="text-xs text-muted-foreground">Followers</div>
           </div>
@@ -237,14 +240,14 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
           
           <div className="text-center">
             <div className="text-lg font-semibold">
-              {formatNumber(creator.avgLikes)}
+              {formatNumber(creator.avgLikes || 0)}
             </div>
             <div className="text-xs text-muted-foreground">Avg Likes</div>
           </div>
           
           <div className="text-center">
             <div className="text-lg font-semibold">
-              {formatNumber(creator.avgViews)}
+              {formatNumber(creator.avgViews || 0)}
             </div>
             <div className="text-xs text-muted-foreground">Avg Views</div>
           </div>
@@ -276,10 +279,10 @@ export const ModernCreatorCard: React.FC<ModernCreatorCardProps> = ({
             size="sm"
             variant="outline"
             className="flex-1 text-xs"
-            onClick={() => window.open(`/creator/${creator.platform}/${creator.userId}`, '_blank')}
+            onClick={() => onViewProfile(creator)}
           >
             <Eye className="w-3 h-3 mr-1" />
-            View
+            View Details
           </Button>
           <Button
             size="sm"

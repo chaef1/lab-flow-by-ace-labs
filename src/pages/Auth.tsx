@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, signUp, user, isLoading } = useAuth();
+  const { signIn, signUp, signInAsGuest, user, isLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -110,7 +110,7 @@ const Auth = () => {
               </TabsList>
               
               <TabsContent value="signin">
-                <SignInForm signIn={signIn} />
+                <SignInForm signIn={signIn} signInAsGuest={signInAsGuest} />
               </TabsContent>
               
               <TabsContent value="signup">
@@ -124,7 +124,7 @@ const Auth = () => {
   );
 };
 
-const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => Promise<void> }) => {
+const SignInForm = ({ signIn, signInAsGuest }: { signIn: (email: string, password: string) => Promise<void>; signInAsGuest: () => Promise<void> }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -149,11 +149,10 @@ const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => P
     setIsGuestLoading(true);
     
     try {
-      // Use a predefined guest account with admin privileges
-      await signIn('guest@acelabs.co.za', 'GuestAccess2024!');
+      await signInAsGuest();
       navigate('/dashboard');
     } catch (error) {
-      // Error is handled in signIn function
+      // Error is handled in signInAsGuest function
     } finally {
       setIsGuestLoading(false);
     }

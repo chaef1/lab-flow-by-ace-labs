@@ -31,6 +31,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: { first_name?: string; last_name?: string; role?: string }) => Promise<void>;
   signOut: () => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   isAdmin: () => boolean;
   isCreator: () => boolean;
   isBrand: () => boolean;
@@ -193,6 +194,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const signInAsGuest = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Create a mock user object for guest access
+      const mockUser = {
+        id: 'guest-user-id',
+        email: 'guest@acelabs.co.za',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+      } as User;
+
+      // Create a mock session
+      const mockSession = {
+        access_token: 'guest-access-token',
+        refresh_token: 'guest-refresh-token',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        token_type: 'bearer',
+        user: mockUser,
+      } as Session;
+
+      // Create guest profile with admin privileges
+      const guestProfile: UserProfile = {
+        id: 'guest-user-id',
+        first_name: 'Guest',
+        last_name: 'User',
+        avatar_url: null,
+        role: 'admin'
+      };
+
+      // Set the states directly
+      setUser(mockUser);
+      setSession(mockSession);
+      setUserProfile(guestProfile);
+      
+      toast.success('Signed in as Guest with full admin access');
+    } catch (error) {
+      console.error('Error signing in as guest:', error);
+      toast.error('Failed to sign in as guest');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateProfile = async (data: Partial<UserProfile>) => {
     if (!user || !userProfile) return;
     try {
@@ -245,6 +295,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signIn, 
       signUp, 
       signOut,
+      signInAsGuest,
       isAdmin,
       isCreator,
       isBrand,

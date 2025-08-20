@@ -22,6 +22,13 @@ serve(async (req) => {
 
   try {
     const { platform, feedType, identifier, limit = 12, query, cursor, commentId } = await req.json();
+    
+    console.log('RAW API Request:', { platform, feedType, identifier, limit, query, cursor, commentId });
+
+    if (!MODASH_API_KEY) {
+      console.error('MODASH_API_TOKEN not found in environment');
+      throw new Error('Modash API token not configured');
+    }
 
     if (!platform || !feedType) {
       throw new Error('Platform and feedType are required');
@@ -31,7 +38,7 @@ serve(async (req) => {
       throw new Error('Invalid platform specified');
     }
 
-    console.log(`Fetching ${platform} ${feedType} for ${identifier}`);
+    console.log(`Fetching ${platform} ${feedType} for ${identifier || query}`);
 
     let endpoint = '';
     
@@ -103,6 +110,9 @@ serve(async (req) => {
     }
 
     // Call Modash RAW API
+    console.log('Making request to:', `${MODASH_BASE_URL}${endpoint}`);
+    console.log('With API key available:', !!MODASH_API_KEY);
+    
     const response = await fetch(`${MODASH_BASE_URL}${endpoint}`, {
       method: 'GET',
       headers: {
@@ -111,8 +121,14 @@ serve(async (req) => {
       },
     });
 
+    console.log('Modash response status:', response.status);
+    console.log('Modash response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await response.json().catch(async () => {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        return { error: errorText, message: errorText };
+      });
       console.error(`Modash RAW API error (${response.status}):`, errorData);
       
       // Handle specific error types

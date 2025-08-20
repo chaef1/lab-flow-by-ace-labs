@@ -162,16 +162,16 @@ export const useLocalCreatorSearch = () => {
     }
   };
 
-  // Search API and store results
+  // Search API using RAW search (for Live API mode)
   const searchApiAndStore = async (
     platform: string,
     query: string,
     limit: number = 15
   ): Promise<SearchResult> => {
     try {
-      console.log('Searching API for:', query, platform);
+      console.log('Searching RAW API for:', query, platform);
 
-      // Use RAW API for search
+      // Use RAW API for search - this is more reliable than discovery search
       const apiResult = await fetchInstagramSearch(query, limit);
       
       if (!apiResult.users || apiResult.users.length === 0) {
@@ -186,8 +186,8 @@ export const useLocalCreatorSearch = () => {
       const storedCreators: LocalCreator[] = [];
       
       for (const user of apiResult.users) {
-        // Get detailed info for each user
         try {
+          // Get detailed info for each user if possible
           const detailedInfo = await fetchUserInfo(user.username, platform);
           const stored = await storeCreatorToDatabase(detailedInfo, platform);
           if (stored) {
@@ -196,7 +196,22 @@ export const useLocalCreatorSearch = () => {
         } catch (userError) {
           console.error('Error fetching detailed user info:', userError);
           // Store basic info if detailed fetch fails
-          const stored = await storeCreatorToDatabase(user, platform);
+          const basicUser = {
+            userId: user.userId,
+            username: user.username,
+            fullName: user.fullName || '',
+            profilePicUrl: user.profilePicUrl || '',
+            followers: user.followers || 0,
+            following: 0,
+            posts: 0,
+            isVerified: user.isVerified || false,
+            isPrivate: false,
+            engagementRate: 0,
+            avgLikes: 0,
+            avgViews: 0,
+            hasContactDetails: false
+          };
+          const stored = await storeCreatorToDatabase(basicUser, platform);
           if (stored) {
             storedCreators.push(stored);
           }
@@ -232,7 +247,7 @@ export const useLocalCreatorSearch = () => {
     }
   };
 
-  // Combined search strategy: database first, then API
+  // Combined search strategy
   const searchCreators = useMutation({
     mutationFn: async ({
       platform,
@@ -249,41 +264,56 @@ export const useLocalCreatorSearch = () => {
       offset?: number;
       forceApi?: boolean;
     }) => {
-      // If no query and no specific filters, search database
-      if (!query?.trim() && !forceApi) {
+      // For API mode, always use API search
+      if (forceApi) {
+        if (query?.trim()) {
+          return await searchApiAndStore(platform, query.trim(), limit);
+        } else {
+          // If no query in API mode, return empty results
+          return {
+            results: [],
+            total: 0,
+            fromDatabase: false,
+            error: 'Search query required for Live API mode'
+          };
+        }
+      }
+
+      // For database mode, prioritize local search
+      if (!query?.trim()) {
         return await searchLocalDatabase(platform, query, filters, limit, offset);
       }
 
-      // First try local database
-      if (!forceApi) {
-        const localResults = await searchLocalDatabase(platform, query, filters, limit, offset);
-        
-        // If we have good results from database, use them
-        if (localResults.results.length >= Math.min(5, limit)) {
-          return localResults;
-        }
+      // Try local database first, then API as fallback
+      const localResults = await searchLocalDatabase(platform, query, filters, limit, offset);
+      
+      // If we have good results from database, use them
+      if (localResults.results.length >= Math.min(5, limit)) {
+        return localResults;
       }
 
-      // If no/few local results and we have a search query, try API
-      if (query?.trim()) {
+      // If few local results and we have a search query, try API as fallback
+      try {
         const apiResults = await searchApiAndStore(platform, query.trim(), limit);
         
-        // If API failed but we have some local results, return local
-        if (apiResults.error && !forceApi) {
-          const localFallback = await searchLocalDatabase(platform, query, filters, limit, offset);
-          if (localFallback.results.length > 0) {
-            return {
-              ...localFallback,
-              error: `API failed: ${apiResults.error}. Showing local results.`
-            };
-          }
+        // If API failed but we have some local results, return local with warning
+        if (apiResults.error && localResults.results.length > 0) {
+          return {
+            ...localResults,
+            error: `Live search failed: ${apiResults.error}. Showing local results.`
+          };
         }
         
-        return apiResults;
+        return apiResults.error ? localResults : apiResults;
+      } catch (apiError) {
+        // Return local results if API fails
+        return localResults.results.length > 0 ? localResults : {
+          results: [],
+          total: 0,
+          fromDatabase: true,
+          error: 'Both local and live search had no results'
+        };
       }
-
-      // Default to local search
-      return await searchLocalDatabase(platform, query, filters, limit, offset);
     },
     onError: (error: any) => {
       console.error('Search error:', error);
@@ -305,7 +335,7 @@ export const useLocalCreatorSearch = () => {
         .eq('platform', platform)
         .eq('username', username)
         .gte('last_updated', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // 24 hours
-        .single();
+        .maybeSingle();
 
       if (existing) {
         console.log('Using cached creator details for:', username);

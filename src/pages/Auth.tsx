@@ -128,6 +128,7 @@ const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => P
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -141,6 +142,20 @@ const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => P
       // Error is handled in signIn function
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setIsGuestLoading(true);
+    
+    try {
+      // Use a predefined guest account with admin privileges
+      await signIn('guest@acelabs.co.za', 'GuestAccess2024!');
+      navigate('/dashboard');
+    } catch (error) {
+      // Error is handled in signIn function
+    } finally {
+      setIsGuestLoading(false);
     }
   };
 
@@ -175,6 +190,27 @@ const SignInForm = ({ signIn }: { signIn: (email: string, password: string) => P
         disabled={isLoading}
       >
         {isLoading ? "Signing in..." : "Sign In"}
+      </Button>
+      
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            or
+          </span>
+        </div>
+      </div>
+
+      <Button 
+        type="button" 
+        variant="outline" 
+        className="w-full" 
+        onClick={handleGuestLogin}
+        disabled={isGuestLoading}
+      >
+        {isGuestLoading ? "Logging in as Guest..." : "Continue as Guest"}
       </Button>
     </form>
   );

@@ -120,7 +120,15 @@ export const useModashRaw = () => {
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('API search error:', error);
+      // Extract the actual error message from the edge function response
+      const errorMessage = error.message || 'Unknown error occurred';
+      if (errorMessage.includes('insufficient_credits') || errorMessage.includes('not enough credits')) {
+        throw new Error('Insufficient credits for Modash API access. Please upgrade your plan.');
+      }
+      throw new Error(errorMessage);
+    }
     if (!data) throw new Error('No search data received');
 
     return data as RawSearchResult;

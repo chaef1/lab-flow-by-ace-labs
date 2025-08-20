@@ -404,8 +404,16 @@ export const ModernDiscovery = () => {
               <LoadingSpinner />
             ) : error ? (
               <EmptyState 
-                title="Something went wrong"
-                description={error.message || 'Failed to load creators'}
+                title={
+                  error.message?.includes('Insufficient credits') || error.message?.includes('not enough credits') 
+                    ? "Credits Insufficient" 
+                    : "Something went wrong"
+                }
+                description={
+                  error.message?.includes('Insufficient credits') || error.message?.includes('not enough credits')
+                    ? "Your Modash account doesn't have enough credits for Live API searches. Try using Database mode or upgrade your Modash plan."
+                    : error.message || 'Failed to load creators'
+                }
                 action={
                   <Button onClick={() => window.location.reload()}>
                     Retry

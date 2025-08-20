@@ -34,6 +34,7 @@ import { ModernSearchInput } from './ModernSearchInput';
 import { LoadingSpinner } from './LoadingSpinner';
 import { EmptyState } from './EmptyState';
 import { CreatorProfileSheet } from './CreatorProfileSheet';
+import { SearchModeToggle } from './SearchModeToggle';
 import { formatNumber } from '@/lib/utils';
 
 interface PlatformConfig {
@@ -75,6 +76,7 @@ export const ModernDiscovery = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [searchMode, setSearchMode] = useState<'database' | 'api'>('database');
 
   // Hooks
   const { searchCreators, isSearching, searchData } = useLocalCreatorSearch();
@@ -157,12 +159,13 @@ export const ModernDiscovery = () => {
         query: searchKeyword,
         filters,
         limit: 15,
-        offset: currentPage * 15
+        offset: currentPage * 15,
+        forceApi: searchMode === 'api'
       });
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [platform, searchKeyword, filters, currentPage]);
+  }, [platform, searchKeyword, filters, currentPage, searchMode]);
 
   // Utility functions
   const changePlatform = useCallback((newPlatform: Platform) => {
@@ -293,6 +296,18 @@ export const ModernDiscovery = () => {
                     placeholder="@username, email, or keyword..."
                     className="w-full"
                   />
+              </div>
+              
+              {/* Search Mode Toggle */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Search Mode</Label>
+                <SearchModeToggle
+                  searchMode={searchMode}
+                  onModeChange={setSearchMode}
+                  isDatabaseFirst={true}
+                  resultsCount={totalResults}
+                  fromDatabase={searchData?.fromDatabase}
+                />
               </div>
               
               {/* Filters */}

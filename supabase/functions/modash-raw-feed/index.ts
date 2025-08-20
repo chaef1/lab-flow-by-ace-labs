@@ -113,15 +113,19 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error(`Modash RAW API error:`, errorData);
+      console.error(`Modash RAW API error (${response.status}):`, errorData);
       
       // Handle specific error types
-      if (errorData.code === 'not_enough_credits') {
+      if (errorData.code === 'not_enough_credits' || errorData.message?.includes('credits')) {
         throw new Error('Insufficient credits for RAW API access. Please upgrade your Modash plan.');
-      } else if (response.status === 429) {
+      } else if (response.status === 429 || errorData.code === 'rate_limit_exceeded') {
         throw new Error('Rate limit exceeded. Please try again in a few minutes.');
+      } else if (response.status === 401 || response.status === 403) {
+        throw new Error('Invalid API credentials. Please check your Modash API token.');
+      } else if (response.status === 404) {
+        throw new Error('User not found or content unavailable.');
       } else {
-        throw new Error(errorData.message || `Modash RAW API returned ${response.status}`);
+        throw new Error(errorData.message || `Modash RAW API returned ${response.status}: ${response.statusText}`);
       }
     }
 
@@ -139,11 +143,30 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('RAW feed error:', error);
+    
+    // Better error response with details
+    let statusCode = 500;
+    let errorMessage = error.message;
+    
+    if (error.message?.includes('Rate limit')) {
+      statusCode = 429;
+    } else if (error.message?.includes('Insufficient credits')) {
+      statusCode = 402; // Payment Required
+    } else if (error.message?.includes('Invalid API credentials')) {
+      statusCode = 401;
+    } else if (error.message?.includes('not found')) {
+      statusCode = 404;
+    }
+    
     return new Response(JSON.stringify({ 
-      error: error.message,
-      details: 'Failed to fetch RAW feed data'
+      error: errorMessage,
+      details: 'Failed to fetch RAW feed data',
+      code: statusCode === 429 ? 'rate_limit_exceeded' : 
+            statusCode === 402 ? 'insufficient_credits' :
+            statusCode === 401 ? 'invalid_credentials' :
+            statusCode === 404 ? 'not_found' : 'api_error'
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
